@@ -99,10 +99,10 @@ function deploy_prometheus_and_grafana() {
   helm upgrade --install -n monitoring --create-namespace kube-prometheus-stack \
     prometheus-community/kube-prometheus-stack \
     --version=$PROMETHEUS_STACK_VERSION --wait \
-    --set alertmanager.enabled=false \
     --set grafana.enabled=true \
     --set grafana.adminPassword='admin' \
     --set grafana.persistence.enabled=true \
+    --set alertmanager.enabled=false \
     --set nodeExporter.enabled=false \
     --set defaultRules.rules.alertmanager=false \
     --set defaultRules.rules.nodeExporterAlerting=false \
