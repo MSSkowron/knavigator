@@ -14,55 +14,73 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+# Enable strict error handling
+set -euo pipefail
 
-REPO_HOME=$(readlink -f $(dirname $(readlink -f "$0"))/../)
+# Determine script and repository locations
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+REPO_HOME=$(readlink -f "${SCRIPT_DIR}/../")
 
-source $REPO_HOME/scripts/env.sh
+# Source environment and functions
+source "${REPO_HOME}/scripts/env.sh"
 
-printYellow Creating test cluster
+# Configuration
+readonly KIND_NODE_VERSION="v1.29.7"
+readonly REQUIRED_COMMANDS=(kind helm kubectl)
 
-echo "This script installs a kind cluster and deploys Prometheus, Grafana, KWOK, and workload manager of your choice (Kueue/Volcano/Apache YuniKorn)"
+main() {
+    log_info "Creating test cluster..."
 
-fail_if_command_not_found kind
-fail_if_command_not_found helm
-fail_if_command_not_found kubectl
+    # Check required commands
+    for cmd in "${REQUIRED_COMMANDS[@]}"; do
+        check_command "$cmd" || exit 1
+    done
 
-if kind get clusters > /dev/null 2>&1; then
-  echo "Kind is running. Delete? (y/n)"
-  read -p "> " choice
-  if [[ "$choice" == "y" ]]; then
-    kind delete cluster
-    kind create cluster --image=kindest/node:v1.29.7
-  fi
-else
-  kind create cluster --image=kindest/node:v1.29.7
-fi
+    setup_kind_cluster
+    deploy_prometheus_and_grafana
+    deploy_kwok
 
-deploy_prometheus_and_grafana
+    # Deploy pod completion configuration
+    kubectl apply -f "${REPO_HOME}/charts/overrides/kwok/pod-complete.yaml"
 
-deploy_kwok
-kubectl apply -f $REPO_HOME/charts/overrides/kwok/pod-complete.yaml
+    select_and_deploy_workload_manager
 
-echo ""
-printYellow "Select workload manager"
-cat << EOF
-  1: Kueue
-  2: Volcano
-  3: YuniKorn
-EOF
-read -p "> " choice
+    log_success "Cluster setup complete!"
+}
 
-case "$choice" in
-  1)
-    deploy_kueue
-    ;;
-  2)
-    deploy_volcano
-    ;;
-  3)
-    deploy_yunikorn
-    ;;
-esac
+setup_kind_cluster() {
+    if kind get clusters &> /dev/null; then
+        log_info "Existing kind cluster detected."
+        read -rp "Delete existing cluster? (y/n) > " choice
+        if [[ "${choice,,}" == "y" ]]; then
+            kind delete cluster
+            create_new_cluster
+        fi
+    else
+        create_new_cluster
+    fi
+}
 
-printYellow Cluster is ready
+create_new_cluster() {
+    log_info "Creating new kind cluster..."
+    kind create cluster --image="kindest/node:${KIND_NODE_VERSION}"
+}
+
+select_and_deploy_workload_manager() {
+    log_info "Select workload manager:"
+    PS3="Enter choice > "
+    select manager in "Kueue" "Volcano" "YuniKorn"; do
+        case "$manager" in
+            "Kueue"|"Volcano"|"YuniKorn")
+                deploy_workload_manager "${manager,,}"
+                break
+                ;;
+            *)
+                log_error "Invalid selection"
+                ;;
+        esac
+    done
+}
+
+# Run main function
+main "$@"
