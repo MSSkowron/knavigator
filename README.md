@@ -43,21 +43,25 @@ Regardless of the configuration mode, Knavigator executes tasks sequentially. Ea
 
 #### Prerequisites
 
-Before you begin, ensure you have the following tools installed on your system:
+Ensure you have the following tools installed on your system before proceeding:
 
 - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation): For creating local Kubernetes clusters
-
-    To properly install a scheduling framework or workload manager we need to have a real node like kind's. Deploying the workload manager on a virtual node will cause it to malfunction.
-
-    If you have already created virtual nodes or run some workloads, consider deleting these nodes:
-
-    ```bash
-    kubectl delete node -l type=kwok
-    ```
 
 - [helm](https://helm.sh/docs/helm/helm_install/): The package manager for Kubernetes
 
 - [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl): The Kubernetes command-line tool
+
+Important notes:
+
+- A real node (like kind's) is required for proper scheduling framework or workload manager functionality
+
+- Deploying the workload manager on a virtual node will cause it to malfunction
+
+- If you have existing virtual nodes or workloads, clean them up:
+
+    ```bash
+    kubectl delete node -l type=kwok
+    ```
 
 #### Installation
 
