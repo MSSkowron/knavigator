@@ -22,7 +22,7 @@ source $REPO_HOME/scripts/env.sh
 
 printYellow Creating test cluster
 
-echo "This script installs a kind cluster and deploys Prometheus, KWOK, and workload manager of your choice"
+echo "This script installs a kind cluster and deploys Prometheus, Grafana, KWOK, and workload manager of your choice (Kueue/Volcano/Apache YuniKorn)"
 
 fail_if_command_not_found kind
 fail_if_command_not_found helm
@@ -39,43 +39,29 @@ else
   kind create cluster --image=kindest/node:v1.29.7
 fi
 
-deploy_prometheus
+deploy_prometheus_and_grafana
 
 deploy_kwok
 kubectl apply -f $REPO_HOME/charts/overrides/kwok/pod-complete.yaml
 
 echo ""
-printYellow "Select workload manager or leave it blank to skip:"
+printYellow "Select workload manager"
 cat << EOF
-  1: jobset (https://github.com/kubernetes-sigs/jobset)
-  2: kueue (https://github.com/kubernetes-sigs/kueue)
-  3: volcano (https://github.com/volcano-sh/volcano)
-  4: yunikorn (https://github.com/apache/yunikorn-core)
-  5: run:ai (https://www.run.ai)
-  6: combined: coscheduler plugin + jobset + kueue
+  1: Kueue
+  2: Volcano
+  3: YuniKorn
 EOF
 read -p "> " choice
 
 case "$choice" in
   1)
-    deploy_jobset
+    deploy_kueue
     ;;
   2)
-    deploy_kueue
-    ;;
-  3)
     deploy_volcano
     ;;
-  4)
+  3)
     deploy_yunikorn
-    ;;
-  5)
-    deploy_runai
-    ;;
-  6)
-    deploy_scheduler_plugins
-    deploy_jobset
-    deploy_kueue
     ;;
 esac
 

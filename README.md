@@ -7,7 +7,7 @@
 
 ## Overview
 
-Knavigator is a project designed to analyze, optimize, and compare scheduling systems, with a focus on AI/ML workloads. It addresses various needs, including testing, troubleshooting, benchmarking, chaos engineering, performance analysis, and optimization. 
+Knavigator is a project designed to analyze, optimize, and compare scheduling systems, with a focus on AI/ML workloads. It addresses various needs, including testing, troubleshooting, benchmarking, chaos engineering, performance analysis, and optimization.
 
 The term "knavigator" is derived from "navigator," with a silent "k" prefix representing "kubernetes." Much like a navigator, this initiative assists in charting a secure route and steering clear of obstacles within the cluster.
 
@@ -38,6 +38,56 @@ In its standalone mode, Knavigator can be set up using a descriptive YAML file, 
 Alternatively, in server or package configurations, Knavigator can receive a series of API calls to define the tasks to be performed. This mode facilitates integration with existing systems or frameworks, providing flexibility in how tasks are defined and managed.
 
 Regardless of the configuration mode, Knavigator executes tasks sequentially. Each task is dependent on the successful completion of the preceding one. Therefore, if any task fails during execution, the entire test is marked as failed. This ensures comprehensive testing and accurate reporting of results, maintaining the integrity of the testing process.
+
+### Getting started
+
+#### Prerequisites
+
+Before you begin, ensure you have the following tools installed on your system:
+
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation): For creating local Kubernetes clusters
+
+- [helm](https://helm.sh/docs/helm/helm_install/): The package manager for Kubernetes
+
+- [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl): The Kubernetes command-line tool
+
+#### Installation
+
+1. Clone the repository
+
+    ```bash
+    git clone git@github.com:MSSkowron/knavigator.git
+    cd knavigator
+    ```
+
+2. Create and configure the test cluster
+
+    ```bash
+    ./scripts/create-test-cluster.sh
+    ```
+
+#### Monitoring Setup (Optional)
+
+To access the Grafana dashboard for monitoring:
+
+1. Forward the Grafana service port
+
+    ```bash
+    kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+    ```
+
+2. Access the Grafana dashboard
+
+    - URL: <http://localhost:3000>
+
+    - Default credentials:
+
+        - Username: `admin`
+        - Password: `admin`
+
+#### Nodes creation
+
+TODO
 
 ### Documentation
 

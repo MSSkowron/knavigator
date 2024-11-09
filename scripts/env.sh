@@ -91,7 +91,7 @@ function deploy_kwok() {
 
 PROMETHEUS_STACK_VERSION=61.5.0
 
-function deploy_prometheus() {
+function deploy_prometheus_and_grafana() {
   printGreen Deploying Prometheus
 
   helm repo add --force-update prometheus-community https://prometheus-community.github.io/helm-charts
@@ -100,7 +100,9 @@ function deploy_prometheus() {
     prometheus-community/kube-prometheus-stack \
     --version=$PROMETHEUS_STACK_VERSION --wait \
     --set alertmanager.enabled=false \
-    --set grafana.enabled=false \
+    --set grafana.enabled=true \
+    --set grafana.adminPassword='admin' \
+    --set grafana.persistence.enabled=true \
     --set nodeExporter.enabled=false \
     --set defaultRules.rules.alertmanager=false \
     --set defaultRules.rules.nodeExporterAlerting=false \
@@ -119,22 +121,6 @@ function deploy_prometheus() {
 
 # Tested workload managers
 #
-
-# https://github.com/kubernetes-sigs/jobset
-JOBSET_VERSION=v0.7.0
-
-function deploy_jobset() {
-  printGreen Deploying jobset
-
-  kubectl apply --server-side -f https://github.com/kubernetes-sigs/jobset/releases/download/${JOBSET_VERSION}/manifests.yaml
-
-  kubectl -n jobset-system patch deploy jobset-controller-manager \
-    --patch-file=$REPO_HOME/charts/overrides/kwok-affinity-deployment-patch.yaml
-
-  wait_for_pods "jobset-system" 1
-
-  kubectl -n jobset-system wait --for=condition=ready pod -l control-plane=controller-manager --timeout=600s
-}
 
 # https://github.com/kubernetes-sigs/kueue
 KUEUE_VERSION=v0.9.0
@@ -186,57 +172,4 @@ function deploy_yunikorn() {
     --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
 
   kubectl -n yunikorn wait --for=condition=ready pod -l app=yunikorn --timeout=600s
-}
-
-# https://www.run.ai/
-TRAINING_OPERATOR_VERSION=v1.8.0
-MPI_OPERATOR_VERSION=v0.4.0
-RUNAI_VERSION=2.18.49
-
-function deploy_runai() {
-  printGreen Deploying run:ai
-
-  if [[ -z "$RUNAI_CONTROL_PLANE_URL" ]] || [[ -z "$RUNAI_CLIENT_SECRET" ]] || [[ -z "$RUNAI_CLUSTER_ID" ]]; then
-    printRed "
-Run:ai deployment requires environment variables:
-  RUNAI_CONTROL_PLANE_URL : control plane URL
-  RUNAI_CLIENT_SECRET     : client secret
-  RUNAI_CLUSTER_ID        : cluster UID"
-    exit 1
-  fi
-
-  kubectl apply -k "github.com/kubeflow/training-operator/manifests/overlays/standalone?ref=$TRAINING_OPERATOR_VERSION"
-
-  kubectl patch deployment training-operator -n kubeflow --type='json' \
-    -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args", "value": ["--enable-scheme=tfjob", "--enable-scheme=pytorchjob", "--enable-scheme=xgboostjob"]}]'
-
-  kubectl delete crd mpijobs.kubeflow.org
-
-  kubectl apply -f https://raw.githubusercontent.com/kubeflow/mpi-operator/$MPI_OPERATOR_VERSION/deploy/v2beta1/mpi-operator.yaml
-
-  openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes -out certificate.pem -keyout private_key.pem -subj "/CN=$RUNAI_CONTROL_PLANE_URL"
-
-  kubectl create ns runai
-
-  kubectl create secret tls runai-cluster-domain-tls-secret -n runai --cert certificate.pem --key private_key.pem
-
-  helm repo add --force-update runai https://runai.jfrog.io/artifactory/api/helm/run-ai-charts
-
-  helm upgrade --install runai-cluster runai/runai-cluster -n runai \
-    --version="$RUNAI_VERSION" --create-namespace --wait \
-    --set controlPlane.url=$RUNAI_CONTROL_PLANE_URL \
-    --set controlPlane.clientSecret=$RUNAI_CLIENT_SECRET \
-    --set cluster.uid=$RUNAI_CLUSTER_ID \
-    --set cluster.url=https://example.com \
-    --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
-}
-
-SCHEDULER_PLUGINS_VERSION=v0.29.7
-function deploy_scheduler_plugins() {
-  printGreen Deploying scheduler-plugins
-
-  helm upgrade --install --repo https://scheduler-plugins.sigs.k8s.io scheduler-plugins scheduler-plugins \
-    -n scheduler-plugins --create-namespace --version $SCHEDULER_PLUGINS_VERSION \
-    --set-json 'scheduler.affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}' \
-    --set-json 'controller.affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
 }
