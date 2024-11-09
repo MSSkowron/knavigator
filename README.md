@@ -7,7 +7,7 @@
 
 ## Overview
 
-Knavigator is a project designed to analyze, optimize, and compare scheduling systems, with a focus on AI/ML workloads. It addresses various needs, including testing, troubleshooting, benchmarking, chaos engineering, performance analysis, and optimization. 
+Knavigator is a project designed to analyze, optimize, and compare scheduling systems, with a focus on AI/ML workloads. It addresses various needs, including testing, troubleshooting, benchmarking, chaos engineering, performance analysis, and optimization.
 
 The term "knavigator" is derived from "navigator," with a silent "k" prefix representing "kubernetes." Much like a navigator, this initiative assists in charting a secure route and steering clear of obstacles within the cluster.
 
@@ -46,6 +46,56 @@ Here's a demo showing how to install and configure `Knavigator`, and run an exam
 <p align="center">
 <img width="800" src="./demos/basic.svg">
 </p>
+
+### Getting started
+
+#### Prerequisites
+
+Before you begin, ensure you have the following tools installed on your system:
+
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation): For creating local Kubernetes clusters
+
+- [helm](https://helm.sh/docs/helm/helm_install/): The package manager for Kubernetes
+
+- [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl): The Kubernetes command-line tool
+
+#### Installation
+
+1. Clone the repository
+
+    ```bash
+    git clone git@github.com:MSSkowron/knavigator.git
+    cd knavigator
+    ```
+
+2. Create and configure the test cluster
+
+    ```bash
+    ./scripts/create-test-cluster.sh
+    ```
+
+#### Monitoring Setup (Optional)
+
+To access the Grafana dashboard for monitoring:
+
+1. Forward the Grafana service port
+
+    ```bash
+    kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+    ```
+
+2. Access the Grafana dashboard
+
+    - URL: <http://localhost:3000>
+
+    - Default credentials:
+
+        - Username: `admin`
+        - Password: `admin`
+
+#### Nodes creation
+
+TODO
 
 ### Documentation
 
