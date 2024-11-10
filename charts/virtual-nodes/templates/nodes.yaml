@@ -18,7 +18,7 @@
 */}}
 {{- $defaultResources := dict }}
 {{- $defaultResources = set $defaultResources "cpu" 32 }}
-{{- $defaultResources = set $defaultResources "memory" 256Gi }}
+{{- $defaultResources = set $defaultResources "memory" "256Gi" }}
 {{- $defaultResources = set $defaultResources "pods" 110 }}
 {{- $defaultResources = set $defaultResources "nvidia.com/gpu" 0 }}
 {{- $defaultResources = set $defaultResources "nvidia.com/mlnxnics" 0 }}
