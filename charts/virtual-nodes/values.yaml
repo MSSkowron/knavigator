@@ -17,7 +17,7 @@
 nodes:
 # High-Performance Computing Nodes with NVIDIA A100 GPUs
 - type: gpu
-  count: 2
+  count: 0
   labels:
     nvidia.com/gpu.product: "NVIDIA-A100-SXM4-80GB"
     nvidia.com/gpu.present: "true"
@@ -40,7 +40,7 @@ nodes:
 
 # Memory-Optimized Nodes for Data Processing
 - type: memory-optimized
-  count: 2
+  count: 0
   resources:
     cpu: 64
     memory: 512Gi
@@ -49,7 +49,7 @@ nodes:
 
 # High-Throughput Computing Nodes
 - type: htc
-  count: 2
+  count: 0
   resources:
     cpu: 32
     memory: 128Gi
@@ -57,7 +57,7 @@ nodes:
 
 # I/O-Optimized Nodes for Data-Intensive Workloads
 - type: io-optimized
-  count: 2
+  count: 0
   resources:
     cpu: 16
     memory: 64Gi
@@ -65,7 +65,7 @@ nodes:
 
 # General Purpose Batch Processing Nodes
 - type: batch-standard
-  count: 2
+  count: 16
   resources:
     cpu: 16
     memory: 64Gi
