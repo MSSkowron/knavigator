@@ -110,7 +110,7 @@ To access the Grafana dashboard for monitoring:
 TODO
 
 ```bash
-helm upgrade --install virtual-nodes charts/virtual-nodes -f charts/virtual-nodes/values-example.yaml
+helm upgrade --install virtual-nodes charts/virtual-nodes -f charts/virtual-nodes/values.yaml
 ```
 
 #### Using Knavigator
