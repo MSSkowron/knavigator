@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# Configuration of virtual nodes for batch processing research
+# Includes various node types optimized for different workload patterns
 
 nodes:
-- type: dgxa100.80g
+# High-Performance Computing Nodes with NVIDIA A100 GPUs
+- type: gpu
   count: 2
-  annotations: {}
   labels:
-    nvidia.com/gpu.count: "8"
-    nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+    nvidia.com/gpu.product: "NVIDIA-A100-SXM4-80GB"
     nvidia.com/gpu.present: "true"
+    nvidia.com/gpu.count: "8"
   conditions:
   - message: Filesystem is not read-only
     reason: FilesystemIsNotReadOnly
@@ -30,44 +32,32 @@ nodes:
     status: "False"
     type: KernelDeadlock
   resources:
-    pods: 110
     cpu: 256
-    nvidia.com/gpu: 8
-    nvidia.com/mlnxnics: 16
-    memory: 1Ti
-    ephemeral-storage: 15Ti
-- type: dgxh100.80g
-  count: 2
-  annotations: {}
-  labels:
-    nvidia.com/gpu.count: "8"
-    nvidia.com/gpu.product: NVIDIA-H100-SXM4-80GB
-    nvidia.com/gpu.present: "true"
-  conditions:
-  - message: Filesystem is not read-only
-    reason: FilesystemIsNotReadOnly
-    status: "False"
-    type: ReadonlyFilesystem
-  - message: kernel has no deadlock
-    reason: KernelHasNoDeadlock
-    status: "False"
-    type: KernelDeadlock
-  resources:
-    pods: 110
-    cpu: 224
-    nvidia.com/gpu: 8
-    nvidia.com/mlnxnics: 16
     memory: 2Ti
-    ephemeral-storage: 30Ti
-- type: cpu.x86
+    nvidia.com/gpu: 8
+    nvidia.com/mlnxnics: 16
+    ephemeral-storage: 15Ti
+
+# High-Memory CPU Nodes for Memory-Intensive Workloads
+- type: memory
   count: 2
-  annotations: {}
-  labels: {}
-  conditions: {}
   resources:
-    pods: 110
+    cpu: 96
+    memory: 768Gi
+    ephemeral-storage: 5Ti
+
+# Fast Storage Nodes for I/O-Intensive Workloads
+- type: storage
+  count: 2
+  resources:
     cpu: 48
-    nvidia.com/gpu: 0
-    nvidia.com/mlnxnics: 0
-    memory: 196692052Ki
-    ephemeral-storage: 2537570228Ki
+    memory: 196Gi
+    ephemeral-storage: 10Ti
+
+# Standard CPU Nodes for General Batch Processing
+- type: standard
+  count: 2
+  resources:
+    cpu: 64
+    memory: 256Gi
+    ephemeral-storage: 2Ti
