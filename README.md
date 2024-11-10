@@ -105,13 +105,46 @@ To access the Grafana dashboard for monitoring:
         - Username: `admin`
         - Password: `admin`
 
-#### Nodes creation
+#### Virtual Nodes
 
-TODO
+The cluster can be extended with virtual nodes using the provided Helm chart. These nodes can be customized based on your requirements.
+
+##### Configuration
+
+1. Navigate to the virtual nodes configuration file (`./charts/virtual-nodes/values.yaml`)
+
+2. Define your virtual nodes by specifying:
+
+    - Node type and count
+    - Resource allocation (CPU, memory, GPUs)
+    - Node labels and annotations
+    - Custom conditions
+
+##### Deployment
+
+Deploy or update virtual nodes using Helm:
 
 ```bash
 helm upgrade --install virtual-nodes charts/virtual-nodes -f charts/virtual-nodes/values.yaml
 ```
+
+To verify the deployment:
+
+```bash
+kubectl get nodes
+kubectl get node <node-name> -o yaml   # View detailed node configuration
+```
+
+To remove virtual nodes:
+
+```bash
+helm uninstall virtual-nodes
+```
+
+To update nodes configuration:
+
+1. Modify `values.yaml`
+2. Rerun the helm upgrade command
 
 #### Using Knavigator
 
