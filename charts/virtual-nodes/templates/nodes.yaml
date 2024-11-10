@@ -58,8 +58,15 @@
   {{- $resources = set $resources "ephemeral-storage"   "30Ti" }}
   {{- $params = set $params "resources" $resources }}
 
+{{/*
+# Default case for other node types (like cpu.x86)
+*/}}
 {{- else }}
-  {{- $params = set $params "resources" $node.resources }}
+  {{- if $node.resources }}
+    {{- $params = set $params "resources" $node.resources }}
+  {{- else }}
+    {{- $params = set $params "resources" $defaultResources }}
+  {{- end }}
 {{- end }}
 
 {{- $count := ($node.count | int) }}
