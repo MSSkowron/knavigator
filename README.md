@@ -140,7 +140,254 @@ To update nodes configuration:
 
 #### Using Knavigator
 
-TODO
+Knavigator requires the `KUBECONFIG` environment variable or the presence of the `-kubeconfig` or `-kubectx` command-line arguments.
+
+1. Build the binary
+
+    ```bash
+    make build
+    ```
+
+2. Run a workflow
+
+    ```bash
+    ./bin/knavigator -workflow <workflow>
+    ```
+
+    Additionally, you can use the `-cleanup` flag to remove any leftover objects created by the test, and the `-v` flag to increase verbosity. For usage instructions, use the -h flag.
+
+    ```bash
+    ./bin/knavigator -workflow resources/workflows/k8s/test-job.yml -v 4 -cleanup
+    ```
+
+#### Creating a workflow
+
+Workflows are defined in YAML files and consist of sequential tasks. Each task performs a specific operation like registering templates, configuring resources, or validating states.
+
+Example workflows can be found in `./resources/workflows`.
+
+##### Basic Structure
+
+Every workflow YAML file follows this basic structure:
+
+```yaml
+name: test-name
+description: description of the test
+tasks:
+- id: unique-task-id-1
+  type: TaskType
+  params:
+    # task-specific parameters
+- id: unique-task-id-2
+  type: TaskType
+  params:
+    # task-specific parameters
+...
+```
+
+Key Concepts:
+
+- Each task must have a unique id
+- Tasks are executed sequentially
+- Tasks can reference other tasks using refTaskId
+- Most tasks support timeout parameters
+
+##### Task types
+
+1. `RegisterObj`
+
+    Registers Kubernetes object templates for later use.
+
+    ```yaml
+    - id: register
+    type: RegisterObj
+    params:
+        template: "path/to/template.yaml"
+        # Template-specific parameters
+    ```
+
+2. `SubmitObj`
+
+    Creates Kubernetes objects from registered templates.
+
+    ```yaml
+    - id: submit-task
+    type: SubmitObj
+    params:
+        refTaskId: register-task-id
+        count: n  # Number of objects to create
+        canExist: true/false  # Optional: whether object can already exist
+        params:
+        # Template-specific parameters
+    ```
+
+3. `DeleteObj`
+
+    Removes created objects.
+
+    ```yaml
+    - id: delete
+    type: DeleteObj
+    params:
+        refTaskId: task-to-delete
+
+4. `Configure`
+
+    Sets up cluster resources like nodes, namespaces, configmaps, priority classes.
+
+    ```yaml
+    - id: configure
+    type: Configure
+    params:
+        nodes:
+        - type: node-type
+          count: n
+          labels:
+            key: value
+        namespaces:
+        - name: namespace-name
+          op: create
+        priorityClasses:
+        - name: priority-class-name
+          value: priority-value
+          op: create
+        configmaps:
+        - name: cofigmapname
+          namespace: namespace-name
+          op: create
+          data:
+            configmap.yaml: |
+              ...
+        timeout: duration
+    ```
+
+5. `CheckObj`
+
+    Validates object states and conditions.
+
+    ```yaml
+    - id: status
+    type: CheckObj
+    params:
+        refTaskId: task-to-check
+        state:
+            status:
+                key: value
+        timeout: duration
+    ```
+
+6. `CheckPod`
+
+   Specifically validates pod states.
+
+    ```yaml
+    - id: status
+    type: CheckPod
+    params:
+        refTaskId: task-to-check
+        status: Expected-Status
+        nodeLabels:
+            key: value
+        timeout: duration
+    ```
+
+7. `Sleep`
+
+    Introduces delays between tasks.
+
+    ```yaml
+    - id: sleep
+    type: Sleep
+    params:
+        timeout: duration
+    ```
+
+##### Examples
+
+1. Basic Job Test
+
+    ```yaml
+    name: test-k8s-job
+    description: submit and validate a k8s job
+    tasks:
+    - id: register
+    type: RegisterObj
+    params:
+        template: "resources/templates/k8s/job.yml"
+        nameFormat: "job{{._ENUM_}}"
+    - id: configure
+    type: Configure
+    params:
+        nodes:
+        - type: dgxa100.80g
+        count: 2
+        labels:
+            nvidia.com/gpu.count: "8"
+        timeout: 1m
+    - id: job
+    type: SubmitObj
+    params:
+        refTaskId: register
+        count: 1
+        params:
+        namespace: default
+        parallelism: 2
+        completions: 2
+        image: ubuntu
+        cpu: 100m
+        memory: 512M
+    - id: status
+    type: CheckPod
+    params:
+        refTaskId: job
+        status: Running
+        timeout: 5s
+    ```
+
+2. Preemption Test
+
+    ```yaml
+    name: test-preemption
+    description: test scheduler preemption
+    tasks:
+    - id: register
+    type: RegisterObj
+    params:
+        template: "resources/templates/job.yml"
+    - id: configure
+    type: Configure
+    params:
+        nodes:
+        - type: dgxa100.80g
+        count: 4
+        priorityClasses:
+        - name: high-priority
+        value: 90
+        - name: low-priority
+        value: 30
+    - id: low-priority-job
+    type: SubmitObj
+    params:
+        refTaskId: register
+        params:
+        priority: low-priority
+        # other job params
+    - id: high-priority-job
+    type: SubmitObj
+    params:
+        refTaskId: register
+        params:
+        priority: high-priority
+        # other job params
+    - id: check-preemption
+    type: CheckObj
+    params:
+        refTaskId: low-priority-job
+        state:
+        status:
+            ready: 0
+        timeout: 5s
+    ```
 
 ### Documentation
 
