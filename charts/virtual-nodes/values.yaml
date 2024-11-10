@@ -32,32 +32,41 @@ nodes:
     status: "False"
     type: KernelDeadlock
   resources:
-    cpu: 256
-    memory: 2Ti
-    nvidia.com/gpu: 8
-    nvidia.com/mlnxnics: 16
-    ephemeral-storage: 15Ti
-
-# High-Memory CPU Nodes for Memory-Intensive Workloads
-- type: memory
-  count: 2
-  resources:
     cpu: 96
     memory: 768Gi
-    ephemeral-storage: 5Ti
+    nvidia.com/gpu: 8
+    nvidia.com/mlnxnics: 16
+    ephemeral-storage: 2Ti
 
-# Fast Storage Nodes for I/O-Intensive Workloads
-- type: storage
-  count: 2
-  resources:
-    cpu: 48
-    memory: 196Gi
-    ephemeral-storage: 10Ti
-
-# Standard CPU Nodes for General Batch Processing
-- type: standard
+# Memory-Optimized Nodes for Data Processing
+- type: memory-optimized
   count: 2
   resources:
     cpu: 64
-    memory: 256Gi
-    ephemeral-storage: 2Ti
+    memory: 512Gi
+    ephemeral-storage: 1Ti
+    hugepages-1Gi: 128Gi
+
+# High-Throughput Computing Nodes
+- type: htc
+  count: 2
+  resources:
+    cpu: 32
+    memory: 128Gi
+    ephemeral-storage: 500Gi
+
+# I/O-Optimized Nodes for Data-Intensive Workloads
+- type: io-optimized
+  count: 2
+  resources:
+    cpu: 16
+    memory: 64Gi
+    ephemeral-storage: 4Ti
+
+# General Purpose Batch Processing Nodes
+- type: batch-standard
+  count: 2
+  resources:
+    cpu: 16
+    memory: 64Gi
+    ephemeral-storage: 1Ti
