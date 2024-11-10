@@ -204,14 +204,34 @@ Key Concepts:
 
 1. `RegisterObj`
 
-    Registers Kubernetes object templates for later use.
+    Registers Kubernetes object templates that will be used by other tasks in the workflow.
 
     ```yaml
     - id: register
     type: RegisterObj
     params:
+        # Required: Path to the object template file (see examples in resources/templates/)
         template: "path/to/template.yaml"
-        # Template-specific parameters
+
+        # Required: Go-template for generating unique object names
+        # Uses _ENUM_ as an incrementing counter
+        # The templated value is added to parameter map as _NAME_
+        # Example: "job{{._ENUM_}}" generates: job1, job2, etc.
+        nameFormat: "prefix{{._ENUM_}}"
+
+        # Optional: Regular expression pattern for pod names
+        # Uses _NAME_ to reference the parent object's name
+        # Required when using CheckPod task
+        # Example: "{{._NAME_}}-\d+-\S+" matches: job1-0-xyz, job1-1-abc
+        podNameFormat: "{{._NAME_}}-[0-9]-.*"
+
+        # Optional: Number of pods expected per object
+        # Can be a fixed number or reference a template parameter
+        # Required when using CheckPod task
+        # Examples:
+        #   - Fixed number: "2"
+        #   - Template parameter: "{{.replicas}}"
+        podCount: "{{.parallelism}}"
     ```
 
 2. `SubmitObj`
@@ -222,11 +242,22 @@ Key Concepts:
     - id: submit-task
     type: SubmitObj
     params:
-        refTaskId: register-task-id
-        count: n  # Number of objects to create
-        canExist: true/false  # Optional: whether object can already exist
+        # Required: References the ID of a RegisterObj task that defines the template
+        refTaskId: string
+
+        # Optional: Number of object instances to create (default: 1)
+        # When count > 1, the referenced RegisterObj must specify nameFormat
+        count: int
+
+        # Optional: If true, doesn't error when object already exists
+        canExist: boolean
+
+        # Optional: Parameters used for template substitution
+        # These values are used when executing object and name templates
+        # Special parameter '_NAME_' is automatically added with the generated object name
         params:
-        # Template-specific parameters
+            key1: value1
+            key2: value2
     ```
 
 3. `DeleteObj`
@@ -234,39 +265,59 @@ Key Concepts:
     Removes created objects.
 
     ```yaml
-    - id: delete
+    - id: cleanup
     type: DeleteObj
     params:
-        refTaskId: task-to-delete
+        refTaskId: submit    # References object to delete
+    ```
 
 4. `Configure`
 
-    Sets up cluster resources like nodes, namespaces, configmaps, priority classes.
+    Creates and configures various Kubernetes resources including virtual nodes, namespaces, configmaps, priority classes, and handles deployment restarts.
 
     ```yaml
     - id: configure
     type: Configure
     params:
+        # Optional: Configure virtual nodes using Helm
         nodes:
-        - type: node-type
-          count: n
-          labels:
+        - type: string           # Required: Node type identifier
+            count: int            # Required: Number of nodes to create
+            annotations:          # Optional: Node annotations
             key: value
+            labels:              # Optional: Node labels
+            key: value
+            conditions:          # Optional: Node conditions
+            - key: value
+
+        # Optional: Manage namespaces
         namespaces:
-        - name: namespace-name
-          op: create
-        priorityClasses:
-        - name: priority-class-name
-          value: priority-value
-          op: create
+        - name: string         # Required: Namespace name
+            op: string          # Required: Operation type (create/delete)
+
+        # Optional: Manage configmaps
         configmaps:
-        - name: cofigmapname
-          namespace: namespace-name
-          op: create
-          data:
-            configmap.yaml: |
-              ...
-        timeout: duration
+        - name: string         # Required: ConfigMap name
+            namespace: string    # Required: Namespace for the ConfigMap
+            data:               # Required for create: ConfigMap data
+            key: value
+            op: string          # Required: Operation type (create/delete)
+
+        # Optional: Manage priority classes
+        priorityClasses:
+        - name: string         # Required: PriorityClass name
+            value: int          # Required for create: Priority value
+            op: string          # Required: Operation type (create/delete)
+
+        # Optional: Restart deployments
+        deploymentRestarts:
+        - name: string         # Optional: Deployment name (exclusive with labels)
+            namespace: string    # Required: Namespace for the deployment
+            labels:             # Optional: Deployment labels (exclusive with name)
+            key: value
+
+        # Required: Timeout duration for the entire configuration process
+        timeout: duration       # Example: "1m", "5s"
     ```
 
 5. `CheckObj`
