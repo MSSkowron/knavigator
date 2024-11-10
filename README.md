@@ -140,7 +140,7 @@ To update nodes configuration:
 
 #### Using Knavigator
 
-Knavigator requires the `KUBECONFIG` environment variable or the presence of the `-kubeconfig` or `-kubectx` command-line arguments.
+Knavigator requires the `KUBECONFIG` environment variable or the presence of the `-kubeconfig` (kube config) or `-kubectx` (kube context) command-line arguments.
 
 1. Build the binary
 
@@ -154,7 +154,7 @@ Knavigator requires the `KUBECONFIG` environment variable or the presence of the
     ./bin/knavigator -workflow <workflow>
     ```
 
-    Additionally, you can use the `-cleanup` flag to remove any leftover objects created by the test, and the `-v` flag to increase verbosity. For usage instructions, use the -h flag.
+    Additionally, you can use the `-cleanup` flag to remove objects created by the test, and the `-v` flag to increase verbosity. For usage instructions, use the -h flag.
 
     ```bash
     ./bin/knavigator -workflow resources/workflows/k8s/test-job.yml -v 4 -cleanup
