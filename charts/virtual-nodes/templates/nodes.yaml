@@ -9,65 +9,32 @@
 {{- $params := dict }}
 
 {{/*
+# Default params that can be overridden by each node type as appropriate
+*/}}
+{{- $params := dict }}
+
+{{/*
 # The default set of resources for all node types
 */}}
 {{- $defaultResources := dict }}
-{{- $defaultResources = set $defaultResources "hugepages-1Gi" 0   }}
-{{- $defaultResources = set $defaultResources "hugepages-2Mi" 0   }}
-{{- $defaultResources = set $defaultResources "pods"          110 }}
+{{- $defaultResources = set $defaultResources "cpu" 32 }}
+{{- $defaultResources = set $defaultResources "memory" 256Gi }}
+{{- $defaultResources = set $defaultResources "pods" 110 }}
+{{- $defaultResources = set $defaultResources "nvidia.com/gpu" 0 }}
+{{- $defaultResources = set $defaultResources "nvidia.com/mlnxnics" 0 }}
+{{- $defaultResources = set $defaultResources "hugepages-1Gi" 0 }}
+{{- $defaultResources = set $defaultResources "hugepages-2Mi" 0 }}
 
 {{/*
-# dgxa100.40g
-# Specs taken from here:
-# https://docs.nvidia.com/dgx/dgxa100-user-guide/introduction-to-dgxa100.html#hardware-overview
+# Merge default resources with node-specific resources if they exist
 */}}
-{{- if eq $node.type "dgxa100.40g" }}
-  {{- $resources := deepCopy $defaultResources }}
-  {{- $resources = set $resources "cpu"                 256    }}
-  {{- $resources = set $resources "memory"              "1Ti"  }}
-  {{- $resources = set $resources "nvidia.com/gpu"      8      }}
-  {{- $resources = set $resources "nvidia.com/mlnxnics" 16     }}
-  {{- $resources = set $resources "ephemeral-storage"   "15Ti" }}
-  {{- $params = set $params "resources" $resources }}
-
-{{/*
-# dgxa100.80g
-# Specs taken from here:
-# https://docs.nvidia.com/dgx/dgxa100-user-guide/introduction-to-dgxa100.html#hardware-overview
-*/}}
-{{- else if eq $node.type "dgxa100.80g" }}
-  {{- $resources := deepCopy $defaultResources }}
-  {{- $resources = set $resources "cpu"                 256    }}
-  {{- $resources = set $resources "memory"              "2Ti"  }}
-  {{- $resources = set $resources "nvidia.com/gpu"      8      }}
-  {{- $resources = set $resources "nvidia.com/mlnxnics" 16     }}
-  {{- $resources = set $resources "ephemeral-storage"   "30Ti" }}
-  {{- $params = set $params "resources" $resources }}
-
-{{/*
-# dgxh100.80g
-# Specs taken from here:
-# https://docs.nvidia.com/dgx/dgxh100-user-guide/introduction-to-dgxh100.html#hardware-overview
-*/}}
-{{- else if eq $node.type "dgxh100.80g" }}
-  {{- $resources := deepCopy $defaultResources }}
-  {{- $resources = set $resources "cpu"                 224    }}
-  {{- $resources = set $resources "memory"              "2Ti"  }}
-  {{- $resources = set $resources "nvidia.com/gpu"      8      }}
-  {{- $resources = set $resources "nvidia.com/mlnxnics" 16     }}
-  {{- $resources = set $resources "ephemeral-storage"   "30Ti" }}
-  {{- $params = set $params "resources" $resources }}
-
-{{/*
-# Default case for other node types (like cpu.x86)
-*/}}
-{{- else }}
-  {{- if $node.resources }}
-    {{- $params = set $params "resources" $node.resources }}
-  {{- else }}
-    {{- $params = set $params "resources" $defaultResources }}
+{{- $resources := deepCopy $defaultResources }}
+{{- if $node.resources }}
+  {{- range $key, $value := $node.resources }}
+    {{- $resources = set $resources $key $value }}
   {{- end }}
 {{- end }}
+{{- $params = set $params "resources" $resources }}
 
 {{- $count := ($node.count | int) }}
 {{- range until $count }}
@@ -90,10 +57,10 @@ metadata:
     kubernetes.io/os: linux
     kubernetes.io/role: agent
     node-role.kubernetes.io/agent: ""
+    type: kwok
     {{- range $key, $value := $node.labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
-    type: kwok
   name: virtual-{{ $node.type }}-{{ $suffix }}
 status:
   conditions:
