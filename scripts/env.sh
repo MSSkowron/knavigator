@@ -124,12 +124,12 @@ grafana:
 alertmanager:
   enabled: false
 nodeExporter:
-  enabled: false
+  enabled: true
 defaultRules:
   rules:
     alertmanager: false
     nodeExporterAlerting: false
-    nodeExporterRecording: false
+    nodeExporterRecording: true
 prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
