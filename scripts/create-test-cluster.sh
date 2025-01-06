@@ -25,7 +25,7 @@ REPO_HOME=$(readlink -f "${SCRIPT_DIR}/../")
 source "${REPO_HOME}/scripts/env.sh"
 
 # Configuration
-readonly KIND_NODE_VERSION="v1.29.7"
+readonly KIND_NODE_VERSION="v1.29.12"
 readonly REQUIRED_COMMANDS=(kind helm kubectl)
 
 main() {
