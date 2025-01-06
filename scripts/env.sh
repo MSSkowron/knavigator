@@ -124,12 +124,12 @@ grafana:
 alertmanager:
   enabled: false
 nodeExporter:
-  enabled: false
+  enabled: true
 defaultRules:
   rules:
     alertmanager: false
     nodeExporterAlerting: false
-    nodeExporterRecording: false
+    nodeExporterRecording: true
 prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
@@ -139,16 +139,16 @@ EOF
     kubectl -n monitoring wait --for=condition=ready pod \
         -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s
 
-    log_success "Prometheus and Grafana deployment complete"
+    log_success "Prometheus, Grafana and Node Resource Exported deployment complete"
 
-    log_info "Deploying Node Resource Exporter"
+    # log_info "Deploying Node Resource Exporter"
 
-    helm upgrade --install -n monitoring node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
+    # helm upgrade --install -n monitoring node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
 
-    kubectl -n monitoring wait --for=condition=ready pod \
-        -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
+    # kubectl -n monitoring wait --for=condition=ready pod \
+    #     -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
 
-    log_success "Node Resource Exported deployment complete"
+    # log_success "Node Resource Exported deployment complete"
 }
 
 deploy_workload_manager() {
