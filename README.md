@@ -80,22 +80,34 @@ Important notes:
 
 #### Monitoring Setup (Optional)
 
-To access the Grafana dashboard for monitoring:
+To access the Grafana dashboard:
 
 1. Forward the Grafana service port
 
     ```bash
-    kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+    kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 8080:80
     ```
 
 2. Access the Grafana dashboard
 
-    - URL: <http://localhost:3000>
+    - URL: <http://localhost:8080>
 
     - Default credentials:
 
         - Username: `admin`
         - Password: `admin`
+
+To access the Prometheus dashboard:
+
+1. Forward the Prometheus service port
+
+    ```bash
+    kubectl port-forward -n monitoring service/kube-prometheus-stack-prometheus 9090:9090
+    ```
+
+2. Access the Prometheus dashboard
+
+    - URL: <http://localhost:9000>
 
 #### Virtual Nodes
 
