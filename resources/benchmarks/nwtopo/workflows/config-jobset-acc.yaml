@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubernetes Authors.
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,20 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PRECIOUS: %.cast
-%.cast: %.demo
-	make -C .. ./demo/$@
-
-.PRECIOUS: %.svg
-%.svg: %.cast
-	make -C .. ./demo/$@
-
-%.mp4: %.svg
-	make -C .. ./demo/$@
-
-.PHONY: all
-all: $(patsubst %.demo,%.svg,$(wildcard *.demo))
-
-.PHONY: clean
-clean:
-	@-rm -f *.svg
+name: config-jobset
+tasks:
+- id: register
+  type: RegisterObj
+  params:
+    template: "resources/benchmarks/nwtopo/templates/jobset/jobset-acc.yaml"
+    nameFormat: "jobset{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-workers-[0-9]+-.+"
+    podCount: "{{.replicas}}"

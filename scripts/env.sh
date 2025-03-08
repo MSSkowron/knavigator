@@ -1,6 +1,9 @@
 #!/bin/bash
 # env.sh
 
+#!/bin/bash
+# env.sh
+
 # Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +18,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Constants and Configuration
+readonly KWOK_REPO="kubernetes-sigs/kwok"
+readonly KWOK_RELEASE="v0.6.1"
+
+readonly PROMETHEUS_STACK_VERSION="61.5.0"
+
+readonly KUEUE_VERSION="v0.9.0"
+readonly VOLCANO_VERSION="v1.10.0"
+readonly YUNIKORN_VERSION="v1.6.0"
+
+# Color definitions
+declare -A COLORS=(
+    ["RED"]='\033[0;31m'
+    ["GREEN"]='\033[0;32m'
+    ["YELLOW"]='\033[0;33m'
+    ["BLUE"]='\033[0;34m'
+    ["NC"]='\033[0m'
+)
+
+# Logging functions
+log() {
+    local color=$1
+    shift
+    echo -e "${COLORS[$color]}$*${COLORS[NC]}"
 # Constants and Configuration
 readonly KWOK_REPO="kubernetes-sigs/kwok"
 readonly KWOK_RELEASE="v0.6.1"
@@ -124,12 +151,12 @@ grafana:
 alertmanager:
   enabled: false
 nodeExporter:
-  enabled: false
+  enabled: true
 defaultRules:
   rules:
     alertmanager: false
     nodeExporterAlerting: false
-    nodeExporterRecording: false
+    nodeExporterRecording: true
 prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
@@ -139,7 +166,16 @@ EOF
     kubectl -n monitoring wait --for=condition=ready pod \
         -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s
 
-    log_success "Prometheus and Grafana deployment complete"
+    log_success "Prometheus, Grafana and Node Resource Exported deployment complete"
+
+    # log_info "Deploying Node Resource Exporter"
+
+    # helm upgrade --install -n monitoring node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
+
+    # kubectl -n monitoring wait --for=condition=ready pod \
+    #     -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
+
+    # log_success "Node Resource Exported deployment complete"
 }
 
 deploy_workload_manager() {
