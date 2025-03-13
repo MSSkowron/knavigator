@@ -141,6 +141,7 @@ The simplest way to create virtual nodes is through Knavigator's `Configure` tas
         nvidia.com/gpu.count: "8"
     timeout: 1m
 ```
+
 This example creates 2 virtual nodes with the dgxa100.80g type and NVIDIA GPU labels.
 
 #### Pre-defined Node Types
@@ -193,7 +194,7 @@ You can also manage virtual nodes directly with Helm charts:
     ```
 
 3. Verify the deployment:
-   
+
     ```bash
     kubectl get nodes
     kubectl get node <node-name> -o yaml # View detailed node configuration
@@ -239,285 +240,491 @@ Examples:
 ./bin/knavigator -workflow resources/workflows/volcano/test-job.yml -v 4 -cleanup
 ```
 
-### Creating a workflow
+### Creating workflows
 
-Workflows are defined in YAML files and consist of sequential tasks. Each task performs a specific operation like registering templates, configuring resources, or validating states.
+Workflows are defined in YAML files and consist of sequential tasks that Knavigator executes in order. Each task performs a specific operation, such as registering Kubernetes object templates, creating/configuring resources, or validating states and conditions.
 
-Example workflows can be found in `./resources/workflows`.
-
-##### Basic Structure
+#### Basic Structure
 
 Every workflow YAML file follows this basic structure:
 
 ```yaml
-name: test-name
-description: description of the test
+name: my-workflow-name
+description: Detailed description of what this workflow does
 tasks:
-- id: unique-task-id-1
+- id: first-task
+  type: TaskType
+  description: Optional description of this specific task
+  params:
+    # task-specific parameters
+- id: second-task
   type: TaskType
   params:
     # task-specific parameters
-- id: unique-task-id-2
-  type: TaskType
-  params:
-    # task-specific parameters
-...
 ```
 
-Key Concepts:
+#### Key Concepts
 
-- Each task must have a unique id
-- Tasks are executed sequentially
-- Tasks can reference other tasks using refTaskId
-- Most tasks support timeout parameters
+- **Sequential Execution**: Tasks are executed sequentially. If a task fails, the workflow stops.
+- **Unique IDs**: Each task must have a unique id within the workflow.
+- **Task References**: Tasks can reference other tasks using refTaskId to establish dependencies.
+- **Timeouts**: Most tasks support a timeout parameter to limit execution time.
+- **Parameter Propagation**: Values generated in one task (like object names) can be referenced in subsequent tasks.
 
-##### Task types
+#### Task Types
 
-1. `RegisterObj`
+- `RegisterObj`
 
-    Registers Kubernetes object templates that will be used by other tasks in the workflow.
+    Registers Kubernetes object templates for later use in the workflow.
 
     ```yaml
-    - id: register
-    type: RegisterObj
-    params:
-        # Required: Path to the object template file (see examples in resources/templates/)
-        template: "path/to/template.yaml"
-
-        # Required: Go-template for generating unique object names
-        # Uses _ENUM_ as an incrementing counter
-        # The templated value is added to parameter map as _NAME_
-        # Example: "job{{._ENUM_}}" generates: job1, job2, etc.
-        nameFormat: "prefix{{._ENUM_}}"
-
-        # Optional: Regular expression pattern for pod names
-        # Uses _NAME_ to reference the parent object's name
-        # Required when using CheckPod task
-        # Example: "{{._NAME_}}-\d+-\S+" matches: job1-0-xyz, job1-1-abc
-        podNameFormat: "{{._NAME_}}-[0-9]-.*"
-
-        # Optional: Number of pods expected per object
-        # Can be a fixed number or reference a template parameter
-        # Required when using CheckPod task
-        # Examples:
-        #   - Fixed number: "2"
-        #   - Template parameter: "{{.replicas}}"
-        podCount: "{{.parallelism}}"
+   - id: register
+     type: RegisterObj
+     params:
+       # Required: Path to the template file
+       template: "resources/templates/k8s/job.yml"
+       
+       # Required: Template for generating unique object names
+       # Uses _ENUM_ as an incrementing counter
+       # The result is stored as _NAME_ in the parameter map
+       nameFormat: "job{{._ENUM_}}"
+       
+       # Optional: Pattern for matching pod names created by this object
+       # Uses _NAME_ to reference the parent object's name
+       # Required when using CheckPod task
+       podNameFormat: "{{._NAME_}}-[0-9]-.*"
+       
+       # Optional: Number of pods expected per object
+       # Can be a fixed number or template expression
+       # Required when using CheckPod task
+       podCount: "{{.parallelism}}"
     ```
 
-2. `SubmitObj`
+- `SubmitObj`
 
-    Creates Kubernetes objects from registered templates.
+    Creates Kubernetes objects using templates registered by a previous `RegisterObj` task.
 
     ```yaml
-    - id: submit-task
-    type: SubmitObj
-    params:
-        # Required: References the ID of a RegisterObj task that defines the template
-        refTaskId: string
-
-        # Optional: Number of object instances to create (default: 1)
-        # When count > 1, the referenced RegisterObj must specify nameFormat
-        count: int
-
-        # Optional: If true, doesn't error when object already exists
-        canExist: boolean
-
-        # Optional: Parameters used for template substitution
-        # These values are used when executing object and name templates
-        # Special parameter '_NAME_' is automatically added with the generated object name
-        params:
-            key1: value1
-            key2: value2
+   - id: submit
+     type: SubmitObj
+     params:
+       # Required: References the RegisterObj task
+       refTaskId: register
+       
+       # Optional: Number of object instances to create (default: 1)
+       # When count > 1, the referenced RegisterObj must specify nameFormat
+       count: 2
+       
+       # Optional: If true, doesn't error when object already exists
+       canExist: true
+       
+       # Optional: Parameters for template substitution
+       # These replace placeholders in the template
+       params:
+         namespace: default
+         parallelism: 2
+         completions: 2
+         image: ubuntu
+         cpu: 100m
+         memory: 512M
     ```
 
-3. `DeleteObj`
+- `UpdateObj`
 
-    Removes created objects.
+   Updates existing objects with new values. Useful for modifying object state.
+
+   ```yaml
+   - id: update
+     type: UpdateObj
+     params:
+       # Required: References the SubmitObj task that created the object
+       refTaskId: submit
+       
+       # Required: New state to apply to the object
+       state:
+         spec:
+           parallelism: 3
+         status:
+           someField: newValue
+       
+       # Optional: Timeout for the update operation
+       timeout: 30s
+   ```
+
+- `DeleteObj`
+
+    Removes objects created by a previous task.
 
     ```yaml
-    - id: cleanup
-    type: DeleteObj
-    params:
-        refTaskId: submit    # References object to delete
+   - id: cleanup
+     type: DeleteObj
+     params:
+       # Required: References the task that created the objects to delete
+    refTaskId: submit
     ```
 
-4. `Configure`
+- `Configure`
 
-    Creates and configures various Kubernetes resources including virtual nodes, namespaces, configmaps, priority classes, and handles deployment restarts.
+    Creates and configures various Kubernetes resources. This versatile task can manage virtual nodes, namespaces, ConfigMaps, PriorityClasses, and deployment restarts.
 
     ```yaml
-    - id: configure
-    type: Configure
-    params:
-        # Optional: Configure virtual nodes using Helm
-        nodes:
-        - type: string           # Required: Node type identifier
-            count: int            # Required: Number of nodes to create
-            annotations:          # Optional: Node annotations
-            key: value
-            labels:              # Optional: Node labels
-            key: value
-            conditions:          # Optional: Node conditions
-            - key: value
-
-        # Optional: Manage namespaces
-        namespaces:
-        - name: string         # Required: Namespace name
-            op: string          # Required: Operation type (create/delete)
-
-        # Optional: Manage configmaps
-        configmaps:
-        - name: string         # Required: ConfigMap name
-            namespace: string    # Required: Namespace for the ConfigMap
-            data:               # Required for create: ConfigMap data
-            key: value
-            op: string          # Required: Operation type (create/delete)
-
-        # Optional: Manage priority classes
-        priorityClasses:
-        - name: string         # Required: PriorityClass name
-            value: int          # Required for create: Priority value
-            op: string          # Required: Operation type (create/delete)
-
-        # Optional: Restart deployments
-        deploymentRestarts:
-        - name: string         # Optional: Deployment name (exclusive with labels)
-            namespace: string    # Required: Namespace for the deployment
-            labels:             # Optional: Deployment labels (exclusive with name)
-            key: value
-
-        # Required: Timeout duration for the entire configuration process
-        timeout: duration       # Example: "1m", "5s"
+   - id: configure
+     type: Configure
+     params:
+       # Optional: Configure virtual nodes
+       nodes:
+       - type: dgxa100.80g    # Node type (predefined or custom)
+         count: 2             # Number of nodes to create
+         labels:              # Node labels
+           nvidia.com/gpu.count: "8"
+         annotations: {}      # Optional annotations
+         conditions: []       # Optional node conditions
+       
+       # Optional: Manage namespaces
+       namespaces:
+       - name: test-namespace
+         op: create           # Operation: create or delete
+       
+       # Optional: Manage ConfigMaps
+       configmaps:
+       - name: test-config
+         namespace: default
+         op: create           # Operation: create or delete
+         data:                # ConfigMap data (for create operations)
+           key1: value1
+           key2: value2
+       
+       # Optional: Manage PriorityClasses
+       priorityClasses:
+       - name: high-priority
+         value: 90            # Priority value (required for create)
+         op: create           # Operation: create or delete
+       
+       # Optional: Restart deployments
+       deploymentRestarts:
+       - name: my-deployment  # Deployment name (exclusive with labels)
+         namespace: default   # Required namespace
+         # OR use labels to select deployments:
+         # labels:
+         #   app: my-app
+       
+       # Required: Timeout for all configuration operations
+       timeout: 1m
     ```
 
-5. `CheckObj`
+- `UpdateNodes`
 
-    Validates object states and conditions.
+    Updates existing nodes based on selectors. Useful for marking nodes as unschedulable or changing node properties.
 
     ```yaml
-    - id: status
-    type: CheckObj
-    params:
-        refTaskId: task-to-check
-        state:
-            status:
-                key: value
-        timeout: duration
+   - id: node-update
+     type: UpdateNodes
+     params:
+       # Required: Selectors to identify nodes to update
+       selectors:
+       - key1: value1     # Nodes matching all these labels will be updated
+       - key2: value2     # Multiple selectors work as OR condition
+       
+       # Required: New state to apply to matching nodes
+       state:
+         spec:
+           unschedulable: true    # Mark nodes as unschedulable
+         # Can also update other node properties
+       
+       # Optional: Timeout for the operation
+       timeout: 30s
     ```
 
-6. `CheckPod`
+- `CheckObj`
 
-   Specifically validates pod states.
+    Validates object states and conditions. Useful for checking if objects have reached expected states.
 
     ```yaml
-    - id: status
-    type: CheckPod
-    params:
-        refTaskId: task-to-check
-        status: Expected-Status
-        nodeLabels:
-            key: value
-        timeout: duration
+   - id: verify
+     type: CheckObj
+     params:
+       # Required: References the task that created the objects to check
+       refTaskId: submit
+       
+       # Required: Expected state to verify
+       state:
+         status:
+           active: 3
+           succeeded: 0
+       
+       # Optional: Timeout for verification
+       timeout: 10s
     ```
 
-7. `Sleep`
+- `CheckPod`
 
-    Introduces delays between tasks.
+   Specifically validates pod states, which is useful for verifying that pods are in the expected state (Running, Succeeded, etc.) and on nodes with expected labels.
 
     ```yaml
-    - id: sleep
-    type: Sleep
-    params:
-        timeout: duration
+   - id: verify-pods
+     type: CheckPod
+     params:
+       # Required: References the task that created the objects whose pods to check
+       refTaskId: submit
+       
+       # Required: Expected pod status (Running, Succeeded, Failed, etc.)
+       status: Running
+       
+       # Optional: Verify pods are on nodes with these labels
+       nodeLabels:
+         nvidia.com/gpu.count: "8"
+       
+       # Optional: Timeout for verification
+       timeout: 5s
     ```
 
-##### Examples
+- `CheckConfigmap`
 
-1. Basic Job Test
+    Validates ConfigMap content by comparing it with expected values.
 
     ```yaml
-    name: test-k8s-job
-    description: submit and validate a k8s job
-    tasks:
-    - id: register
-    type: RegisterObj
-    params:
-        template: "resources/templates/k8s/job.yml"
-        nameFormat: "job{{._ENUM_}}"
-    - id: configure
-    type: Configure
-    params:
-        nodes:
-        - type: dgxa100.80g
-        count: 2
-        labels:
-            nvidia.com/gpu.count: "8"
-        timeout: 1m
-    - id: job
-    type: SubmitObj
-    params:
-        refTaskId: register
-        count: 1
-        params:
-        namespace: default
-        parallelism: 2
-        completions: 2
-        image: ubuntu
-        cpu: 100m
-        memory: 512M
-    - id: status
-    type: CheckPod
-    params:
-        refTaskId: job
-        status: Running
+   - id: verify-config
+     type: CheckConfigmap
+     params:
+       # Required: ConfigMap name to check
+       name: my-configmap
+       
+       # Required: Namespace where the ConfigMap is located
+       namespace: default
+       
+       # Required: Expected data to verify
+       data:
+         key1: value1
+       
+       # Required: Comparison operation
+       # - equal: Exact match (all keys and values must match)
+       # - subset: Data must contain at least these keys with matching values
+       op: subset
+    ```
+
+- `Sleep`
+
+    Introduces delays between tasks. Useful for waiting before checking resource states.
+
+    ```yaml
+    - id: wait
+      type: Sleep
+      params:
+        # Required: Duration to wait
         timeout: 5s
     ```
 
-2. Preemption Test
+- `Pause`
+
+    Pauses workflow execution until manual intervention. Useful for debugging or manual verification.
 
     ```yaml
-    name: test-preemption
-    description: test scheduler preemption
-    tasks:
-    - id: register
-    type: RegisterObj
-    params:
-        template: "resources/templates/job.yml"
-    - id: configure
-    type: Configure
-    params:
-        nodes:
-        - type: dgxa100.80g
-        count: 4
-        priorityClasses:
-        - name: high-priority
-        value: 90
-        - name: low-priority
-        value: 30
-    - id: low-priority-job
-    type: SubmitObj
-    params:
-        refTaskId: register
-        params:
-        priority: low-priority
-        # other job params
-    - id: high-priority-job
-    type: SubmitObj
-    params:
-        refTaskId: register
-        params:
-        priority: high-priority
-        # other job params
-    - id: check-preemption
-    type: CheckObj
-    params:
-        refTaskId: low-priority-job
-        state:
-        status:
-            ready: 0
-        timeout: 5s
+    - id: manual-check
+      type: Pause
     ```
+
+#### Examples
+
+##### Example 1: Basic Job Test
+
+```yaml
+name: test-k8s-job
+description: Submit and validate a Kubernetes job
+tasks:
+- id: register
+  type: RegisterObj
+  params:
+    template: "resources/templates/k8s/job.yml"
+    nameFormat: "job{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-[0-9]-.*"
+    podCount: "{{.parallelism}}"
+
+- id: configure
+  type: Configure
+  params:
+    nodes:
+    - type: dgxa100.80g
+      count: 2
+      labels:
+        nvidia.com/gpu.count: "8"
+    timeout: 1m
+
+- id: job
+  type: SubmitObj
+  params:
+    refTaskId: register
+    count: 1
+    params:
+      namespace: default
+      parallelism: 2
+      completions: 2
+      image: ubuntu
+      cpu: 100m
+      memory: 512M
+      gpu: 8
+      ttl: "10s"
+
+- id: status
+  type: CheckPod
+  params:
+    refTaskId: job
+    status: Running
+    timeout: 5s
+```
+
+##### Example 2: Preemption Test
+
+This example tests scheduler preemption by creating low and high priority jobs:
+
+```yaml
+name: test-preemption
+description: Test scheduler preemption with priority classes
+tasks:
+- id: register
+  type: RegisterObj
+  params:
+    template: "resources/templates/kueue/job.yaml"
+    nameFormat: "job{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-[0-9]-.*"
+    podCount: "{{.parallelism}}"
+
+- id: configure
+  type: Configure
+  params:
+    nodes:
+    - type: dgxa100.80g
+      count: 4
+      labels:
+        nvidia.com/gpu.count: "8"
+    priorityClasses:
+    - name: high-priority
+      value: 90
+      op: create
+    - name: low-priority
+      value: 30
+      op: create
+    timeout: 1m
+
+- id: low-priority-job
+  type: SubmitObj
+  params:
+    refTaskId: register
+    count: 1
+    params:
+      namespace: default
+      priority: low-priority
+      parallelism: 3
+      completions: 3
+      image: ubuntu
+      cpu: 100m
+      memory: 512M
+      gpu: 8
+
+- id: verify-low-running
+  type: CheckPod
+  params:
+    refTaskId: low-priority-job
+    status: Running
+    timeout: 5s
+
+- id: high-priority-job
+  type: SubmitObj
+  params:
+    refTaskId: register
+    count: 1
+    params:
+      namespace: default
+      priority: high-priority
+      parallelism: 2
+      completions: 2
+      image: ubuntu
+      cpu: 100m
+      memory: 512M
+      gpu: 8
+
+- id: check-preemption
+  type: CheckObj
+  params:
+    refTaskId: low-priority-job
+    state:
+      status:
+        ready: 0  # Low priority job should be preempted
+    timeout: 5s
+
+- id: verify-high-running
+  type: CheckPod
+  params:
+    refTaskId: high-priority-job
+    status: Running
+    timeout: 5s
+```
+
+##### Example 3: ConfigMap Management & Validation
+
+This example demonstrates how to create, modify, and verify ConfigMaps:
+
+```yaml
+name: test-configmap
+description: Create, update and verify ConfigMap content
+tasks:
+- id: configure
+  type: Configure
+  params:
+    configmaps:
+    - name: test-config
+      namespace: default
+      op: create
+      data:
+        key1: value1
+        key2: value2
+    timeout: 30s
+
+- id: verify-config
+  type: CheckConfigmap
+  params:
+    name: test-config
+    namespace: default
+    data:
+      key1: value1
+      key2: value2
+    op: equal
+
+- id: update-config
+  type: Configure
+  params:
+    configmaps:
+    - name: test-config
+      namespace: default
+      op: create  # Also works for updates
+      data:
+        key1: new-value
+        key2: value2
+        key3: value3
+    timeout: 30s
+
+- id: verify-updated
+  type: CheckConfigmap
+  params:
+    name: test-config
+    namespace: default
+    data:
+      key1: new-value
+    op: subset  # Only check specified fields
+```
+
+#### Best Practices for Workflow Creation
+
+1. **Use Clear Task IDs**: Choose descriptive task IDs that indicate the purpose of each task.
+2. **Define Timeouts**: Always specify timeouts for tasks that wait for state changes to avoid indefinite hanging.
+3. **Proper Template Organization**: Store template files in a well-organized directory structure, typically under resources/templates/.
+4. **Task Dependencies**: Be careful with task dependencies - ensure that referenced tasks exist and provide the expected outputs.
+5. **Error Handling**: Remember that workflows stop at the first error, so order tasks to verify prerequisites before dependent operations.
+6. **Template Parameters**: When creating templates, make parameters consistent and well-documented to make workflows more maintainable.
+7. **Resource Cleanup**: Consider adding DeleteObj tasks at the end of workflows to clean up resources, or use the -cleanup flag when running Knavigator.
+
+#### Finding More Examples
+
+For more examples and reference implementations, explore the `resources/workflows/` directory in the Knavigator repository, which contains workflows for various scenarios and scheduling frameworks.
 
 ## Documentation
 
