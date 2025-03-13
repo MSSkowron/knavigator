@@ -42,30 +42,6 @@ log() {
     local color=$1
     shift
     echo -e "${COLORS[$color]}$*${COLORS[NC]}"
-# Constants and Configuration
-readonly KWOK_REPO="kubernetes-sigs/kwok"
-readonly KWOK_RELEASE="v0.6.1"
-
-readonly PROMETHEUS_STACK_VERSION="61.5.0"
-
-readonly KUEUE_VERSION="v0.9.0"
-readonly VOLCANO_VERSION="v1.10.0"
-readonly YUNIKORN_VERSION="v1.6.0"
-
-# Color definitions
-declare -A COLORS=(
-    ["RED"]='\033[0;31m'
-    ["GREEN"]='\033[0;32m'
-    ["YELLOW"]='\033[0;33m'
-    ["BLUE"]='\033[0;34m'
-    ["NC"]='\033[0m'
-)
-
-# Logging functions
-log() {
-    local color=$1
-    shift
-    echo -e "${COLORS[$color]}$*${COLORS[NC]}"
 }
 
 log_error() { log "RED" "$@"; }
@@ -182,16 +158,16 @@ deploy_workload_manager() {
     local choice=$1
 
     case "$choice" in
-        "kueue")
+        ("kueue")
             deploy_kueue
             ;;
-        "volcano")
+        ("volcano")
             deploy_volcano
             ;;
-        "yunikorn")
+        ("yunikorn")
             deploy_yunikorn
             ;;
-        *)
+        (*)
             log_error "Invalid workload manager: $choice"
             return 1
             ;;
