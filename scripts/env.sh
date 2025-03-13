@@ -53,7 +53,7 @@ trap 'log_error "Error on line $LINENO"' ERR
 # Utility functions
 check_command() {
     local cmd=$1
-    if ! command -v "$cmd" &> /dev/null; then
+    if ! command -v "$cmd" &>/dev/null; then
         log_error "$cmd is not installed"
         return 1
     fi
@@ -148,7 +148,7 @@ EOF
 
     # Set up port-forwarding script for easy access
     log_info "Creating port-forwarding helper script..."
-    cat <<EOF > "${REPO_HOME}/monitoring-portforward.sh"
+    cat <<EOF >"${REPO_HOME}/monitoring-portforward.sh"
 #!/bin/bash
 # Script to set up port forwarding for monitoring tools
 
@@ -185,19 +185,19 @@ deploy_workload_manager() {
     local choice=$1
 
     case "$choice" in
-        "kueue")
-            deploy_kueue
-            ;;
-        "volcano")
-            deploy_volcano
-            ;;
-        "yunikorn")
-            deploy_yunikorn
-            ;;
-        *)
-            log_error "Invalid workload manager: $choice"
-            return 1
-            ;;
+    "kueue")
+        deploy_kueue
+        ;;
+    "volcano")
+        deploy_volcano
+        ;;
+    "yunikorn")
+        deploy_yunikorn
+        ;;
+    *)
+        log_error "Invalid workload manager: $choice"
+        return 1
+        ;;
     esac
 }
 
@@ -228,7 +228,7 @@ deploy_kueue() {
         log_error "Kueue deployment failed - controller manager is not running"
         return 1
     fi
-    
+
     log_info "Kueue metrics are available at the /metrics endpoint of the controller-manager"
 }
 
@@ -237,7 +237,7 @@ deploy_volcano() {
 
     helm repo add --force-update volcano-sh https://volcano-sh.github.io/helm-charts
 
-     # Deploy Volcano with metrics enabled
+    # Deploy Volcano with metrics enabled
     log_info "Installing Volcano with metrics enabled..."
     helm upgrade --install volcano volcano-sh/volcano -n volcano-system --create-namespace \
         --version="$VOLCANO_VERSION" \
@@ -252,9 +252,9 @@ deploy_volcano() {
         deployment/volcano-controllers \
         deployment/volcano-scheduler \
         --timeout=600s || {
-            log_error "Timed out waiting for Volcano deployments to be available"
-            return 1
-        }
+        log_error "Timed out waiting for Volcano deployments to be available"
+        return 1
+    }
 
     # Verify the installation
     if kubectl -n volcano-system get pods | grep -q "volcano-scheduler"; then
@@ -318,17 +318,17 @@ EOF
     # Verify the installation
     if kubectl -n yunikorn get pods | grep -q "yunikorn-scheduler-"; then
         log_success "YuniKorn deployment complete"
-        
+
         # Provide information about accessing the web UI
         log_info "YuniKorn Web UI is available via port forwarding:"
         log_info "  kubectl port-forward svc/yunikorn-service 9889:9889 -n yunikorn"
         log_info "  Then access: http://localhost:9889"
-        
+
         # Provide information about metrics
         log_info "YuniKorn metrics are exposed at the /ws/v1/metrics endpoint:"
-        log_info "  kubectl port-forward svc/yunikorn-service 9080:9080 -n yunikorn" 
+        log_info "  kubectl port-forward svc/yunikorn-service 9080:9080 -n yunikorn"
         log_info "  Then access: http://localhost:9080/ws/v1/metrics"
-        
+
         # Provide additional documentation references
         log_info "For Prometheus and Grafana integration details, see:"
         log_info "  https://yunikorn.apache.org/docs/user_guide/observability/prometheus"

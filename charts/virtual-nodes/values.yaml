@@ -65,7 +65,7 @@ nodes:
 
 # General Purpose Batch Processing Nodes
 - type: batch-standard
-  count: 16
+  count: 100
   resources:
     cpu: 16
     memory: 64Gi
