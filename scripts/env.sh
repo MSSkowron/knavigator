@@ -120,11 +120,13 @@ grafana:
   enabled: true
   adminPassword: 'admin'
   persistence:
-    enabled: true
+    enabled: true                
 alertmanager:
   enabled: false
 nodeExporter:
   enabled: true
+kubeStateMetrics:
+  enabled: true 
 defaultRules:
   rules:
     alertmanager: false
@@ -136,10 +138,47 @@ prometheus:
     podMonitorSelectorNilUsesHelmValues: false
 EOF
 
+    # Wait for the Prometheus and Grafana pods to be ready
+    log_info "Waiting for Prometheus and Grafana pods to be ready..."
     kubectl -n monitoring wait --for=condition=ready pod \
-        -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s
+        -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s || {
+        log_error "Timed out waiting for Prometheus pods"
+        return 1
+    }
 
-    log_success "Prometheus, Grafana and Node Resource Exported deployment complete"
+    # Set up port-forwarding script for easy access
+    log_info "Creating port-forwarding helper script..."
+    cat <<EOF > "${REPO_HOME}/monitoring-portforward.sh"
+#!/bin/bash
+# Script to set up port forwarding for monitoring tools
+
+# Start port forwarding for Grafana
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 8080:80 &
+GRAFANA_PID=\$!
+
+# Start port forwarding for Prometheus
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090 &
+PROMETHEUS_PID=\$!
+
+echo "Port forwarding started:"
+echo "  - Grafana: http://localhost:8080 (admin/admin)"
+echo "  - Prometheus: http://localhost:9090"
+echo ""
+echo "Press Ctrl+C to stop port forwarding"
+
+# Handle cleanup on script exit
+trap "kill \$GRAFANA_PID \$PROMETHEUS_PID 2>/dev/null" EXIT
+
+# Wait for user to cancel
+wait
+EOF
+
+    chmod +x "${REPO_HOME}/monitoring-portforward.sh"
+
+    log_success "Enhanced Prometheus, Grafana and monitoring deployment complete"
+    log_info "You can access the monitoring interfaces using: ${REPO_HOME}/monitoring-portforward.sh"
+    log_info "Grafana credentials: admin/admin"
+    log_info "Additional scheduler-specific dashboards have been created"
 }
 
 deploy_workload_manager() {
@@ -194,38 +233,109 @@ deploy_kueue() {
 }
 
 deploy_volcano() {
-    log_info "Deploying Volcano..."
+    log_info "Deploying Volcano ${VOLCANO_VERSION}..."
 
     helm repo add --force-update volcano-sh https://volcano-sh.github.io/helm-charts
 
+     # Deploy Volcano with metrics enabled
+    log_info "Installing Volcano with metrics enabled..."
     helm upgrade --install volcano volcano-sh/volcano -n volcano-system --create-namespace \
         --version="$VOLCANO_VERSION" \
         --wait \
+        --set custom.metrics_enable=true \
         --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
 
-    for app in volcano-admission volcano-controller volcano-scheduler; do
-        kubectl -n volcano-system wait --for=condition=ready pod -l app="$app" --timeout=600s
-    done
+    # Wait for all Volcano deployments to be available
+    log_info "Waiting for Volcano deployments to be available..."
+    kubectl -n volcano-system wait --for=condition=available \
+        deployment/volcano-admission \
+        deployment/volcano-controllers \
+        deployment/volcano-scheduler \
+        --timeout=600s || {
+            log_error "Timed out waiting for Volcano deployments to be available"
+            return 1
+        }
 
-    # TODO: Replace sleep with deterministic readiness check
-    sleep 10
-
-    log_success "Volcano deployment complete"
+    # Verify the installation
+    if kubectl -n volcano-system get pods | grep -q "volcano-scheduler"; then
+        log_success "Volcano deployment complete"
+        log_info "Volcano metrics are available at the /metrics endpoint of each component"
+    else
+        log_error "Volcano deployment failed - scheduler is not running"
+        return 1
+    fi
 }
 
 deploy_yunikorn() {
-    log_info "Deploying YuniKorn..."
+    log_info "Deploying YuniKorn ${YUNIKORN_VERSION}..."
 
     helm repo add --force-update yunikorn https://apache.github.io/yunikorn-release
 
+    # Deploy YuniKorn using Helm
+    log_info "Installing YuniKorn with metrics enabled..."
     helm upgrade --install yunikorn yunikorn/yunikorn -n yunikorn --create-namespace \
         --version="$YUNIKORN_VERSION" \
         --wait \
+        --set embedAdmissionController=true \
         --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
 
-    kubectl -n yunikorn wait --for=condition=ready pod -l app=yunikorn --timeout=600s
+    # Wait for YuniKorn pods to be ready
+    log_info "Waiting for YuniKorn pods to be ready..."
+    kubectl -n yunikorn wait --for=condition=ready pod -l app=yunikorn --timeout=600s || {
+        log_error "Timed out waiting for YuniKorn pods to be ready"
+        return 1
+    }
 
-    log_success "YuniKorn deployment complete"
+    # Create ServiceMonitor for Prometheus integration if Prometheus Operator is installed
+    if kubectl get crd servicemonitors.monitoring.coreos.com &>/dev/null; then
+        log_info "Creating ServiceMonitor for YuniKorn metrics..."
+        cat <<EOF | kubectl apply -f -
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: yunikorn-service-monitor
+  namespace: yunikorn
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: yunikorn
+  namespaceSelector:
+    matchNames:
+    - yunikorn
+  endpoints:
+  - port: yunikorn-service
+    path: /ws/v1/metrics
+    interval: 30s
+EOF
+        log_success "ServiceMonitor created for Prometheus integration"
+    else
+        log_info "Prometheus Operator CRDs not found. Skipping ServiceMonitor creation."
+        log_info "To manually configure Prometheus monitoring, see: https://yunikorn.apache.org/docs/user_guide/observability/prometheus"
+    fi
+
+    # Verify the installation
+    if kubectl -n yunikorn get pods | grep -q "yunikorn-scheduler-"; then
+        log_success "YuniKorn deployment complete"
+        
+        # Provide information about accessing the web UI
+        log_info "YuniKorn Web UI is available via port forwarding:"
+        log_info "  kubectl port-forward svc/yunikorn-service 9889:9889 -n yunikorn"
+        log_info "  Then access: http://localhost:9889"
+        
+        # Provide information about metrics
+        log_info "YuniKorn metrics are exposed at the /ws/v1/metrics endpoint:"
+        log_info "  kubectl port-forward svc/yunikorn-service 9080:9080 -n yunikorn" 
+        log_info "  Then access: http://localhost:9080/ws/v1/metrics"
+        
+        # Provide additional documentation references
+        log_info "For Prometheus and Grafana integration details, see:"
+        log_info "  https://yunikorn.apache.org/docs/user_guide/observability/prometheus"
+    else
+        log_error "YuniKorn deployment failed - scheduler is not running"
+        return 1
+    fi
 }
 
 # Export functions and variables for use in other scripts
