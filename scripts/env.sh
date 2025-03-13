@@ -19,11 +19,11 @@
 readonly KWOK_REPO="kubernetes-sigs/kwok"
 readonly KWOK_RELEASE="v0.6.1"
 
-readonly PROMETHEUS_STACK_VERSION="61.5.0"
+readonly PROMETHEUS_STACK_VERSION="69.8.0"
 
-readonly KUEUE_VERSION="v0.9.0"
-readonly VOLCANO_VERSION="v1.10.0"
-readonly YUNIKORN_VERSION="v1.6.0"
+readonly KUEUE_VERSION="v0.10.2"
+readonly VOLCANO_VERSION="v1.11.0"
+readonly YUNIKORN_VERSION="v1.6.1"
 
 # Color definitions
 declare -A COLORS=(

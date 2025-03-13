@@ -107,7 +107,7 @@ To access the Prometheus dashboard:
 
 2. Access the Prometheus dashboard
 
-    - URL: <http://localhost:9000>
+    - URL: <http://localhost:9090>
 
 #### Virtual Nodes
 
