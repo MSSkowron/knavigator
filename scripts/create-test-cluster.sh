@@ -45,6 +45,8 @@ main() {
 
     select_and_deploy_workload_manager
 
+    create_additional_dashboards
+
     log_success "Cluster setup complete!"
 }
 
@@ -80,6 +82,31 @@ select_and_deploy_workload_manager() {
                 ;;
         esac
     done
+}
+
+create_additional_dashboards() {
+    log_info "Creating additional Grafana dashboards for test metrics..."
+    
+    # Wait for Grafana to be ready
+    kubectl -n monitoring wait --for=condition=ready pod \
+        -l app.kubernetes.io/name=grafana --timeout=300s
+    
+    # Import dashboards
+    for dashboard in "${REPO_HOME}/charts/dashboards"/*.json; do
+        dashboard_name=$(basename "$dashboard" .json)
+        log_info "Importing dashboard: $dashboard_name"
+        
+        # Create ConfigMap for dashboard
+        kubectl create configmap -n monitoring "grafana-dashboard-${dashboard_name}" \
+            --from-file="dashboard.json=${dashboard}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Label ConfigMap for Grafana to pick it up
+        kubectl label -n monitoring configmap "grafana-dashboard-${dashboard_name}" \
+            grafana_dashboard=1 --overwrite
+    done
+    
+    log_success "Additional dashboards created"
 }
 
 # Run main function

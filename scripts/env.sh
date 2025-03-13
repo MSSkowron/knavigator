@@ -140,15 +140,6 @@ EOF
         -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s
 
     log_success "Prometheus, Grafana and Node Resource Exported deployment complete"
-
-    # log_info "Deploying Node Resource Exporter"
-
-    # helm upgrade --install -n monitoring node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
-
-    # kubectl -n monitoring wait --for=condition=ready pod \
-    #     -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
-
-    # log_success "Node Resource Exported deployment complete"
 }
 
 deploy_workload_manager() {
@@ -172,18 +163,34 @@ deploy_workload_manager() {
 }
 
 deploy_kueue() {
-    log_info "Deploying Kueue..."
+    log_info "Deploying Kueue ${KUEUE_VERSION}..."
 
+    # Install the main Kueue components
     kubectl apply --server-side -f "https://github.com/kubernetes-sigs/kueue/releases/download/${KUEUE_VERSION}/manifests.yaml"
 
+    # Install Prometheus metrics scraping configuration
+    log_info "Configuring Prometheus metrics scraping for Kueue..."
+    kubectl apply -f "https://github.com/kubernetes-sigs/kueue/releases/download/${KUEUE_VERSION}/prometheus.yaml"
+
     # Apply KWOK affinity patch
+    log_info "Applying KWOK affinity patch..."
     kubectl -n kueue-system patch deployment kueue-controller-manager \
         --patch-file="${REPO_HOME}/charts/overrides/kwok-affinity-deployment-patch.yaml"
 
+    # Validate configuration to ensure webhook is properly setup
+    log_info "Waiting for Kueue controller manager to be ready..."
     wait_for_pods "kueue-system" 1
-    kubectl -n kueue-system wait --for=condition=ready pod -l control-plane=controller-manager --timeout=600s
+    kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=300s
 
-    log_success "Kueue deployment complete"
+    # Verify the installation by checking if controller manager is running
+    if kubectl -n kueue-system get pods -l control-plane=controller-manager | grep -q Running; then
+        log_success "Kueue deployment complete"
+    else
+        log_error "Kueue deployment failed - controller manager is not running"
+        return 1
+    fi
+    
+    log_info "Kueue metrics are available at the /metrics endpoint of the controller-manager"
 }
 
 deploy_volcano() {
