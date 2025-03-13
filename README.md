@@ -39,46 +39,55 @@ Alternatively, in server or package configurations, Knavigator can receive a ser
 
 Regardless of the configuration mode, Knavigator executes tasks sequentially. Each task is dependent on the successful completion of the preceding one. Therefore, if any task fails during execution, the entire test is marked as failed. This ensures comprehensive testing and accurate reporting of results, maintaining the integrity of the testing process.
 
-### Getting started
+## Getting Started
 
-#### Prerequisites
+### Prerequisites
 
 Ensure you have the following tools installed on your system before proceeding:
 
 - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation): For creating local Kubernetes clusters
-
 - [helm](https://helm.sh/docs/helm/helm_install/): The package manager for Kubernetes
-
 - [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl): The Kubernetes command-line tool
 
 Important notes:
 
 - A real node (like kind's) is required for proper scheduling framework or workload manager functionality
-
 - Deploying the workload manager on a virtual node will cause it to malfunction
-
 - If you have existing virtual nodes or workloads, clean them up:
 
     ```bash
     kubectl delete node -l type=kwok
     ```
 
-#### Installation
+### Installation
 
 1. Clone the repository
 
     ```bash
-    git clone git@github.com:MSSkowron/knavigator.git
+    git clone https://github.com/NVIDIA/knavigator.git
     cd knavigator
     ```
 
-2. Create and configure the test cluster
+2. Build the binary
+
+    ```bash
+    make build
+    ```
+
+3. Create and configure the test cluster
 
     ```bash
     ./scripts/create-test-cluster.sh
     ```
 
-#### Monitoring Setup (Optional)
+    This script will:
+    - Create a kind cluster if one doesn't exist
+    - Deploy Prometheus and Grafana for monitoring
+    - Deploy KWOK for simulating nodes
+    - Prompt you to select a workload manager (Kueue, Volcano, or YuniKorn)
+    - Create additional dashboards for monitoring
+
+### Monitoring Setup
 
 To access the Grafana dashboard:
 
@@ -91,9 +100,7 @@ To access the Grafana dashboard:
 2. Access the Grafana dashboard
 
     - URL: <http://localhost:8080>
-
     - Default credentials:
-
         - Username: `admin`
         - Password: `admin`
 
@@ -109,70 +116,130 @@ To access the Prometheus dashboard:
 
     - URL: <http://localhost:9090>
 
-#### Virtual Nodes
-
-The cluster can be extended with virtual nodes using the provided Helm chart. These nodes can be customized based on your requirements.
-
-##### Configuration
-
-1. Navigate to the virtual nodes configuration file (`./charts/virtual-nodes/values.yaml`)
-
-2. Define your virtual nodes by specifying:
-
-    - Node type and count
-    - Resource allocation (CPU, memory, GPUs)
-    - Node labels and annotations
-    - Custom conditions
-
-##### Deployment
-
-Deploy or update virtual nodes using Helm:
+Alternatively, you can use the provided script to set up port forwarding for both services:
 
 ```bash
-helm upgrade --install virtual-nodes charts/virtual-nodes -f charts/virtual-nodes/values.yaml
+./monitoring-portforward.sh
 ```
 
-To verify the deployment:
+### Virtual Nodes
 
-```bash
-kubectl get nodes
-kubectl get node <node-name> -o yaml   # View detailed node configuration
+KWOK allows you to extend your cluster with virtual nodes that simulate real Kubernetes nodes but without consuming actual hardware resources. These virtual nodes can be configured and managed through Knavigator workflows.
+
+#### Configuration with Knavigator
+
+The simplest way to create virtual nodes is through Knavigator's `Configure` task:
+
+```yaml
+- id: configure
+  type: Configure
+  params:
+    nodes:
+    - type: dgxa100.80g
+      count: 2
+      labels:
+        nvidia.com/gpu.count: "8"
+    timeout: 1m
+```
+This example creates 2 virtual nodes with the dgxa100.80g type and NVIDIA GPU labels.
+
+#### Pre-defined Node Types
+
+Knavigator supports several pre-defined node types:
+
+- `dgxa100.40g`: NVIDIA DGX A100 with 40GB GPUs
+- `dgxa100.80g`: NVIDIA DGX A100 with 80GB GPUs
+- `dgxh100.80g`: NVIDIA DGX H100 with 80GB GPUs
+
+For these types, the resource attributes are pre-configured, but you can still modify `count`, `annotations`, `labels`, and `conditions`.
+
+#### Custom Node Configuration
+
+For custom node types, you can specify detailed resource configurations:
+
+```yaml
+- type: cpu.x86
+  count: 2
+  resources:
+    hugepages-1Gi: 0
+    hugepages-2Mi: 0
+    pods: 110
+    cpu: 48
+    memory: 196692052Ki
+    ephemeral-storage: 2537570228Ki
+  labels:
+    custom-label: "value"
+  annotations:
+    custom-annotation: "value"
 ```
 
-To remove virtual nodes:
+#### Using Helm Charts
 
-```bash
-helm uninstall virtual-nodes
-```
+You can also manage virtual nodes directly with Helm charts:
 
-To update nodes configuration:
+1. Configure your virtual nodes in a values file (e.g., `values-custom.yaml`):
 
-1. Modify `values.yaml`
-2. Rerun the helm upgrade command
+    ```yaml
+    - type: dgxa100.80g
+      count: 4
+      labels:
+      nvidia.com/gpu.count: "8"
+    ```
 
-#### Using Knavigator
+2. Deploy or update the virtual nodes:
+
+    ```bash
+    helm upgrade --install virtual-nodes charts/virtual-nodes -f values-custom.yaml
+    ```
+
+3. Verify the deployment:
+   
+    ```bash
+    kubectl get nodes
+    kubectl get node <node-name> -o yaml # View detailed node configuration
+    ```
+
+4. To remove virtual nodes:
+
+    ```bash
+    helm uninstall virtual-nodes
+    ```
+
+**Warning**: Deploy virtual nodes as the final step before launching knavigator. If you deploy components after virtual nodes are created, the pods for these components might be assigned to virtual nodes, which could impact their functionality.
+
+### Using Knavigator
 
 Knavigator requires the `KUBECONFIG` environment variable or the presence of the `-kubeconfig` (kube config) or `-kubectx` (kube context) command-line arguments.
 
-1. Build the binary
+To run a workflow:
 
-    ```bash
-    make build
-    ```
+```bash
+./bin/knavigator -workflow <workflow>
+```
 
-2. Run a workflow
+Command-line options:
 
-    ```bash
-    ./bin/knavigator -workflow <workflow>
-    ```
+- `workflow`: Path to workflow configuration file(s)
+- `cleanup`: Remove objects created during test execution
+- `v <level>`: Set verbosity level (e.g., -v 4 for detailed logs)
+- `kubeconfig`: Path to kubeconfig file (optional if KUBECONFIG environment variable is set)
+- `kubectx`: Kubernetes context to use
+- `port`: Run Knavigator as a server listening on the specified port
 
-    Additionally, you can use the `-cleanup` flag to remove objects created by the test, and the `-v` flag to increase verbosity. For usage instructions, use the -h flag.
+Examples:
 
-    ```bash
-    ./bin/knavigator -workflow resources/workflows/k8s/test-job.yml -v 4 -cleanup
-    ```
+```bash
+# Run a simple job workflow
+./bin/knavigator -workflow resources/workflows/k8s/test-job.yml -cleanup
 
-#### Creating a workflow
+# Run multiple workflows in sequence
+./bin/knavigator -workflow 'resources/workflows/{config-nodes.yaml,kueue/test-job.yaml}'
+
+# Run with increased verbosity
+./bin/knavigator -workflow resources/workflows/volcano/test-job.yml -v 4 -cleanup
+```
+
+### Creating a workflow
 
 Workflows are defined in YAML files and consist of sequential tasks. Each task performs a specific operation like registering templates, configuring resources, or validating states.
 
@@ -452,7 +519,7 @@ Key Concepts:
         timeout: 5s
     ```
 
-### Documentation
+## Documentation
 
 - [Deployment](docs/deployment.md)
 - [Getting started](docs/getting_started.md)
