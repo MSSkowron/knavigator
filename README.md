@@ -184,7 +184,7 @@ You can also manage virtual nodes directly with Helm charts:
     - type: dgxa100.80g
       count: 4
       labels:
-      nvidia.com/gpu.count: "8"
+        nvidia.com/gpu.count: "8"
     ```
 
 2. Deploy or update the virtual nodes:
