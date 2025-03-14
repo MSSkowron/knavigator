@@ -65,8 +65,15 @@ nodes:
 
 # General Purpose Batch Processing Nodes
 - type: batch-standard
-  count: 100
+  count: 0
   resources:
     cpu: 16
     memory: 64Gi
+    ephemeral-storage: 1Ti
+
+- type: backfill-test-1
+  count: 1
+  resources:
+    cpu: 10.1
+    memory: 10.05Gi
     ephemeral-storage: 1Ti
