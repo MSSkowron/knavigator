@@ -102,6 +102,7 @@ deploy_kwok() {
     kubectl apply -f "${base_url}/raw/main/kustomize/stage/pod/chaos/pod-init-container-running-failed.yaml"
     kubectl apply -f "${base_url}/raw/main/kustomize/stage/pod/chaos/pod-container-running-failed.yaml"
     #kubectl apply -f https://github.com/${KWOK_REPO}/raw/main/kustomize/stage/pod/general/pod-complete.yaml
+    kubectl apply -f "${REPO_HOME}/charts/overrides/kwok/pod-complete.yaml"
 
     log_success "KWOK deployment complete"
 }
@@ -120,13 +121,13 @@ grafana:
   enabled: true
   adminPassword: 'admin'
   persistence:
-    enabled: true                
+    enabled: true
 alertmanager:
   enabled: false
 nodeExporter:
   enabled: true
 kubeStateMetrics:
-  enabled: true 
+  enabled: true
 defaultRules:
   rules:
     alertmanager: false
