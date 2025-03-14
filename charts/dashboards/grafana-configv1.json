@@ -1019,12 +1019,8 @@
       {
         "current": {
           "selected": true,
-          "text": [
-            "default"
-          ],
-          "value": [
-            "default"
-          ]
+          "text": ["default"],
+          "value": ["default"]
         },
         "datasource": {
           "type": "prometheus",
