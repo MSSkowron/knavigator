@@ -1,0 +1,4 @@
+helm upgrade --install virtual-nodes charts/virtual-nodes -f charts/virtual-nodes/values.yaml
+./bin/knavigator -workflow resources/mytests/backfill/volcano/test1/config-volcano.yaml
+./bin/knavigator -workflow resources/mytests/backfill/volcano/test1/config-nodes.yaml
+./bin/knavigator -workflow resources/mytests/backfill/volcano/test1/run-test.yaml
