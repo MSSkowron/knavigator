@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Configuration of virtual nodes for batch processing research
-# Includes various node types optimized for different workload patterns
 
-nodes: {}
-# - type: dgxa100.40g
-#   count: 2
-# - type: dgxa100.80g
-#   count: 2
-# - type: dgxh100.80g
-#   count: 2
-# - type: cpu.x86
-#   count: 2
+name: config-nodes
+tasks:
+- id: configure
+  type: Configure
+  params:
+    nodes:
+    - type: cpu.x86
+      count: 1
+      resources:
+        cpu: 10
+        memory: 10Gi
+        ephemeral-storage: 2Ti
+    timeout: 1m
