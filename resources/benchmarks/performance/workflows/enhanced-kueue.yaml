@@ -20,6 +20,17 @@ description: |
   3. Measures key performance indicators like throughput and scheduling latency
   4. Tests resource utilization efficiency under varied conditions
 tasks:
+# Configure nodes & namespaces
+- id: configure-nodes
+  type: Configure
+  params:
+    nodes:
+    - type: dgxa100.80g
+      count: 700
+      labels:
+        nvidia.com/gpu.count: "8"
+    timeout: 5m
+
 # Register Kueue-specific resources
 - id: register-cluster-queue
   type: RegisterObj
@@ -36,81 +47,10 @@ tasks:
 - id: register-job
   type: RegisterObj
   params:
-    template: "resources/templates/kueue/job.yaml"
+    template: "resources/benchmarks/templates/kueue/job.yaml"
     nameFormat: "perftest-job{{._ENUM_}}"
     podNameFormat: "{{._NAME_}}-[0-9]-.*"
     podCount: "{{.parallelism}}"
-- id: register-configmap
-  type: RegisterObj
-  params:
-    template: "resources/templates/k8s/configmap.yaml"
-
-# Configure nodes and Kueue settings
-- id: configure
-  type: Configure
-  params:
-    nodes:
-    - type: dgxa100.80g
-      count: 700
-      labels:
-        nvidia.com/gpu.count: "8"
-    namespaces:
-    - name: perf-benchmark
-      op: create
-    configmaps:
-    - name: benchmark-metrics
-      namespace: perf-benchmark
-      op: create
-      data:
-        start_time: ""
-        test_phase: "setup"
-        pods_scheduled: "0"
-        pods_pending: "0"
-        scheduler_cpu_usage: "0"
-        scheduler_memory_usage: "0"
-    - name: kueue-manager-config
-      namespace: kueue-system
-      op: create
-      data:
-        controller_manager_config.yaml: |
-          apiVersion: config.kueue.x-k8s.io/v1beta1
-          kind: Configuration
-          health:
-            healthProbeBindAddress: :8081
-          metrics:
-            bindAddress: :8080
-          webhook:
-            port: 9443
-          leaderElection:
-            leaderElect: true
-            resourceName: c1f6bfd2.kueue.x-k8s.io
-          controller:
-            groupKindConcurrency:
-              Job.batch: 5
-              Pod: 5
-              Workload.kueue.x-k8s.io: 5
-              LocalQueue.kueue.x-k8s.io: 1
-              ClusterQueue.kueue.x-k8s.io: 1
-              ResourceFlavor.kueue.x-k8s.io: 1
-          clientConnection:
-            qps: 50
-            burst: 100
-          waitForPodsReady:
-            enable: true
-            timeout: 5m
-            blockAdmission: true
-            requeuingStrategy:
-              timestamp: Eviction
-              backoffLimitCount: null
-              backoffBaseSeconds: 60
-              backoffMaxSeconds: 3600
-          integrations:
-            frameworks:
-            - "batch/job"
-    deploymentRestarts:
-    - namespace: kueue-system
-      name: kueue-controller-manager
-    timeout: 5m
 
 # Create ResourceFlavor, ClusterQueue, LocalQueue
 - id: create-resource-flavor
@@ -141,46 +81,111 @@ tasks:
     canExist: true
     params:
       name: team-queue
-      namespace: perf-benchmark
+      namespace: default
       clusterQueue: team
 
-# Record baseline metrics
-- id: update-test-phase-baseline
-  type: UpdateObj
+# Configure Kueue
+- id: configure
+  type: Configure
   params:
-    refTaskId: register-configmap
-    state:
+    configmaps:
+    - name: kueue-manager-config
+      namespace: kueue-system
+      op: create
       data:
-        test_phase: "baseline"
-        start_time: "{{now}}"
-    timeout: 5s
+        controller_manager_config.yaml: |
+          apiVersion: config.kueue.x-k8s.io/v1beta1
+          kind: Configuration
+          health:
+            healthProbeBindAddress: :8081
+          metrics:
+            bindAddress: :8080
+          # enableClusterQueueResources: true
+          webhook:
+            port: 9443
+          leaderElection:
+            leaderElect: true
+            resourceName: c1f6bfd2.kueue.x-k8s.io
+          controller:
+            groupKindConcurrency:
+              Job.batch: 5
+              Pod: 5
+              Workload.kueue.x-k8s.io: 5
+              LocalQueue.kueue.x-k8s.io: 1
+              ClusterQueue.kueue.x-k8s.io: 1
+              ResourceFlavor.kueue.x-k8s.io: 1
+          clientConnection:
+            qps: 50
+            burst: 100
+          #pprofBindAddress: :8083
+          waitForPodsReady:
+            enable: true
+            timeout: 5m
+            blockAdmission: true
+            requeuingStrategy:
+              timestamp: Eviction
+              backoffLimitCount: null # null indicates infinite requeuing
+              backoffBaseSeconds: 60
+              backoffMaxSeconds: 3600
+          #manageJobsWithoutQueueName: true
+          #internalCertManagement:
+          #  enable: false
+          #  webhookServiceName: ""
+          #  webhookSecretName: ""
+          integrations:
+            frameworks:
+            - "batch/job"
+            - "kubeflow.org/mpijob"
+            - "ray.io/rayjob"
+            - "ray.io/raycluster"
+            - "jobset.x-k8s.io/jobset"
+            - "kubeflow.org/mxjob"
+            - "kubeflow.org/paddlejob"
+            - "kubeflow.org/pytorchjob"
+            - "kubeflow.org/tfjob"
+            - "kubeflow.org/xgboostjob"
+          #  - "pod"
+          #  externalFrameworks:
+          #  - "Foo.v1.example.com"
+            podOptions:
+              namespaceSelector:
+                matchExpressions:
+                  - key: kubernetes.io/metadata.name
+                    operator: NotIn
+                    values: [ kube-system, kueue-system ]
+          #fairSharing:
+          #  enable: true
+          #  preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+          #resources:
+          #  excludeResourcePrefixes: []
+    deploymentRestarts:
+    - namespace: kueue-system
+      name: kueue-controller-manager
+    timeout: 10m
 
 # Small scale test - 50 pods
-- id: update-test-phase-small
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        test_phase: "small_scale"
-        start_time: "{{now}}"
-    timeout: 5s
-
 - id: small-scale-test
   type: SubmitObj
   params:
     refTaskId: register-job
     count: 50
     params:
-      namespace: perf-benchmark
+      namespace: default
       parallelism: 1
       completions: 1
+      completionMode: NonIndexed
       queueName: team-queue
       image: ubuntu
       cpu: 100m
       memory: 128Mi
       gpu: 1
       ttl: "30s"
+
+- id: wait
+  type: Sleep
+  params:
+    # Required: Duration to wait
+    timeout: 60s
 
 - id: small-scale-wait
   type: CheckPod
@@ -189,36 +194,17 @@ tasks:
     status: Running
     timeout: 2m
 
-- id: update-small-scale-metrics
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        small_scale_completion_time: "{{now}}"
-        small_scale_status: "completed"
-    timeout: 5s
-
 # Medium scale test - 200 pods
-- id: update-test-phase-medium
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        test_phase: "medium_scale"
-        start_time: "{{now}}"
-    timeout: 5s
-
 - id: medium-scale-test
   type: SubmitObj
   params:
     refTaskId: register-job
     count: 4
     params:
-      namespace: perf-benchmark
+      namespace: default
       parallelism: 50
       completions: 50
+      completionMode: NonIndexed
       queueName: team-queue
       image: ubuntu
       cpu: 100m
@@ -233,36 +219,17 @@ tasks:
     status: Running
     timeout: 5m
 
-- id: update-medium-scale-metrics
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        medium_scale_completion_time: "{{now}}"
-        medium_scale_status: "completed"
-    timeout: 5s
-
 # Large scale test - 700 pods
-- id: update-test-phase-large
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        test_phase: "large_scale"
-        start_time: "{{now}}"
-    timeout: 5s
-
 - id: large-scale-test
   type: SubmitObj
   params:
     refTaskId: register-job
     count: 1
     params:
-      namespace: perf-benchmark
+      namespace: default
       parallelism: 700
       completions: 700
+      completionMode: NonIndexed
       queueName: team-queue
       image: ubuntu
       cpu: 100m
@@ -277,27 +244,7 @@ tasks:
     status: Running
     timeout: 10m
 
-- id: update-large-scale-metrics
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        large_scale_completion_time: "{{now}}"
-        large_scale_status: "completed"
-    timeout: 5s
-
 # Burst test - rapid submission of many jobs
-- id: update-test-phase-burst
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        test_phase: "burst_test"
-        start_time: "{{now}}"
-    timeout: 5s
-
 - id: clear-previous-jobs
   type: DeleteObj
   params:
@@ -309,9 +256,10 @@ tasks:
     refTaskId: register-job
     count: 100
     params:
-      namespace: perf-benchmark
+      namespace: default
       parallelism: 5
       completions: 5
+      completionMode: NonIndexed
       queueName: team-queue
       image: ubuntu
       cpu: 100m
@@ -325,33 +273,3 @@ tasks:
     refTaskId: burst-test
     status: Running
     timeout: 10m
-
-- id: update-burst-test-metrics
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        burst_test_completion_time: "{{now}}"
-        burst_test_status: "completed"
-    timeout: 5s
-
-# Generate final report
-- id: benchmark-summary
-  type: UpdateObj
-  params:
-    refTaskId: register-configmap
-    state:
-      data:
-        test_phase: "completed"
-        completion_time: "{{now}}"
-    timeout: 5s
-
-- id: check-final-metrics
-  type: CheckConfigmap
-  params:
-    name: benchmark-metrics
-    namespace: perf-benchmark
-    op: subset
-    data:
-      test_phase: "completed"

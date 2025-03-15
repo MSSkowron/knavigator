@@ -20,19 +20,6 @@ description: |
   3. Measures key performance indicators like throughput and scheduling latency
   4. Tests resource utilization efficiency under varied conditions
 tasks:
-# Register YuniKorn-specific resources
-- id: register-job
-  type: RegisterObj
-  params:
-    template: "resources/templates/yunikorn/job.yml"
-    nameFormat: "perftest-job{{._ENUM_}}"
-    podNameFormat: "{{._NAME_}}-.*"
-    podCount: "{{.parallelism}}"
-- id: register-configmap
-  type: RegisterObj
-  params:
-    template: "resources/templates/k8s/configmap.yaml"
-
 # Configure nodes and YuniKorn settings
 - id: configure
   type: Configure
@@ -88,11 +75,37 @@ tasks:
       name: yunikorn-scheduler
     timeout: 5m
 
+# Register YuniKorn-specific resources
+- id: register-job
+  type: RegisterObj
+  params:
+    template: "resources/templates/yunikorn/job.yml"
+    nameFormat: "perftest-job{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-.*"
+    podCount: "{{.parallelism}}"
+- id: register-configmap
+  type: RegisterObj
+  params:
+    template: "resources/templates/k8s/configmap.yaml"
+
+# Create metrics ConfigMap
+- id: create-metrics-configmap
+  type: SubmitObj
+  params:
+    refTaskId: register-configmap
+    count: 1
+    params:
+      namespace: perf-benchmark
+      name: metrics-tracking
+      data:
+        test_phase: "setup"
+        start_time: ""
+
 # Record baseline metrics
 - id: update-test-phase-baseline
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         test_phase: "baseline"
@@ -103,7 +116,7 @@ tasks:
 - id: update-test-phase-small
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         test_phase: "small_scale"
@@ -137,7 +150,7 @@ tasks:
 - id: update-small-scale-metrics
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         small_scale_completion_time: "{{now}}"
@@ -148,7 +161,7 @@ tasks:
 - id: update-test-phase-medium
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         test_phase: "medium_scale"
@@ -182,7 +195,7 @@ tasks:
 - id: update-medium-scale-metrics
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         medium_scale_completion_time: "{{now}}"
@@ -193,7 +206,7 @@ tasks:
 - id: update-test-phase-large
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         test_phase: "large_scale"
@@ -227,7 +240,7 @@ tasks:
 - id: update-large-scale-metrics
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         large_scale_completion_time: "{{now}}"
@@ -238,7 +251,7 @@ tasks:
 - id: update-test-phase-burst
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         test_phase: "burst_test"
@@ -277,7 +290,7 @@ tasks:
 - id: update-burst-test-metrics
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         burst_test_completion_time: "{{now}}"
@@ -288,7 +301,7 @@ tasks:
 - id: benchmark-summary
   type: UpdateObj
   params:
-    refTaskId: register-configmap
+    refTaskId: create-metrics-configmap
     state:
       data:
         test_phase: "completed"
@@ -298,7 +311,7 @@ tasks:
 - id: check-final-metrics
   type: CheckConfigmap
   params:
-    name: benchmark-metrics
+    name: metrics-tracking
     namespace: perf-benchmark
     op: subset
     data:
