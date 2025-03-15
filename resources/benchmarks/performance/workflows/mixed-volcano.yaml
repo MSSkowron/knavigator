@@ -1,0 +1,317 @@
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: volcano-mixed-workload-benchmark
+description: |
+  This benchmark tests Volcano scheduler's ability to efficiently handle mixed workloads
+  with varying resource requirements, priorities, and durations - simulating a more
+  realistic production environment.
+tasks:
+# Register Volcano resources
+- id: register-job
+  type: RegisterObj
+  params:
+    template: "resources/templates/volcano/job.yml"
+    nameFormat: "mixed-job{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-test-[0-9]+"
+    podCount: "{{.replicas}}"
+- id: register-configmap
+  type: RegisterObj
+  params:
+    template: "resources/templates/k8s/configmap.yaml"
+
+# Setup environment with Volcano configuration
+- id: configure-test-env
+  type: Configure
+  params:
+    nodes:
+    - type: dgxa100.80g
+      count: 200
+      labels:
+        nvidia.com/gpu.count: "8"
+        mixed-workload-test: "true"
+    namespaces:
+    - name: mixed-workload
+      op: create
+    priorityClasses:
+    - name: high-priority
+      value: 90
+      op: create
+    - name: medium-priority
+      value: 50
+      op: create
+    - name: low-priority
+      value: 10
+      op: create
+    configmaps:
+    - name: mixed-workload-metrics
+      namespace: mixed-workload
+      op: create
+      data:
+        test_phase: "setup"
+        start_time: "{{now}}"
+    - name: volcano-scheduler-configmap
+      namespace: volcano-system
+      op: create
+      data:
+        volcano-scheduler.conf: |
+          actions: "enqueue, allocate, backfill"
+          tiers:
+          - plugins:
+            - name: priority
+            - name: gang
+            - name: conformance
+          - plugins:
+            - name: drf
+            - name: predicates
+            - name: proportion
+              arguments:
+                proportion.resources: nvidia.com/gpu
+                weight.gpu: 10
+            - name: nodeorder
+            - name: binpack
+    deploymentRestarts:
+    - namespace: volcano-system
+      name: volcano-scheduler
+    - namespace: volcano-system
+      name: volcano-controllers
+    timeout: 5m
+
+# Phase 1: Initial base workload - long-running, low-priority jobs
+- id: update-phase-base
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        test_phase: "base_workload"
+        base_start_time: "{{now}}"
+    timeout: 5s
+
+- id: base-jobs
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 20
+    params:
+      namespace: mixed-workload
+      replicas: 3
+      priorityClassName: low-priority
+      image: ubuntu
+      cpu: 200m
+      memory: 256Mi
+      gpu: 4
+      ttl: "5m"  # Long-running jobs
+
+- id: base-wait
+  type: CheckPod
+  params:
+    refTaskId: base-jobs
+    status: Running
+    timeout: 3m
+
+- id: record-base-metrics
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        base_workload_completion_time: "{{now}}"
+        base_workload_status: "running"
+    timeout: 5s
+
+# Phase 2: Add medium workload - medium-sized, medium-priority jobs
+- id: update-phase-medium
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        test_phase: "medium_workload"
+        medium_start_time: "{{now}}"
+    timeout: 5s
+
+- id: medium-jobs
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 10
+    params:
+      namespace: mixed-workload
+      replicas: 5
+      priorityClassName: medium-priority
+      image: ubuntu
+      cpu: 400m
+      memory: 512Mi
+      gpu: 6
+      ttl: "2m"  # Medium-duration jobs
+
+- id: medium-wait
+  type: CheckPod
+  params:
+    refTaskId: medium-jobs
+    status: Running
+    timeout: 3m
+
+- id: record-medium-metrics
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        medium_workload_completion_time: "{{now}}"
+        medium_workload_status: "running"
+    timeout: 5s
+
+# Phase 3: Add burst high-priority workload
+- id: update-phase-burst
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        test_phase: "high_priority_burst"
+        burst_start_time: "{{now}}"
+    timeout: 5s
+
+- id: high-priority-jobs
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 5
+    params:
+      namespace: mixed-workload
+      replicas: 10
+      priorityClassName: high-priority
+      image: ubuntu
+      cpu: 500m
+      memory: 1Gi
+      gpu: 8
+      ttl: "1m"  # Short-duration, high-priority jobs
+
+- id: high-priority-wait
+  type: CheckPod
+  params:
+    refTaskId: high-priority-jobs
+    status: Running
+    timeout: 3m
+
+- id: record-burst-metrics
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        burst_completion_time: "{{now}}"
+        burst_status: "running"
+    timeout: 5s
+
+# Phase 4: Add resource-intensive jobs
+- id: update-phase-resource-intensive
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        test_phase: "resource_intensive"
+        resource_intensive_start_time: "{{now}}"
+    timeout: 5s
+
+- id: resource-intensive-jobs
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 2
+    params:
+      namespace: mixed-workload
+      replicas: 15
+      priorityClassName: medium-priority
+      image: ubuntu
+      cpu: 1000m
+      memory: 2Gi
+      gpu: 8
+      ttl: "2m"
+
+- id: resource-intensive-wait
+  type: CheckPod
+  params:
+    refTaskId: resource-intensive-jobs
+    status: Running
+    timeout: 4m
+
+- id: record-resource-intensive-metrics
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        resource_intensive_completion_time: "{{now}}"
+        resource_intensive_status: "running"
+    timeout: 5s
+
+# Phase 5: Final small job burst to test scheduler under load
+- id: update-phase-final-burst
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        test_phase: "final_burst"
+        final_burst_start_time: "{{now}}"
+    timeout: 5s
+
+- id: final-burst-jobs
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 50
+    params:
+      namespace: mixed-workload
+      replicas: 1
+      priorityClassName: medium-priority
+      image: ubuntu
+      cpu: 50m
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
+
+- id: final-burst-wait
+  type: CheckPod
+  params:
+    refTaskId: final-burst-jobs
+    status: Running
+    timeout: 5m
+
+# Collect and record metrics
+- id: finalize-benchmark
+  type: UpdateObj
+  params:
+    refTaskId: register-configmap
+    state:
+      data:
+        test_phase: "completed"
+        end_time: "{{now}}"
+        benchmark_status: "success"
+    timeout: 5s
+
+# Verify completion and collect final metrics
+- id: check-final-metrics
+  type: CheckConfigmap
+  params:
+    name: mixed-workload-metrics
+    namespace: mixed-workload
+    op: subset
+    data:
+      test_phase: "completed"
+      benchmark_status: "success"
