@@ -14,78 +14,136 @@ One approach to benchmarking is to run this workload on clusters with different 
 
 For all workload managers, the benchmark test involves two sequential workflows. The first workflow registers the CRDs, and the second workflow runs the common part of the test.
 
-## Gang Scheduling Benchmark Test
+## Gang Scheduling Benchmark
 
-The gang-scheduling benchmark workflow operates on 32 virtual GPU nodes, submitting a burst of 53 jobs with replica numbers ranging from 1 to 32 in a [predetermined order](gang-scheduling/workflows/run-test.yaml).
+Gang scheduling is a critical capability for AI and ML workloads where all pods in a job must be scheduled simultaneously to prevent resource deadlocks and inefficiencies.
 
-### Example
+The benchmark workflow operates on 32 virtual GPU nodes, submitting a burst of 53 jobs with replica numbers ranging from 1 to 32 in a [predetermined order](gang-scheduling/workflows/run-test.yaml).
 
-To run the benchmark test for Kueue:
+For Kueue:
 
 ```bash
-./scripts/benchmarks/gang-scheduling/run-kueue.sh
+./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-kueue.yaml,run-test.yaml}"
 ```
 
-To run the benchmark test for Volcano:
+For Volcano:
 
 ```bash
-
+./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-volcano.yaml,run-test.yaml}"
 ```
 
-To run the benchmark test for YuniKorn:
+For YuniKorn:
 
 ```bash
-
+./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test.yaml}"
 ```
 
-## Scaling Benchmark Test
-
-The scaling benchmark workflow operates on 700 virtual GPU nodes with tho workflows. The first [workflow](scaling/workflows/run-test-multi.yaml) submits is a job with 700 replicas, the second [workflow](scaling/workflows/run-test-single.yaml) submits a batch of 700 single-node jobs.
-
-### Example
-
-To run the benchmark test for Kueue:
+For Coscheduling:
 
 ```bash
-
+./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-combo-coscheduling.yaml,run-test.yaml}"
 ```
 
-To run the benchmark test for Volcano:
+## Performance
+
+The benchmark evaluates a scheduler's ability to handle large-scale deployments, which is essential for production environments with substantial computational needs.
+
+The benchmark workflow operates on 700 virtual GPU nodes with tho workflows. The first [workflow](performance/workflows/run-test-multi.yaml) submits is a job with 700 replicas, the second [workflow](performance/workflows/run-test-single.yaml) submits a batch of 700 single-node jobs.
+
+For Kueue:
 
 ```bash
-./bin/knavigator -workflow 'resources/benchmarks/scaling/workflows/{config-nodes.yaml,config-volcano.yaml,run-test-multi.yaml}'
+# Multi-node job test
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-kueue.yaml,run-test-multi.yaml}" -v 4
+
+# Single-node job test
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-kueue.yaml,run-test-single.yaml}" -v 4
 ```
 
-To run the benchmark test for YuniKorn:
+For Volcano:
 
 ```bash
+# Multi-node job test
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-volcano.yaml,run-test-multi.yaml}" -v 4
+
+# Single-node job test
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-volcano.yaml,run-test-single.yaml}" -v 4
 ```
 
-## Network Topology Benchmark Test
-
-The network topology benchmark workflow runs on 12 virtual GPU nodes, arranged to simulate a tree-like network topology.
-Out of these, 5 nodes are marked as busy, leaving 7 nodes available. The workflow submits a job with 3 replicas.
-
-From a network connectivity standpoint, the optimal assignment would be nodes n5, n7, and n8, as shown in the following diagram.
-
-![network aware scheduling](../../docs/assets/network-aware-scheduling.png)
-
-### Example
-
-To run the benchmark test for Kueue:
+For YuniKorn:
 
 ```bash
+# Multi-node job test
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test-multi.yaml}" -v 4
 
+# Single-node job test
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test-single.yaml}" -v 4
 ```
 
-To run the benchmark test for Volcano:
+## Topology Aware Benchmark
+
+The topology aware benchmark evaluates a scheduler's ability to intelligently place pods based on topology considerations. This capability is crucial for distributed workloads like deep learning training, where inter-pod communication latency can significantly impact performance.
+
+This benchmark creates a simulated network topology with various layers (datacenter, spine, block, accelerator) and tests how well each scheduler can place pods to minimize network distances between collaborating pods.
+
+### Topology Structure
+
+The benchmark configures 12 nodes with a tree-like network topology:
+
+![topology aware scheduling](../../docs/assets/network-aware-scheduling.png)
+
+In this diagram:
+
+- Nodes n1, n3, n6, n11, and n12 are marked as unschedulable (X)
+- Nodes n5, n7, and n8 are marked as "optimal" for network topology considerations
+
+### Test Methodology
+
+- **Node Setup**: The test creates 12 virtual nodes with network topology labels at different levels:
+
+  - network.topology.kubernetes.io/datacenter: Top-level network segment
+  - network.topology.kubernetes.io/spine: Mid-level network segment
+  - network.topology.kubernetes.io/block: Low-level network segment
+  - Some configurations also include network.topology.kubernetes.io/accelerator for NVLink-aware scheduling
+
+- **Workload**: A job with 3 pods requiring co-location for optimal performance is submitted to the cluster.
+
+- **Evaluation**: Success is measured by whether the scheduler places all 3 pods on the optimal nodes (n5, n7, n8) that have been marked with net-optimal: true and have the lowest network distance between them.
+
+### Scheduler-Specific Implementations
+
+#### Kueue Topology Benchmark
+
+Kueue's implementation focuses on resource flavors and affinity rules:
+
+- **Resource Flavors**: Defines a net-optimal-nodes flavor targeting nodes with optimal network characteristics
+- **Affinity Rules**: Uses both nodeAffinity to prefer optimal nodes and podAffinity with block and spine topology keys
+- **Test Pattern**: Submits a job with 3 replicas and validates pod placement
 
 ```bash
-
+./bin/knavigator -workflow "./resources/benchmarks/topology-aware/workflows/{config-nodes.yaml,config-kueue.yaml,run-test.yaml}"
 ```
 
-To run the benchmark test for YuniKorn:
+#### Volcano Topology Benchmark
+
+Volcano's implementation leverages its plugin system:
+
+- **Scheduler Plugins**: Configures the nodeorder plugin with network topology weights
+- **Predicates**: Uses LabelsPresence to filter for optimal nodes
+- **Gang Scheduling**: Ensures all pods in the job are scheduled together
 
 ```bash
+./bin/knavigator -workflow "./resources/benchmarks/topology-aware/workflows/{config-nodes.yaml,config-volcano.yaml,run-test.yaml}"
+```
 
+#### YuniKorn Topology Benchmark
+
+YuniKorn's implementation uses placement rules and scheduling policies:
+
+- **Placement Rules**: Configures tag-based placement to target optimal nodes
+- **Scheduling Policies**: Creates a custom default-topology-aware policy with node ordering weights
+- **Task Groups**: Uses gangScheduling with affinity terms to optimize placement
+
+```bash
+./bin/knavigator -workflow "./resources/benchmarks/topology-aware/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test.yaml}"
 ```

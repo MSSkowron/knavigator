@@ -41,7 +41,6 @@ main() {
     deploy_kwok
     select_and_deploy_workload_manager
     create_additional_dashboards
-    configure_control_plane_taint
 
     log_success "Cluster setup complete!"
 }
@@ -88,7 +87,7 @@ create_additional_dashboards() {
         -l app.kubernetes.io/name=grafana --timeout=300s
 
     # Import dashboards
-    for dashboard in "${REPO_HOME}/resources/dashboards"/*.json; do
+    for dashboard in "${REPO_HOME}/dashboards"/*.json; do
         dashboard_name=$(basename "$dashboard" .json)
         log_info "Importing dashboard: $dashboard_name"
 
@@ -103,13 +102,6 @@ create_additional_dashboards() {
     done
 
     log_success "Additional dashboards created"
-}
-
-configure_control_plane_taint() {
-    log_info "Applying taint to control-plane node..."
-    kubectl taint nodes kind-control-plane node-role.kubernetes.io/control-plane:NoSchedule --overwrite
-    log_success "Control-plane node tainted successfully"
-    log_info "User workloads will now be scheduled only on KWOK nodes"
 }
 
 # Run main function

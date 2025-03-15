@@ -43,4 +43,4 @@ tasks:
             - name: proportion
             - name: nodeorder
             - name: binpack
-    timeout: 1m
+    timeout: 5m
