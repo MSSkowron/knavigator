@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: test-scaling-single-node-jobs
-description: deploy 700 single-replica jobs
-tasks:
-- id: job
-  type: SubmitObj
-  params:
-    refTaskId: register
-    count: 700
-    params:
-      replicas: 1
-      ttl: 5m
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{._NAME_}}"
+  namespace: "{{.namespace}}"
+data:
+{{- range $key, $value := .data }}
+  {{ $key }}: {{ $value }}
+{{- end }}
