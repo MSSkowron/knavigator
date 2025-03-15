@@ -1,0 +1,83 @@
+name: volcano-performance-benchmark-v1-300-300
+description: |
+  Performance benchmark for Volcano with 300 nodes and 300 identical, independent jobs.
+  This tests the scheduler's throughput and efficiency when handling many small jobs.
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+              - plugins:
+                - name: priority
+              - plugins:
+                - name: drf
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes
+  - id: configure
+    type: Configure
+    params:
+      nodes:
+        - type: hpc.gpu
+          count: 300
+          labels:
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128100m
+            memory: 1048626Mi
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Register job template
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/volcano/job.yaml"
+      nameFormat: "perftest-v1-300-300-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Submit 300 jobs
+  # CPU = 300 pods × 16 cores (16000m) = 4,800 cores total (12.5% of 38,400)
+  # Memory = 300 pods × 256Gi = 76,800Gi = ~75Ti total (25% of 300Ti)
+  # GPU = 300 pods × 4 GPU = 1,200 GPUs total (50% of 2,400)
+  - id: job
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 300
+      params:
+        namespace: default
+        replicas: 1
+        queue: default
+        cpu: 16000m # 16 cores (12.5% of node)
+        memory: 256Gi # 256GB (25% of node)
+        gpu: 4 # 4 GPUs (50% of node)
+        ttl: 5m

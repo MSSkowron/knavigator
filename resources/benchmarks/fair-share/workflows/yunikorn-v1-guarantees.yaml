@@ -1,0 +1,510 @@
+name: yunikorn-fair-share-benchmark-v1
+description: |
+  Fair Share benchmark for Apache YuniKorn scheduler.
+
+  Test sprawdza równy podział zasobów klastra pomiędzy najemców
+  o identycznych, równych wagach z gwarancjami zasobów proporcjonalnymi do wag.
+
+  Scenariusz testu:
+  1. Konfiguracja klastra z 8 węzłami (128 CPU i 128GB pamięci łącznie)
+  2. Konfiguracja Kueue z włączonym mechanizmem fairSharing
+  3. Utworzenie ośmiu tenantów o równym priorytecie, wadze i gwarancjach (16 CPU każdy)
+  4. Wysłanie identycznych zadań w trzech rundach z 30s przerwami
+  5. Weryfikacja równego podziału zasobów między tenantami
+tasks:
+  # Configure YuniKorn
+  - id: configure-yunikorn
+    type: Configure
+    params:
+      configmaps:
+        - name: yunikorn-configs
+          namespace: yunikorn
+          op: create
+          data:
+            queues.yaml: |
+              partitions:
+                - name: default
+                  placementrules:
+                    - name: provided
+                      create: false
+                  queues:
+                  - name: root
+                    submitacl: '*'
+                    queues:
+                    - name: fairshare
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                        preemption.policy: default
+                        preemption.delay: 5s
+                      resources:
+                        guaranteed:
+                          vcore: 128000m
+                          memory: 128000Mi
+                        max:
+                          vcore: 128000m
+                          memory: 128000Mi
+                      queues:
+                      - name: tenant-a
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+                      - name: tenant-b
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+                      - name: tenant-c
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+                      - name: tenant-d
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+                      - name: tenant-e
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+                      - name: tenant-f
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+                      - name: tenant-g
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+                      - name: tenant-h
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                        resources:
+                          guaranteed:
+                            vcore: 16000m
+                            memory: 16000Mi
+      deploymentRestarts:
+        - namespace: yunikorn
+          name: yunikorn-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes - 8 węzłów po 16 CPU każdy
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: cpu-node
+          count: 8
+          resources:
+            cpu: 16100m # KWOK potrzebuje 100m → 16000m dostępne
+            memory: "16050Mi" # KWOK potrzebuje 50Mi → 16000Mi dostępne
+            pods: 1000
+      timeout: 5m
+
+  # Create namespaces for eight tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+        - name: tenant-d
+          op: create
+        - name: tenant-e
+          op: create
+        - name: tenant-f
+          op: create
+        - name: tenant-g
+          op: create
+        - name: tenant-h
+          op: create
+      timeout: 1m
+
+  # Register job templates for different batches
+  - id: register-small-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "f1-small-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-medium-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "f1-medium-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-large-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "f1-large-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # RUNDA 1: Każdy tenant zgłasza 10 małych zadań
+  - id: phase1
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queue: root.fairshare.tenant-a
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queue: root.fairshare.tenant-b
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queue: root.fairshare.tenant-c
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queue: root.fairshare.tenant-d
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queue: root.fairshare.tenant-e
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queue: root.fairshare.tenant-f
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queue: root.fairshare.tenant-g
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queue: root.fairshare.tenant-h
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+  - id: wait-between-rounds1
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # RUNDA 2: Każdy tenant zgłasza 6 średnich zadań
+  - id: phase2
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queue: root.fairshare.tenant-a
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queue: root.fairshare.tenant-b
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queue: root.fairshare.tenant-c
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queue: root.fairshare.tenant-d
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queue: root.fairshare.tenant-e
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queue: root.fairshare.tenant-f
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queue: root.fairshare.tenant-g
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queue: root.fairshare.tenant-h
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+  - id: wait-between-rounds2
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # RUNDA 3: Każdy tenant zgłasza 4 duże zadania
+  - id: phase3
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queue: root.fairshare.tenant-a
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queue: root.fairshare.tenant-b
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queue: root.fairshare.tenant-c
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queue: root.fairshare.tenant-d
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queue: root.fairshare.tenant-e
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queue: root.fairshare.tenant-f
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queue: root.fairshare.tenant-g
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queue: root.fairshare.tenant-h
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"

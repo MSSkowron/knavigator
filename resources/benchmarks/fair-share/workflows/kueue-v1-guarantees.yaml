@@ -1,0 +1,861 @@
+name: kueue-fair-share-benchmark-f1-guaranteed
+description: |
+  Fair Share benchmark F1 dla schedulera Kueue - wariant z gwarancjami zasobów.
+
+  Test sprawdza równy podział zasobów klastra pomiędzy najemców
+  o identycznych, równych wagach z gwarancjami zasobów proporcjonalnymi do wag.
+
+  Scenariusz testu:
+  1. Konfiguracja klastra z 8 węzłami (128 CPU i 128GB pamięci łącznie)
+  2. Konfiguracja Kueue z włączonym mechanizmem fairSharing
+  3. Utworzenie ośmiu tenantów o równym priorytecie, wadze i gwarancjach (16 CPU każdy)
+  4. Wysłanie identycznych zadań w trzech rundach z 30s przerwami
+  5. Weryfikacja równego podziału zasobów między tenantami
+tasks:
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
+              clientConnection:
+                qps: 50
+                burst: 100
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null # null indicates infinite requeuing
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+              fairSharing:
+               enable: true
+               preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes - 8 węzłów po 16 CPU każdy
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: cpu-node
+          count: 8
+          resources:
+            cpu: 16100m # KWOK potrzebuje 100m → 16000m dostępne
+            memory: "16050Mi" # KWOK potrzebuje 50Mi → 16000Mi dostępne
+            pods: 1000
+      timeout: 5m
+
+  # Create namespaces for eight tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+        - name: tenant-d
+          op: create
+        - name: tenant-e
+          op: create
+        - name: tenant-f
+          op: create
+        - name: tenant-g
+          op: create
+        - name: tenant-h
+          op: create
+      timeout: 1m
+
+  # Register Kueue-specific resources
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/cluster-queue.yaml"
+
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/local-queue.yaml"
+
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/resource-flavor.yaml"
+
+  - id: register-namespace
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/k8s/namespace.yaml"
+
+  # Register job templates for different sizes
+  - id: register-small-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "f1-small-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-medium-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "f1-medium-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-large-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "f1-large-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: create-resource-flavor
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "resource-flavor"
+        nodeLabels:
+          type: "kwok"
+
+  # Create cluster queues for all 8 tenants with equal weight
+  - id: create-cluster-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-a-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  - id: create-cluster-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-b-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  - id: create-cluster-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-c-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  - id: create-cluster-queue-d
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-d-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  - id: create-cluster-queue-e
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-e-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  - id: create-cluster-queue-f
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-f-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  - id: create-cluster-queue-g
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-g-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  - id: create-cluster-queue-h
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-h-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 16000m # Gwarantowane 16 CPU (1/8 klastra)
+                    borrowingLimit: 112000m # Może pożyczyć dodatkowe 112 CPU
+                    lendingLimit: 16000m # Może udostępnić do 16 CPU innym
+                  - name: memory
+                    nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
+                    borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
+                    lendingLimit: 16000Mi # Może udostępnić do 16GB innym
+
+  # Create local queues for all tenants
+  - id: create-local-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-a-queue
+        namespace: tenant-a
+        clusterQueue: tenant-a-cq
+
+  - id: create-local-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-b-queue
+        namespace: tenant-b
+        clusterQueue: tenant-b-cq
+
+  - id: create-local-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-c-queue
+        namespace: tenant-c
+        clusterQueue: tenant-c-cq
+
+  - id: create-local-queue-d
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-d-queue
+        namespace: tenant-d
+        clusterQueue: tenant-d-cq
+
+  - id: create-local-queue-e
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-e-queue
+        namespace: tenant-e
+        clusterQueue: tenant-e-cq
+
+  - id: create-local-queue-f
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-f-queue
+        namespace: tenant-f
+        clusterQueue: tenant-f-cq
+
+  - id: create-local-queue-g
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-g-queue
+        namespace: tenant-g
+        clusterQueue: tenant-g-cq
+
+  - id: create-local-queue-h
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-h-queue
+        namespace: tenant-h
+        clusterQueue: tenant-h-cq
+
+  # RUNDA 1: Każdy tenant zgłasza 10 małych zadań
+  - id: phase1
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queueName: tenant-a-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queueName: tenant-b-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queueName: tenant-c-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queueName: tenant-d-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queueName: tenant-e-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queueName: tenant-f-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queueName: tenant-g-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queueName: tenant-h-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+  - id: wait-between-rounds1
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # RUNDA 2: Każdy tenant zgłasza 6 średnich zadań
+  - id: phase2
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queueName: tenant-a-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queueName: tenant-b-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queueName: tenant-c-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queueName: tenant-d-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queueName: tenant-e-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queueName: tenant-f-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queueName: tenant-g-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queueName: tenant-h-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+  - id: wait-between-rounds2
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # RUNDA 3: Każdy tenant zgłasza 4 duże zadania
+  - id: phase3
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queueName: tenant-a-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queueName: tenant-b-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queueName: tenant-c-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queueName: tenant-d-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queueName: tenant-e-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queueName: tenant-f-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queueName: tenant-g-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queueName: tenant-h-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"

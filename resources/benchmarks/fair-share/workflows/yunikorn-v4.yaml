@@ -1,0 +1,352 @@
+name: yunikorn-fair-share-benchmark-v2-guarantees
+description: |
+  Weighted Fair Share benchmark for YuniKorn (No Guarantees).
+  Tests proportional resource sharing (3:2:1 weights) in a homogeneous cluster
+  with identical jobs under high load, using explicit weights and guarantees.
+tasks:
+  - id: configure-yunikorn
+    type: Configure
+    params:
+      configmaps:
+        - name: yunikorn-configs
+          namespace: yunikorn
+          op: create
+          data:
+            queues.yaml: |
+              partitions:
+                - name: default
+                  placementrules:
+                    - name: provided
+                      create: false
+                  queues:
+                  - name: root
+                    submitacl: '*'
+                    queues:
+                    - name: fairshare
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                        preemption.policy: default
+                        preemption.delay: 5s
+                      resources:
+                        guaranteed:
+                          vcore: 100000m
+                          memory: 100000Mi
+                        max:
+                          vcore: 100000m
+                          memory: 100000Mi
+                      queues:
+                      - name: tenant-a
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-b
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-c
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-d
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-e
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-f
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+      deploymentRestarts:
+        - namespace: yunikorn
+          name: yunikorn-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes (10 nodes, 10 CPU/10GB each = 100 CPU/100 GB total)
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: cpu-node
+          count: 10
+          resources:
+            cpu: 10100m # ~10 CPU available per node
+            memory: "10050Mi" # ~10 GB available per node
+            pods: 10000
+      timeout: 5m
+
+  # Create namespaces for all six tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+        - name: tenant-d
+          op: create
+        - name: tenant-e
+          op: create
+        - name: tenant-f
+          op: create
+      timeout: 1m
+
+  # Register job templates for Phase 1 - all active tenants
+  - id: register-job-phase1-tenant-a
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p1-a-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase1-tenant-b
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p1-b-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase1-tenant-c
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p1-c-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase1-tenant-d
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p1-d-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # Register job templates for Phase 3 - all tenants
+  - id: register-job-phase3-a
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p3-a-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase3-b
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p3-b-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase3-c
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p3-c-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase3-d
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p3-d-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase3-e
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p3-e-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase3-f
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v4-p3-f-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # --- Phase 1: Build Usage History (10 minutes) ---
+  - id: phase1-history-building
+    type: Repeat
+    params:
+      duration: 10m
+      interval: 10s # Changed from 6s to 10s
+      tasks:
+        # Tenant A: Highest Load (8 jobs)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase1-tenant-a
+            count: 8
+            params:
+              namespace: tenant-a
+              queue: root.fairshare.tenant-a
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "60s"
+
+        # Tenant B: High Load (5 jobs)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase1-tenant-b
+            count: 5
+            params:
+              namespace: tenant-b
+              queue: root.fairshare.tenant-b
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "60s"
+
+        # Tenant C: Medium Load (3 jobs)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase1-tenant-c
+            count: 3
+            params:
+              namespace: tenant-c
+              queue: root.fairshare.tenant-c
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "60s"
+
+        # Tenant D: Low Load (1 job)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase1-tenant-d
+            count: 1
+            params:
+              namespace: tenant-d
+              queue: root.fairshare.tenant-d
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "60s"
+
+        # Tenants E and F: No Load (inactive)
+
+  # --- Phase 2: Cleanup pause ---
+  # Wait for all Phase 1 jobs to complete (last jobs at 600s + 60s TTL = 660s)
+  # Adding buffer, total wait 120s from end of Phase 1
+  - id: stabilize-after-phase1
+    type: Sleep
+    params:
+      timeout: 240s
+
+  - id: remove-all-jobs
+    type: DeleteAllJobs
+
+  - id: stabilize-after-jobs-cleanup
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # --- Phase 3: Test Prioritization ---
+  - id: phase3-parallel-burst
+    type: Parallel
+    params:
+      tasks:
+        # All tenants submit 40 jobs each
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase3-a
+            count: 40
+            params:
+              namespace: tenant-a
+              queue: root.fairshare.tenant-a
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase3-b
+            count: 40
+            params:
+              namespace: tenant-b
+              queue: root.fairshare.tenant-b
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase3-c
+            count: 40
+            params:
+              namespace: tenant-c
+              queue: root.fairshare.tenant-c
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase3-d
+            count: 40
+            params:
+              namespace: tenant-d
+              queue: root.fairshare.tenant-d
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase3-e
+            count: 40
+            params:
+              namespace: tenant-e
+              queue: root.fairshare.tenant-e
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase3-f
+            count: 40
+            params:
+              namespace: tenant-f
+              queue: root.fairshare.tenant-f
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"

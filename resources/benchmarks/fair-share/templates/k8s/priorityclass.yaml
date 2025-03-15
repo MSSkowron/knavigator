@@ -1,0 +1,20 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: "{{ .name }}"
+  {{- if .annotations }}
+  annotations:
+    {{- range $key, $value := .labels }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+  {{- end }}
+# Numeric value for the priority. Higher numbers indicate higher priority.
+value: {{ .value }}
+# Indicates if this PriorityClass should be used as the default priority for pods that do not request one.
+globalDefault: {{ .globalDefault | default false }}
+# Description for documentation purposes.
+description: "{{ .description | default "Custom PriorityClass for scheduling workloads" }}"
+{{- if .preemptionPolicy }}
+# Preemption policy (e.g., "PreemptLowerPriority" or "Never"). Optional.
+preemptionPolicy: {{ .preemptionPolicy }}
+{{- end }}
