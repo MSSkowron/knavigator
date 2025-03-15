@@ -29,6 +29,14 @@ tasks:
       count: 700
       labels:
         nvidia.com/gpu.count: "8"
+      resources:
+        cpu: 256
+        memory: 2048Gi
+        pods: 110
+        nvidia.com/gpu: 8
+        hugepages-1Gi: 0
+        hugepages-2Mi: 0
+        ephemeral-storage: 30Ti
     timeout: 5m
 
 # Register Kueue-specific resources
@@ -70,10 +78,10 @@ tasks:
     params:
       name: team
       flavor: gpu-node
-      cpu: 70000m
-      memory: 700Gi
-      pods: 700
-      gpu: 5600
+      cpu: 179200000m    # 256 cores × 700 nodes
+      memory: 1400Ti     # 2Ti × 700 nodes
+      pods: 77000        # 110 pods × 700 nodes
+      gpu: 5600          # 8 GPUs × 700 nodes
 - id: create-local-queue
   type: SubmitObj
   params:
@@ -180,12 +188,6 @@ tasks:
       memory: 128Mi
       gpu: 1
       ttl: "30s"
-
-- id: wait
-  type: Sleep
-  params:
-    # Required: Duration to wait
-    timeout: 60s
 
 - id: small-scale-wait
   type: CheckPod
