@@ -1,72 +1,13 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# Configuration of virtual nodes for batch processing research
-# Includes various node types optimized for different workload patterns
+# Default values for virtual-nodes.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 
-nodes:
-# High-Performance Computing Nodes with NVIDIA A100 GPUs
-- type: gpu
-  count: 0
-  labels:
-    nvidia.com/gpu.product: "NVIDIA-A100-SXM4-80GB"
-    nvidia.com/gpu.present: "true"
-    nvidia.com/gpu.count: "8"
-  conditions:
-  - message: Filesystem is not read-only
-    reason: FilesystemIsNotReadOnly
-    status: "False"
-    type: ReadonlyFilesystem
-  - message: kernel has no deadlock
-    reason: KernelHasNoDeadlock
-    status: "False"
-    type: KernelDeadlock
-  resources:
-    cpu: 96
-    memory: 768Gi
-    nvidia.com/gpu: 8
-    nvidia.com/mlnxnics: 16
-    ephemeral-storage: 2Ti
-
-# Memory-Optimized Nodes for Data Processing
-- type: memory-optimized
-  count: 0
-  resources:
-    cpu: 64
-    memory: 512Gi
-    ephemeral-storage: 1Ti
-    hugepages-1Gi: 128Gi
-
-# High-Throughput Computing Nodes
-- type: htc
-  count: 0
-  resources:
-    cpu: 32
-    memory: 128Gi
-    ephemeral-storage: 500Gi
-
-# I/O-Optimized Nodes for Data-Intensive Workloads
-- type: io-optimized
-  count: 0
-  resources:
-    cpu: 16
-    memory: 64Gi
-    ephemeral-storage: 4Ti
-
-# General Purpose Batch Processing Nodes
-- type: batch-standard
-  count: 100
-  resources:
-    cpu: 16
-    memory: 64Gi
-    ephemeral-storage: 1Ti
+nodes: {}
+# - type: dgxa100.40g
+#   count: 2
+# - type: dgxa100.80g
+#   count: 2
+# - type: dgxh100.80g
+#   count: 2
+# - type: cpu.x86
+#   count: 2

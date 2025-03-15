@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-resource-exporter-monitor # Zmieniona nazwa
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack # Upewnij się, że ta etykieta pasuje do Twojej instalacji Prometheus Operator
+spec:
+  selector:
+    matchLabels:
+      app: node-resource-exporter # Zmieniona etykieta
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  endpoints:
+    - port: http-metrics
+      path: /metrics
+      interval: 10s # Może być dłuższy, np. 30s

@@ -1,0 +1,65 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: "{{._NAME_}}"
+  namespace: "{{.namespace}}"
+spec:
+  minAvailable: 1
+  schedulerName: volcano
+  {{- if .priorityClassName }}
+  priorityClassName: "{{ .priorityClassName }}"
+  {{- end }}
+  policies:
+  - event: PodEvicted
+    action: RestartJob
+  plugins:
+    ssh: []
+    env: []
+    svc: []
+  maxRetry: 5
+  queue: "{{ if .queue }}{{ .queue }}{{ else }}default{{ end }}"
+  tasks:
+  - replicas: {{.replicas}}
+    name: test
+    template:
+      metadata:
+        name: test
+        annotations:
+          {{- if .ttl }}
+          pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
+          pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
+          {{- end }}
+      spec:
+        containers:
+        - name: job
+          image: ubuntu
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: {{.cpu}}
+              memory: {{.memory}}
+              {{- if .gpu }}
+              nvidia.com/gpu: {{.gpu}}
+              {{- end }}
+            requests:
+              cpu: {{.cpu}}
+              memory: {{.memory}}
+              {{- if .gpu }}
+              nvidia.com/gpu: {{.gpu}}
+              {{- end }}
+        restartPolicy: Never
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                  - "kwok"
+        tolerations:
+        - key: "kwok.x-k8s.io/node"
+          operator: "Exists"
+          effect: "NoSchedule"
+        nodeSelector:
+          "type": kwok

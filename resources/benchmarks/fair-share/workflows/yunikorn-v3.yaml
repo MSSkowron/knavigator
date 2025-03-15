@@ -1,0 +1,343 @@
+name: yunikorn-fair-share-benchmark-v2-guarantees
+description: |
+  Weighted Fair Share benchmark for YuniKorn (No Guarantees).
+  Tests proportional resource sharing (3:2:1 weights) in a homogeneous cluster
+  with identical jobs under high load, using explicit weights and guarantees.
+tasks:
+  - id: configure-yunikorn
+    type: Configure
+    params:
+      configmaps:
+        - name: yunikorn-configs
+          namespace: yunikorn
+          op: create
+          data:
+            queues.yaml: |
+              partitions:
+                - name: default
+                  placementrules:
+                    - name: provided
+                      create: false
+                  queues:
+                  - name: root
+                    submitacl: '*'
+                    queues:
+                    - name: fairshare
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                        preemption.policy: default
+                        preemption.delay: 5s
+                      resources:
+                        guaranteed:
+                          vcore: 576000m
+                          memory: 2304000Mi
+                          nvidia.com/gpu: 48
+                        max:
+                          vcore: 576000m
+                          memory: 2304000Mi
+                          nvidia.com/gpu: 48
+                      queues:
+                      - name: tenant-a1
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-a2
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-b1
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-b2
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-c1
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-c2
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+      deploymentRestarts:
+        - namespace: yunikorn
+          name: yunikorn-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure heterogeneous worker nodes
+  # Cluster capacity:
+  # CPU:    576000m   (576 CPU)
+  # Memory: 2304000Mi (2304 GB)
+  # GPU:    48
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        # Typ A: CPU-intensive (6 węzłów)
+        - type: cpu-node
+          count: 6
+          labels:
+            node-type: cpu-intensive
+            nvidia.com/gpu.count: "0"
+          resources:
+            cpu: "64100m" # 64 rdzeni CPU dostępne dla zadań + 100m na system KWOK
+            memory: "64050Mi" # 64 GB RAM dostępne dla zadań + 50Mi na system KWOK
+            pods: 1100
+            nvidia.com/gpu: 0 # 0 GPU dostępne dla zadań
+
+        # Typ B: RAM-intensive (6 węzłów)
+        - type: ram-node
+          count: 6
+          labels:
+            node-type: ram-intensive
+            nvidia.com/gpu.count: "0"
+          resources:
+            cpu: "16100m" # 16 rdzeni CPU dostępne dla zadań + 100m na system KWOK
+            memory: "256050Mi" # 256 GB RAM dostępne dla zadań + 50Mi na system KWOK
+            pods: 1100
+            nvidia.com/gpu: 0 # 0 GPU dostępne dla zadań
+
+        # Typ C: GPU-enabled (6 węzłów)
+        - type: gpu-node
+          count: 6
+          labels:
+            node-type: gpu-enabled
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: "16100m" # 16 rdzeni CPU dostępne dla zadań + 100m na system KWOK
+            memory: "64050Mi" # 64 GB RAM dostępne dla zadań + 50Mi na system KWOK
+            pods: 1100
+            nvidia.com/gpu: 8 # 8 GPU dostępne dla zadań
+      timeout: 5m
+
+  # Create namespaces for the six tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a1
+          op: create
+        - name: tenant-a2
+          op: create
+        - name: tenant-b1
+          op: create
+        - name: tenant-b2
+          op: create
+        - name: tenant-c1
+          op: create
+        - name: tenant-c2
+          op: create
+      timeout: 1m
+
+  # Register YuniKorn job templates
+  - id: register-job-batch-1
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v3-batch1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-2
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v3-batch2-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Runda 1: Pierwszy batch zadań dla wszystkich najemców
+  - id: phase1
+    type: Parallel
+    params:
+      tasks:
+        # Tenant A1 & A2 (łącznie 80 zadań):
+        # CPU:    80 * 8000m  = 640000m  (111.1% CPU klastra)
+        # RAM:    80 * 8000Mi = 640000Mi (27.8% RAM klastra)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-a1
+              replicas: 1
+              queue: root.fairshare.tenant-a1
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-a2
+              replicas: 1
+              queue: root.fairshare.tenant-a2
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        # Tenant B1 & B2 (łącznie 80 zadań):
+        # CPU:    80 * 2000m  = 160000m   (27.8% CPU klastra)
+        # RAM:    80 * 32000Mi= 2560000Mi (111.1% RAM klastra)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-b1
+              replicas: 1
+              queue: root.fairshare.tenant-b1
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-b2
+              replicas: 1
+              queue: root.fairshare.tenant-b2
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        # Tenant C1 & C2 (łącznie 50 zadań):
+        # CPU:    50 * 2000m = 100000m  (17.4% CPU klastra)
+        # RAM:    50 * 8000Mi= 400000Mi (17.4% RAM klastra)
+        # GPU:    50 * 1      = 50      (104.2% GPU klastra)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 25
+            params:
+              namespace: tenant-c1
+              replicas: 1
+              queue: root.fairshare.tenant-c1
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 25
+            params:
+              namespace: tenant-c2
+              replicas: 1
+              queue: root.fairshare.tenant-c2
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"
+
+  - id: wait-between-rounds
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Runda 2: Drugi batch zadań dla wszystkich najemców
+  - id: phase2
+    type: Parallel
+    params:
+      tasks:
+        # Tenant A1 & A2
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-a1
+              replicas: 1
+              queue: root.fairshare.tenant-a1
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-a2
+              replicas: 1
+              queue: root.fairshare.tenant-a2
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        # Tenant B1 & B2
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-b1
+              replicas: 1
+              queue: root.fairshare.tenant-b1
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-b2
+              replicas: 1
+              queue: root.fairshare.tenant-b2
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        # Tenant C1 & C2
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 25
+            params:
+              namespace: tenant-c1
+              replicas: 1
+              queue: root.fairshare.tenant-c1
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 25
+            params:
+              namespace: tenant-c2
+              replicas: 1
+              queue: root.fairshare.tenant-c2
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"

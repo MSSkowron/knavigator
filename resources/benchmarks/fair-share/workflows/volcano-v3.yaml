@@ -1,0 +1,357 @@
+name: volcano-fair-share-benchmark-v3
+description: |
+  Fair Share benchmark dla schedulera Volcano w środowisku heterogenicznym.
+
+  Test sprawdza, czy Volcano prawidłowo implementuje mechanizm DRF (Dominant Resource Fairness)
+  w heterogenicznym klastrze z węzłami o różnych profilach zasobów. Tworzy trzy oddzielne
+  przestrzenie nazw i kolejki z równymi wagami, ale różnymi dominującymi zasobami.
+
+  Scenariusz testu:
+  1. Konfiguracja heterogenicznego klastra z 12 węzłami o różnych profilach zasobów
+  2. Konfiguracja Volcano z włączonym pluginem DRF
+  3. Utworzenie trzech kolejek o równych wagach odpowiadających tenantom
+  4. Sekwencyjne wysłanie zadań w trzech rundach
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, preempt, reclaim"
+              tiers:
+              - plugins:
+                - name: priority
+              - plugins:
+                - name: drf
+                  enablePreemptable: true
+                  enableHierarchy: true
+                - name: predicates
+                - name: nodeorder
+                - name: binpack
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure heterogeneous worker nodes
+  # Cluster capacity:
+  # CPU:    576000m   (576 CPU)
+  # Memory: 2304000Mi (2304 GB)
+  # GPU:    48
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        # Typ A: CPU-intensive (6 węzłów)
+        - type: cpu-node
+          count: 6
+          labels:
+            node-type: cpu-intensive
+            nvidia.com/gpu.count: "0"
+          resources:
+            cpu: "64100m" # 64 rdzeni CPU dostępne dla zadań + 100m na system KWOK
+            memory: "64050Mi" # 64 GB RAM dostępne dla zadań + 50Mi na system KWOK
+            pods: 1100
+            nvidia.com/gpu: 0 # 0 GPU dostępne dla zadań
+
+        # Typ B: RAM-intensive (6 węzłów)
+        - type: ram-node
+          count: 6
+          labels:
+            node-type: ram-intensive
+            nvidia.com/gpu.count: "0"
+          resources:
+            cpu: "16100m" # 16 rdzeni CPU dostępne dla zadań + 100m na system KWOK
+            memory: "256050Mi" # 256 GB RAM dostępne dla zadań + 50Mi na system KWOK
+            pods: 1100
+            nvidia.com/gpu: 0 # 0 GPU dostępne dla zadań
+
+        # Typ C: GPU-enabled (6 węzłów)
+        - type: gpu-node
+          count: 6
+          labels:
+            node-type: gpu-enabled
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: "16100m" # 16 rdzeni CPU dostępne dla zadań + 100m na system KWOK
+            memory: "64050Mi" # 64 GB RAM dostępne dla zadań + 50Mi na system KWOK
+            pods: 1100
+            nvidia.com/gpu: 8 # 8 GPU dostępne dla zadań
+      timeout: 5m
+
+  # Create namespaces for the six tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a1
+          op: create
+        - name: tenant-a2
+          op: create
+        - name: tenant-b1
+          op: create
+        - name: tenant-b2
+          op: create
+        - name: tenant-c1
+          op: create
+        - name: tenant-c2
+          op: create
+      timeout: 1m
+
+  # Register queue template
+  - id: register-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/queue-hdrf.yml"
+
+  # Register job templates for different batches
+  - id: register-job-batch-1
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "fairshare-v3-batch1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-2
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "fairshare-v3-batch2-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Create queues with equal weights for all six tenants
+  - id: create-queue-a1
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-a1-queue"
+
+  - id: create-queue-a2
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-a2-queue"
+
+  - id: create-queue-b1
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-b1-queue"
+
+  - id: create-queue-b2
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-b2-queue"
+
+  - id: create-queue-c1
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-c1-queue"
+
+  - id: create-queue-c2
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-c2-queue"
+
+  # Runda 1: Pierwszy batch zadań dla wszystkich najemców
+  - id: phase1
+    type: Parallel
+    params:
+      tasks:
+        # Tenant A1 & A2 (łącznie 80 zadań):
+        # CPU:    80 * 8000m  = 640000m  (111.1% CPU klastra)
+        # RAM:    80 * 8000Mi = 640000Mi (27.8% RAM klastra)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-a1
+              replicas: 1
+              queue: tenant-a1-queue
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-a2
+              replicas: 1
+              queue: tenant-a2-queue
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        # Tenant B1 & B2 (łącznie 80 zadań):
+        # CPU:    80 * 2000m  = 160000m   (27.8% CPU klastra)
+        # RAM:    80 * 32000Mi= 2560000Mi (111.1% RAM klastra)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-b1
+              replicas: 1
+              queue: tenant-b1-queue
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 40
+            params:
+              namespace: tenant-b2
+              replicas: 1
+              queue: tenant-b2-queue
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        # Tenant C1 & C2 (łącznie 50 zadań):
+        # CPU:    50 * 2000m = 100000m  (17.4% CPU klastra)
+        # RAM:    50 * 8000Mi= 400000Mi (17.4% RAM klastra)
+        # GPU:    50 * 1      = 50      (104.2% GPU klastra)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 25
+            params:
+              namespace: tenant-c1
+              replicas: 1
+              queue: tenant-c1-queue
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-1
+            count: 25
+            params:
+              namespace: tenant-c2
+              replicas: 1
+              queue: tenant-c2-queue
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"
+
+  - id: wait-between-rounds
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Runda 2: Drugi batch zadań dla wszystkich najemców
+  - id: phase2
+    type: Parallel
+    params:
+      tasks:
+        # Tenant A1 & A2
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-a1
+              replicas: 1
+              queue: tenant-a1-queue
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-a2
+              replicas: 1
+              queue: tenant-a2-queue
+              cpu: 8000m
+              memory: 8000Mi
+              ttl: "5m"
+
+        # Tenant B1 & B2
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-b1
+              replicas: 1
+              queue: tenant-b1-queue
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 40
+            params:
+              namespace: tenant-b2
+              replicas: 1
+              queue: tenant-b2-queue
+              cpu: 2000m
+              memory: 32000Mi
+              ttl: "5m"
+
+        # Tenant C1 & C2
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 25
+            params:
+              namespace: tenant-c1
+              replicas: 1
+              queue: tenant-c1-queue
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-batch-2
+            count: 25
+            params:
+              namespace: tenant-c2
+              replicas: 1
+              queue: tenant-c2-queue
+              cpu: 2000m
+              memory: 8000Mi
+              gpu: 1
+              ttl: "5m"

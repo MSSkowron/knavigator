@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: "{{ .name }}"
+  namespace: "{{ .namespace }}"
+spec:
+  # Define resource limits using a dictionary
+  hard:
+{{ toYaml .hard | indent 4 }}
+  {{- if .scopes }}
+  # Optional list of scopes to restrict the ResourceQuota
+  scopes:
+{{ toYaml .scopes | indent 4 }}
+  {{- end }}
+  {{- if .scopeSelector }}
+  # Optional scopeSelector for fine-grained quota selection
+  scopeSelector:
+{{ toYaml .scopeSelector | indent 4 }}
+  {{- end }}

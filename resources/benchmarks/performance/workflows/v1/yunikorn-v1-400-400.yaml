@@ -1,0 +1,89 @@
+name: yunikorn-performance-benchmark-v1-400-400
+description: |
+  Performance benchmark for YuniKorn with 400 nodes and 400 identical, independent jobs.
+  This tests the scheduler's throughput and efficiency when handling many small jobs.
+tasks:
+  # Configure YuniKorn
+  - id: configure-yunikorn
+    type: Configure
+    params:
+      configmaps:
+        - name: yunikorn-configs
+          namespace: yunikorn
+          op: create
+          data:
+            queues.yaml: |
+              partitions:
+                - name: default
+                  queues:
+                  - name: root
+                    queues:
+                    - name: perf-benchmark
+                      submitacl: '*'
+                      resources:
+                        guaranteed:
+                          memory: 10Gi
+                          vcore: 10000m
+                          nvidia.com/gpu: 100
+                        max:
+                          memory: 400Ti        # 1Ti × 400 nodes
+                          vcore: 51200000m     # 128 cores × 400 nodes
+                          nvidia.com/gpu: 3200 # 8 GPUs × 400 nodes
+      deploymentRestarts:
+        - namespace: yunikorn
+          name: yunikorn-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: hpc.gpu
+          count: 400
+          labels:
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128100m
+            memory: 1048626Mi
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Register job template
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/yunikorn/job.yaml"
+      nameFormat: "perftest-v1-400-400-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-.*"
+      podCount: "{{.replicas}}"
+
+  # Submit 400 jobs
+  # CPU = 400 pods × 16 cores (16000m) = 6,400 cores total (12.5% of 51,200)
+  # Memory = 400 pods × 256Gi = 102,400Gi = ~100Ti total (25% of 400Ti)
+  # GPU = 400 pods × 4 GPU = 1,600 GPUs total (50% of 3,200)
+  - id: job
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 400
+      params:
+        namespace: default
+        replicas: 1
+        queue: "root.perf-benchmark"
+        cpu: 16000m # 16 cores (12.5% of node)
+        memory: 256Gi # 256GB (25% of node)
+        gpu: 4 # 4 GPUs (50% of node)
+        ttl: 5m

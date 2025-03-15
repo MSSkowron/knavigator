@@ -1,3 +1,12 @@
 /bin
 /coverage.out
 .DS_Store
+kind-config-resources.yaml
+prompt.MD
+test.json
+tutorial.md
+/wyniki/wyniki_*/**
+/wyniki/nowe_wyniki_*/**
+!/wyniki/wyniki_*/
+!/wyniki/nowe_wyniki_*/
+yunikorn-f3.md

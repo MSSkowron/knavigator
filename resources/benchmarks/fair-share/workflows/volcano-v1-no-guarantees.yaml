@@ -1,0 +1,537 @@
+name: volcano-fair-share-benchmark-v1
+description: |
+  Fair Share benchmark dla schedulera Volcano.
+
+  Test sprawdza równy podział zasobów klastra pomiędzy najemców
+  o identycznych, równych wagach bez gwarancji zasobów.
+
+  Scenariusz testu:
+  1. Konfiguracja klastra z 8 węzłami (128 CPU i 128GB pamięci łącznie)
+  2. Konfiguracja Kueue z włączonym mechanizmem fairSharing
+  3. Utworzenie ośmiu tenantów o równym priorytecie i wadze
+  4. Wysłanie heterogenicznych zadań (małe, średnie, duże) w trzech rundach
+  5. Weryfikacja równego podziału zasobów między tenantami
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, reclaim"
+              tiers:
+              - plugins:
+                - name: priority
+              - plugins:
+                - name: drf
+                  enablePreemptable: true
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes - 8 węzłów po 16 CPU każdy
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: cpu-node
+          count: 8
+          resources:
+            cpu: 16100m # KWOK potrzebuje 100m → 16000m dostępne
+            memory: "16050Mi" # KWOK potrzebuje 50Mi → 16000Mi dostępne
+            pods: 1000
+      timeout: 5m
+
+  # Create namespaces for eight tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+        - name: tenant-d
+          op: create
+        - name: tenant-e
+          op: create
+        - name: tenant-f
+          op: create
+        - name: tenant-g
+          op: create
+        - name: tenant-h
+          op: create
+      timeout: 1m
+
+  # Register queue template
+  - id: register-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/queue.yml"
+
+  # Register job templates for different batches
+  - id: register-small-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "f1-small-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-medium-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "f1-medium-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-large-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "f1-large-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # Create queues for all 8 tenants with equal weight
+  - id: create-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-a-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  - id: create-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-b-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  - id: create-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-c-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  - id: create-queue-d
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-d-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  - id: create-queue-e
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-e-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  - id: create-queue-f
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-f-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  - id: create-queue-g
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-g-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  - id: create-queue-h
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-h-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 128000m
+          memory: 128000Mi
+
+  # RUNDA 1: Każdy tenant zgłasza 10 małych zadań
+  - id: phase1
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queue: tenant-a-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queue: tenant-b-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queue: tenant-c-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queue: tenant-d-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queue: tenant-e-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queue: tenant-f-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queue: tenant-g-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-small-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queue: tenant-h-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+  - id: wait-between-rounds1
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # RUNDA 2: Każdy tenant zgłasza 6 średnich zadań
+  - id: phase2
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queue: tenant-a-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queue: tenant-b-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queue: tenant-c-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queue: tenant-d-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queue: tenant-e-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queue: tenant-f-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queue: tenant-g-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queue: tenant-h-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+  - id: wait-between-rounds2
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # RUNDA 3: Każdy tenant zgłasza 4 duże zadania
+  - id: phase3
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-a
+              queue: tenant-a-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-b
+              queue: tenant-b-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-c
+              queue: tenant-c-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-d
+              queue: tenant-d-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-e
+              queue: tenant-e-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-f
+              queue: tenant-f-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-g
+              queue: tenant-g-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-large-job
+            count: 10
+            params:
+              namespace: tenant-h
+              queue: tenant-h-queue
+              replicas: 1
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m"

@@ -1,24 +1,10 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 apiVersion: batch.volcano.sh/v1alpha1
 kind: Job
 metadata:
   name: "{{._NAME_}}"
-  namespace: default
+  namespace: {{.namespace}}
 spec:
-  minAvailable: {{.replicas}}
+  minAvailable: {{.minAvailable}}
   schedulerName: volcano
   policies:
   - event: PodEvicted
@@ -28,7 +14,12 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: default
+  queue: {{.queue}}
+  {{- if .networkTopology }}
+  networkTopology:
+    mode: {{.topologyMode}}
+    highestTierAllowed: {{.highestTierAllowed}}
+  {{- end }}
   tasks:
   - replicas: {{.replicas}}
     name: test
@@ -36,51 +27,41 @@ spec:
       metadata:
         name: test
         annotations:
-          pod-complete.stage.kwok.x-k8s.io/delay: {{.ttl}}
-          pod-complete.stage.kwok.x-k8s.io/jitter-delay: {{.ttl}}
-        labels:
-          app: {{._NAME_}}
+          {{- if .ttl }}
+          pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
+          pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
+          {{- end }}
       spec:
-        affinity:
-          podAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 70
-              podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                    - {{._NAME_}}
-                topologyKey: network.topology.kubernetes.io/spine
-            - weight: 90
-              podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                    - {{._NAME_}}
-                topologyKey: network.topology.kubernetes.io/block
-          nodeAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                - key: net-optimal
-                  operator: In
-                  values:
-                  - "true"
         containers:
         - name: job
           image: ubuntu
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              cpu: 100m
-              memory: 250M
-              nvidia.com/gpu: "8"
+              cpu: {{.cpu}}
+              memory: {{.memory}}
+              {{- if .gpu }}
+              nvidia.com/gpu: {{.gpu}}
+              {{- end }}
             requests:
-              cpu: 100m
-              memory: 250M
-              nvidia.com/gpu: "8"
+              cpu: {{.cpu}}
+              memory: {{.memory}}
+              {{- if .gpu }}
+              nvidia.com/gpu: {{.gpu}}
+              {{- end }}
+        restartPolicy: Never
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: type
+                  operator: In
+                  values:
+                  - "kwok"
+        tolerations:
+        - key: "kwok.x-k8s.io/node"
+          operator: "Exists"
+          effect: "NoSchedule"
+        nodeSelector:
+          "type": kwok

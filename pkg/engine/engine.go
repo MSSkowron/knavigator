@@ -34,6 +34,7 @@ import (
 
 type Engine interface {
 	RunTask(context.Context, *config.Task) error
+	GetTask(*config.Task) (Runnable, error)
 	Reset(context.Context) error
 	DeleteAllObjects(context.Context)
 }
@@ -179,6 +180,15 @@ func (eng *Eng) GetTask(cfg *config.Task) (Runnable, error) {
 
 	case TaskPause:
 		return newPauseTask(cfg), nil
+
+	case TaskRepeat:
+		return newRepeatTask(eng, cfg)
+
+	case TaskParallel:
+		return newParallelTask(eng, cfg)
+
+	case TaskDeleteAllJobs:
+		return newDeleteAllJobsTask(eng.dynamicClient, cfg)
 
 	default:
 		return nil, fmt.Errorf("unsupported task type %q", cfg.Type)

@@ -9,36 +9,77 @@
 {{- $params := dict }}
 
 {{/*
-# Default params that can be overridden by each node type as appropriate
-*/}}
-{{- $params := dict }}
-
-{{/*
 # The default set of resources for all node types
 */}}
 {{- $defaultResources := dict }}
-{{- $defaultResources = set $defaultResources "cpu" 32 }}
-{{- $defaultResources = set $defaultResources "memory" "256Gi" }}
-{{- $defaultResources = set $defaultResources "pods" 110 }}
-{{- $defaultResources = set $defaultResources "nvidia.com/gpu" 0 }}
-{{- $defaultResources = set $defaultResources "nvidia.com/mlnxnics" 0 }}
-{{- $defaultResources = set $defaultResources "hugepages-1Gi" 0 }}
-{{- $defaultResources = set $defaultResources "hugepages-2Mi" 0 }}
+{{- $defaultResources = set $defaultResources "hugepages-1Gi" 0   }}
+{{- $defaultResources = set $defaultResources "hugepages-2Mi" 0   }}
+{{- $defaultResources = set $defaultResources "pods"          110 }}
 
 {{/*
-# Merge default resources with node-specific resources if they exist
+# dgxa100.40g
+# Specs taken from here:
+# https://docs.nvidia.com/dgx/dgxa100-user-guide/introduction-to-dgxa100.html#hardware-overview
 */}}
-{{- $resources := deepCopy $defaultResources }}
-{{- if $node.resources }}
-  {{- range $key, $value := $node.resources }}
-    {{- $resources = set $resources $key $value }}
-  {{- end }}
+{{- if eq $node.type "dgxa100.40g" }}
+  {{- $resources := deepCopy $defaultResources }}
+  {{- $resources = set $resources "cpu"                 256    }}
+  {{- $resources = set $resources "memory"              "1Ti"  }}
+  {{- $resources = set $resources "nvidia.com/gpu"      8      }}
+  {{- $resources = set $resources "nvidia.com/mlnxnics" 16     }}
+  {{- $resources = set $resources "ephemeral-storage"   "15Ti" }}
+  {{- $params = set $params "resources" $resources }}
+
+{{/*
+# dgxa100.80g
+# Specs taken from here:
+# https://docs.nvidia.com/dgx/dgxa100-user-guide/introduction-to-dgxa100.html#hardware-overview
+*/}}
+{{- else if eq $node.type "dgxa100.80g" }}
+  {{- $resources := deepCopy $defaultResources }}
+  {{- $resources = set $resources "cpu"                 256    }}
+  {{- $resources = set $resources "memory"              "2Ti"  }}
+  {{- $resources = set $resources "nvidia.com/gpu"      8      }}
+  {{- $resources = set $resources "nvidia.com/mlnxnics" 16     }}
+  {{- $resources = set $resources "ephemeral-storage"   "30Ti" }}
+  {{- $params = set $params "resources" $resources }}
+
+{{/*
+# dgxh100.80g
+# Specs taken from here:
+# https://docs.nvidia.com/dgx/dgxh100-user-guide/introduction-to-dgxh100.html#hardware-overview
+*/}}
+{{- else if eq $node.type "dgxh100.80g" }}
+  {{- $resources := deepCopy $defaultResources }}
+  {{- $resources = set $resources "cpu"                 224    }}
+  {{- $resources = set $resources "memory"              "2Ti"  }}
+  {{- $resources = set $resources "nvidia.com/gpu"      8      }}
+  {{- $resources = set $resources "nvidia.com/mlnxnics" 16     }}
+  {{- $resources = set $resources "ephemeral-storage"   "30Ti" }}
+  {{- $params = set $params "resources" $resources }}
+
+{{- else }}
+  {{- $params = set $params "resources" $node.resources }}
 {{- end }}
-{{- $params = set $params "resources" $resources }}
 
 {{- $count := ($node.count | int) }}
 {{- range until $count }}
 {{- $suffix := ( randAlphaNum 6 | lower ) }}
+{{/* Check if a specific node name is provided, otherwise generate one */}}
+{{- $nodeName := "" }}
+{{- if and $node.namePrefix (gt $count 1) }}
+  {{/* When using namePrefix with multiple nodes, append index */}}
+  {{- $nodeName = printf "%s-%d" $node.namePrefix . }}
+{{- else if $node.namePrefix }}
+  {{/* Single node case, just use the prefix */}}
+  {{- $nodeName = $node.namePrefix }}
+{{- else if $node.name }}
+  {{/* Direct name specification */}}
+  {{- $nodeName = $node.name }}
+{{- else }}
+  {{/* Fallback to random generation */}}
+  {{- $nodeName = printf "virtual-%s-%s" $node.type $suffix }}
+{{- end }}
 ---
 apiVersion: v1
 kind: Node
@@ -53,15 +94,15 @@ metadata:
     beta.kubernetes.io/arch: amd64
     beta.kubernetes.io/os: linux
     kubernetes.io/arch: amd64
-    kubernetes.io/hostname: virtual-{{ $node.type }}-{{ $suffix }}
+    kubernetes.io/hostname: {{ $nodeName }}
     kubernetes.io/os: linux
     kubernetes.io/role: agent
     node-role.kubernetes.io/agent: ""
-    type: kwok
     {{- range $key, $value := $node.labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
-  name: virtual-{{ $node.type }}-{{ $suffix }}
+    type: kwok
+  name: {{ $nodeName }}
 status:
   conditions:
   - message: kubelet has sufficient memory available
