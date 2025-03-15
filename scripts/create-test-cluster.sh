@@ -88,7 +88,7 @@ create_additional_dashboards() {
         -l app.kubernetes.io/name=grafana --timeout=300s
 
     # Import dashboards
-    for dashboard in "${REPO_HOME}/charts/dashboards"/*.json; do
+    for dashboard in "${REPO_HOME}/dashboards"/*.json; do
         dashboard_name=$(basename "$dashboard" .json)
         log_info "Importing dashboard: $dashboard_name"
 
