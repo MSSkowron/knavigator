@@ -41,14 +41,14 @@ spec:
       spec:
         containers:
         - name: job
-          image: ubuntu
+          image: {{.image}}
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              cpu: 100m
-              memory: 250M
-              nvidia.com/gpu: "8"
+              cpu: {{.cpu}}
+              memory: {{.memory}}
+              nvidia.com/gpu: {{.gpu}}
             requests:
-              cpu: 100m
-              memory: 250M
-              nvidia.com/gpu: "8"
+              cpu: {{.cpu}}
+              memory: {{.memory}}
+              nvidia.com/gpu: {{.gpu}}

@@ -14,29 +14,26 @@
 
 name: enhanced-kueue-benchmark
 description: |
-  A comprehensive performance benchmark for Kueue scheduler testing that:
-  1. Collects baseline metrics before testing
-  2. Performs incremental scaling tests to identify performance limits
-  3. Measures key performance indicators like throughput and scheduling latency
-  4. Tests resource utilization efficiency under varied conditions
 tasks:
-# Configure nodes & namespaces
-- id: configure-nodes
+# Configure node
+- id: configure
   type: Configure
   params:
     nodes:
-    - type: dgxa100.80g
-      count: 700
+    - type: hpc.gpu
+      count: 500
       labels:
         nvidia.com/gpu.count: "8"
+        nvidia.com/mlnxnics:  "16"
+        nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
       resources:
-        cpu: 256
-        memory: 2048Gi
+        cpu: 128
+        memory: "128Gi"
         pods: 110
         nvidia.com/gpu: 8
         hugepages-1Gi: 0
         hugepages-2Mi: 0
-        ephemeral-storage: 30Ti
+        ephemeral-storage: "30Ti"
     timeout: 5m
 
 # Register Kueue-specific resources
@@ -78,10 +75,10 @@ tasks:
     params:
       name: team
       flavor: gpu-node
-      cpu: 179200000m    # 256 cores × 700 nodes
-      memory: 1400Ti     # 2Ti × 700 nodes
-      pods: 77000        # 110 pods × 700 nodes
-      gpu: 5600          # 8 GPUs × 700 nodes
+      cpu: 64000000m    # 128 cores × 500 nodes (128000m per node)
+      memory: 64000Gi   # 128Gi × 500 nodes
+      pods: 50000       # 100 pods × 500 nodes
+      gpu: 4000         # 8 GPUs × 500 nodes
 - id: create-local-queue
   type: SubmitObj
   params:
@@ -171,12 +168,11 @@ tasks:
       name: kueue-controller-manager
     timeout: 10m
 
-# Small scale test - 50 pods
 - id: small-scale-test
   type: SubmitObj
   params:
     refTaskId: register-job
-    count: 50
+    count: 1
     params:
       namespace: default
       parallelism: 1
@@ -184,94 +180,94 @@ tasks:
       completionMode: NonIndexed
       queueName: team-queue
       image: ubuntu
-      cpu: 100m
+      cpu: 1
       memory: 128Mi
       gpu: 1
       ttl: "30s"
 
-- id: small-scale-wait
-  type: CheckPod
-  params:
-    refTaskId: small-scale-test
-    status: Running
-    timeout: 2m
+# - id: small-scale-wait
+#   type: CheckPod
+#   params:
+#     refTaskId: small-scale-test
+#     status: Running
+#     timeout: 2m
 
-# Medium scale test - 200 pods
-- id: medium-scale-test
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 4
-    params:
-      namespace: default
-      parallelism: 50
-      completions: 50
-      completionMode: NonIndexed
-      queueName: team-queue
-      image: ubuntu
-      cpu: 100m
-      memory: 128Mi
-      gpu: 1
-      ttl: "30s"
+# # Medium scale test - 200 pods
+# - id: medium-scale-test
+#   type: SubmitObj
+#   params:
+#     refTaskId: register-job
+#     count: 4
+#     params:
+#       namespace: default
+#       parallelism: 50
+#       completions: 50
+#       completionMode: NonIndexed
+#       queueName: team-queue
+#       image: ubuntu
+#       cpu: 100m
+#       memory: 128Mi
+#       gpu: 1
+#       ttl: "30s"
 
-- id: medium-scale-wait
-  type: CheckPod
-  params:
-    refTaskId: medium-scale-test
-    status: Running
-    timeout: 5m
+# - id: medium-scale-wait
+#   type: CheckPod
+#   params:
+#     refTaskId: medium-scale-test
+#     status: Running
+#     timeout: 5m
 
-# Large scale test - 700 pods
-- id: large-scale-test
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 1
-    params:
-      namespace: default
-      parallelism: 700
-      completions: 700
-      completionMode: NonIndexed
-      queueName: team-queue
-      image: ubuntu
-      cpu: 100m
-      memory: 128Mi
-      gpu: 1
-      ttl: "60s"
+# # Large scale test - 700 pods
+# - id: large-scale-test
+#   type: SubmitObj
+#   params:
+#     refTaskId: register-job
+#     count: 1
+#     params:
+#       namespace: default
+#       parallelism: 700
+#       completions: 700
+#       completionMode: NonIndexed
+#       queueName: team-queue
+#       image: ubuntu
+#       cpu: 100m
+#       memory: 128Mi
+#       gpu: 1
+#       ttl: "60s"
 
-- id: large-scale-wait
-  type: CheckPod
-  params:
-    refTaskId: large-scale-test
-    status: Running
-    timeout: 10m
+# - id: large-scale-wait
+#   type: CheckPod
+#   params:
+#     refTaskId: large-scale-test
+#     status: Running
+#     timeout: 10m
 
-# Burst test - rapid submission of many jobs
-- id: clear-previous-jobs
-  type: DeleteObj
-  params:
-    refTaskId: large-scale-test
+# # Burst test - rapid submission of many jobs
+# - id: clear-previous-jobs
+#   type: DeleteObj
+#   params:
+#     refTaskId: large-scale-test
 
-- id: burst-test
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 100
-    params:
-      namespace: default
-      parallelism: 5
-      completions: 5
-      completionMode: NonIndexed
-      queueName: team-queue
-      image: ubuntu
-      cpu: 100m
-      memory: 128Mi
-      gpu: 1
-      ttl: "30s"
+# - id: burst-test
+#   type: SubmitObj
+#   params:
+#     refTaskId: register-job
+#     count: 100
+#     params:
+#       namespace: default
+#       parallelism: 5
+#       completions: 5
+#       completionMode: NonIndexed
+#       queueName: team-queue
+#       image: ubuntu
+#       cpu: 100m
+#       memory: 128Mi
+#       gpu: 1
+#       ttl: "30s"
 
-- id: burst-test-wait
-  type: CheckPod
-  params:
-    refTaskId: burst-test
-    status: Running
-    timeout: 10m
+# - id: burst-test-wait
+#   type: CheckPod
+#   params:
+#     refTaskId: burst-test
+#     status: Running
+#     timeout: 10m

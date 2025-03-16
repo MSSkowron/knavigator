@@ -134,61 +134,33 @@ grafana:
 alertmanager:
   enabled: false
 nodeExporter:
-  enabled: true
+  enabled: false
 kubeStateMetrics:
   enabled: true
 defaultRules:
   rules:
     alertmanager: false
     nodeExporterAlerting: false
-    nodeExporterRecording: true
+    nodeExporterRecording: false
 prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
 EOF
 
-    # Wait for the Prometheus and Grafana pods to be ready
-    log_info "Waiting for Prometheus and Grafana pods to be ready..."
-    kubectl -n monitoring wait --for=condition=ready pod \
-        -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s || {
-        log_error "Timed out waiting for Prometheus pods"
-        return 1
-    }
+    log_info "Waiting for kube-prometheus-stack pods to become ready..."
+    kubectl -n monitoring wait --for=condition=ready pod -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s
 
-    # Set up port-forwarding script for easy access
-    log_info "Creating port-forwarding helper script..."
-    cat <<EOF >"${REPO_HOME}/monitoring-portforward.sh"
-#!/bin/bash
-# Script to set up port forwarding for monitoring tools
+    log_info "Deploying Node Resource Exporter..."
+    helm upgrade --install -n monitoring node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
 
-# Start port forwarding for Grafana
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 8080:80 &
-GRAFANA_PID=\$!
+    log_info "Waiting for node-resource-exporter pods to become ready..."
+    kubectl -n monitoring wait --for=condition=ready pod -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
 
-# Start port forwarding for Prometheus
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090 &
-PROMETHEUS_PID=\$!
-
-echo "Port forwarding started:"
-echo "  - Grafana: http://localhost:8080 (admin/admin)"
-echo "  - Prometheus: http://localhost:9090"
-echo ""
-echo "Press Ctrl+C to stop port forwarding"
-
-# Handle cleanup on script exit
-trap "kill \$GRAFANA_PID \$PROMETHEUS_PID 2>/dev/null" EXIT
-
-# Wait for user to cancel
-wait
-EOF
-
-    chmod +x "${REPO_HOME}/monitoring-portforward.sh"
-
-    log_success "Enhanced Prometheus, Grafana and monitoring deployment complete"
-    log_info "You can access the monitoring interfaces using: ${REPO_HOME}/monitoring-portforward.sh"
-    log_info "Grafana credentials: admin/admin"
-    log_info "Additional scheduler-specific dashboards have been created"
+    log_success "Deployment complete: Prometheus, Grafana, and monitoring stack are now operational."
+    log_info "Access monitoring interfaces by running: ${REPO_HOME}/monitoring-portforward.sh"
+    log_info "Grafana login credentials: Username 'admin' | Password 'admin'"
+    log_info "Additional scheduler-specific dashboards have been installed."
 }
 
 deploy_workload_manager() {

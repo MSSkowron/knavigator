@@ -24,7 +24,7 @@ spec:
     metadata:
       labels:
         applicationId: "test-{{._NAME_}}"
-        queue: root.sandbox
+        queue: {{.queue}}
       annotations:
         yunikorn.apache.org/task-group-name: group-{{._NAME_}}
         yunikorn.apache.org/schedulingPolicyParameters: "gangSchedulingStyle=Hard"
