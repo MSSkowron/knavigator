@@ -12,37 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: enhanced-yunikorn-benchmark
+name: yunikorn-performance-benchmark
 description: |
-  A comprehensive performance benchmark for YuniKorn scheduler testing that:
-  1. Collects baseline metrics before testing
-  2. Performs incremental scaling tests to identify performance limits
-  3. Measures key performance indicators like throughput and scheduling latency
-  4. Tests resource utilization efficiency under varied conditions
+  A comprehensive benchmark for Yunikorn's scheduling performance that gradually
+  increases load to test scheduling throughput and efficiency.
 tasks:
-# Configure nodes and YuniKorn settings
-- id: configure
+# Configure node
+- id: configure-nodes
   type: Configure
   params:
     nodes:
-    - type: dgxa100.80g
-      count: 700
+    - type: hpc.gpu
+      count: 500
       labels:
         nvidia.com/gpu.count: "8"
-    namespaces:
-    - name: perf-benchmark
-      op: create
+        nvidia.com/mlnxnics:  "16"
+        nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+      resources:
+        cpu: 128
+        memory: "128Gi"
+        pods: 110
+        nvidia.com/gpu: 8
+        hugepages-1Gi: 0
+        hugepages-2Mi: 0
+        ephemeral-storage: "30Ti"
+    timeout: 5m
+
+# Configure YuniKorn settings
+- id: configure-volcano
+  type: Configure
+  params:
     configmaps:
-    - name: benchmark-metrics
-      namespace: perf-benchmark
-      op: create
-      data:
-        start_time: ""
-        test_phase: "setup"
-        pods_scheduled: "0"
-        pods_pending: "0"
-        scheduler_cpu_usage: "0"
-        scheduler_memory_usage: "0"
     - name: yunikorn-configs
       namespace: yunikorn
       op: create

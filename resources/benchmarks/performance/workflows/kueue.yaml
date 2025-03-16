@@ -38,59 +38,6 @@ tasks:
         ephemeral-storage: "30Ti"
     timeout: 5m
 
-# Register Kueue-specific resources
-- id: register-cluster-queue
-  type: RegisterObj
-  params:
-    template: "resources/templates/kueue/cluster-queue.yaml"
-- id: register-local-queue
-  type: RegisterObj
-  params:
-    template: "resources/templates/kueue/local-queue.yaml"
-- id: register-resource-flavor
-  type: RegisterObj
-  params:
-    template: "resources/templates/kueue/resource-flavor.yaml"
-- id: register-job
-  type: RegisterObj
-  params:
-    template: "resources/benchmarks/performance/templates/kueue/job.yaml"
-    nameFormat: "perftest-job{{._ENUM_}}"
-    podNameFormat: "{{._NAME_}}-[0-9]-.*"
-    podCount: "{{.parallelism}}"
-
-# Create ResourceFlavor, ClusterQueue, LocalQueue
-- id: create-resource-flavor
-  type: SubmitObj
-  params:
-    refTaskId: register-resource-flavor
-    canExist: true
-    params:
-      name: "gpu-node"
-      nodeLabels:
-        nvidia.com/gpu.count: "8"
-- id: create-cluster-queue
-  type: SubmitObj
-  params:
-    refTaskId: register-cluster-queue
-    canExist: true
-    params:
-      name: team
-      flavor: gpu-node
-      cpu: 64000000m    # 128 cores × 500 nodes (64000 cores total)
-      memory: 64000Gi   # 128Gi × 500 nodes
-      pods: 55000       # 110 pods × 500 nodes
-      gpu: 4000         # 8 GPUs × 500 nodes
-- id: create-local-queue
-  type: SubmitObj
-  params:
-    refTaskId: register-local-queue
-    canExist: true
-    params:
-      name: team-queue
-      namespace: default
-      clusterQueue: team
-
 # Configure Kueue with optimized settings
 - id: configure-kueue
   type: Configure
@@ -169,6 +116,59 @@ tasks:
     - namespace: kueue-system
       name: kueue-controller-manager
     timeout: 10m
+
+# Register Kueue-specific resources
+- id: register-cluster-queue
+  type: RegisterObj
+  params:
+    template: "resources/templates/kueue/cluster-queue.yaml"
+- id: register-local-queue
+  type: RegisterObj
+  params:
+    template: "resources/templates/kueue/local-queue.yaml"
+- id: register-resource-flavor
+  type: RegisterObj
+  params:
+    template: "resources/templates/kueue/resource-flavor.yaml"
+- id: register-job
+  type: RegisterObj
+  params:
+    template: "resources/benchmarks/performance/templates/kueue/job.yaml"
+    nameFormat: "perftest-job{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-[0-9]-.*"
+    podCount: "{{.parallelism}}"
+
+# Create ResourceFlavor, ClusterQueue, LocalQueue
+- id: create-resource-flavor
+  type: SubmitObj
+  params:
+    refTaskId: register-resource-flavor
+    canExist: true
+    params:
+      name: "gpu-node"
+      nodeLabels:
+        nvidia.com/gpu.count: "8"
+- id: create-cluster-queue
+  type: SubmitObj
+  params:
+    refTaskId: register-cluster-queue
+    canExist: true
+    params:
+      name: team
+      flavor: gpu-node
+      cpu: 64000000m    # 128 cores × 500 nodes (64000 cores total)
+      memory: 64000Gi   # 128Gi × 500 nodes
+      pods: 55000       # 110 pods × 500 nodes
+      gpu: 4000         # 8 GPUs × 500 nodes
+- id: create-local-queue
+  type: SubmitObj
+  params:
+    refTaskId: register-local-queue
+    canExist: true
+    params:
+      name: team-queue
+      namespace: default
+      clusterQueue: team
 
 # Warmup phase - submit small batch to get system ready
 - id: warmup-batch

@@ -38,16 +38,7 @@ tasks:
         ephemeral-storage: "30Ti"
     timeout: 5m
 
-# Register Volcano-specific resources
-- id: register-job
-  type: RegisterObj
-  params:
-    template: "resources/benchmarks/performance/templates/volcano/job.yml"
-    nameFormat: "perftest-job{{._ENUM_}}"
-    podNameFormat: "{{._NAME_}}-test-[0-9]+"
-    podCount: "{{.replicas}}"
-
-# Configure nodes and Volcano settings
+# Configure Volcano settings
 - id: configure-volcano
   type: Configure
   params:
@@ -75,6 +66,15 @@ tasks:
     - namespace: volcano-system
       name: volcano-controllers
     timeout: 10m
+
+# Register Volcano-specific resources
+- id: register-job
+  type: RegisterObj
+  params:
+    template: "resources/benchmarks/performance/templates/volcano/job.yml"
+    nameFormat: "perftest-job{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-test-[0-9]+"
+    podCount: "{{.replicas}}"
 
 - id: small-scale-test
   type: SubmitObj
