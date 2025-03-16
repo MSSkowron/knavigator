@@ -61,9 +61,9 @@ tasks:
                       vcore: 10000m
                       nvidia.com/gpu: 100
                     max:
-                      memory: 700Gi
-                      vcore: 70000m
-                      nvidia.com/gpu: 5600
+                      memory: 64000Gi      # 128Gi × 500 nodes
+                      vcore: 64000000m     # 128 cores × 500 nodes
+                      nvidia.com/gpu: 4000 # 8 GPUs × 500 nodes
         # Performance-optimized settings
         yunikorn-defaults.yaml: |
           serviceCacheMaxJitter: 0
