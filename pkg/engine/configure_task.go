@@ -56,11 +56,12 @@ type configureTaskParams struct {
 }
 
 type virtualNode struct {
-	Type        string              `yaml:"type" json:"type"`
-	Count       int                 `yaml:"count" json:"count"`
-	Annotations map[string]string   `yaml:"annotations,omitempty" json:"annotations,omitempty"`
-	Labels      map[string]string   `yaml:"labels,omitempty" json:"labels,omitempty"`
-	Conditions  []map[string]string `yaml:"conditions,omitempty" json:"conditions,omitempty"`
+	Type        string                 `yaml:"type" json:"type"`
+	Count       int                    `yaml:"count" json:"count"`
+	Annotations map[string]string      `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+	Labels      map[string]string      `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Conditions  []map[string]string    `yaml:"conditions,omitempty" json:"conditions,omitempty"`
+	Resources   map[string]interface{} `yaml:"resources,omitempty" json:"resources,omitempty"`
 }
 
 type namespace struct {
