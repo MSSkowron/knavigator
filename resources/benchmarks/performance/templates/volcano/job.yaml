@@ -16,7 +16,7 @@ apiVersion: batch.volcano.sh/v1alpha1
 kind: Job
 metadata:
   name: "{{._NAME_}}"
-  namespace: default
+  namespace: {{.namespace}}
 spec:
   minAvailable: {{.replicas}}
   schedulerName: volcano

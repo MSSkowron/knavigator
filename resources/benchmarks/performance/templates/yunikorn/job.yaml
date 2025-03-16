@@ -16,7 +16,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: "{{._NAME_}}"
-  namespace: default
+  namespace: {{.namespace}}
 spec:
   completions: {{.replicas}}
   parallelism: {{.replicas}}
@@ -33,9 +33,9 @@ spec:
             "name": "group-{{._NAME_}}",
             "minMember": {{.replicas}},
             "minResource": {
-              "cpu": "100m",
-              "memory": "250M",
-              "nvidia.com/gpu": "8"
+              "cpu": {{.cpu}},
+              "memory": {{.memory}},
+              "nvidia.com/gpu": {{.gpu}}
             },
             "nodeSelector": {},
             "tolerations": [],
@@ -51,11 +51,11 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           limits:
-            cpu: 100m
-            memory: 250M
-            nvidia.com/gpu: "8"
+            cpu: {{.cpu}}
+            memory: {{.memory}}
+            nvidia.com/gpu: {{.gpu}}
           requests:
-            cpu: 100m
-            memory: 250M
-            nvidia.com/gpu: "8"
+            cpu: {{.cpu}}
+            memory: {{.memory}}
+            nvidia.com/gpu: {{.gpu}}
       restartPolicy: Never

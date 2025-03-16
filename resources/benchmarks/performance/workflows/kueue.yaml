@@ -186,7 +186,12 @@ tasks:
       cpu: 1
       memory: 128Mi
       gpu: 1
-      ttl: "60s"
+      ttl: "15s"
+
+- id: delay1
+  type: Sleep
+  params:
+    timeout: 10s
 
 # Wave 1: Submit first batch of 50 jobs
 - id: wave1
