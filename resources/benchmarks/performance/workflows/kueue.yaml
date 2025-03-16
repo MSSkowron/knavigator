@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: enhanced-kueue-benchmark
+name: kueue-performance-benchmark
 description: |
+  A comprehensive benchmark for Kueue's scheduling performance that gradually
+  increases load to test scheduling throughput and efficiency.
 tasks:
 # Configure node
-- id: configure
+- id: configure-nodes
   type: Configure
   params:
     nodes:
@@ -52,7 +54,7 @@ tasks:
 - id: register-job
   type: RegisterObj
   params:
-    template: "resources/benchmarks/templates/kueue/job.yaml"
+    template: "resources/benchmarks/performance/templates/kueue/job.yaml"
     nameFormat: "perftest-job{{._ENUM_}}"
     podNameFormat: "{{._NAME_}}-[0-9]-.*"
     podCount: "{{.parallelism}}"
@@ -75,9 +77,9 @@ tasks:
     params:
       name: team
       flavor: gpu-node
-      cpu: 64000000m    # 128 cores × 500 nodes (128000m per node)
+      cpu: 64000000m    # 128 cores × 500 nodes (64000 cores total)
       memory: 64000Gi   # 128Gi × 500 nodes
-      pods: 50000       # 100 pods × 500 nodes
+      pods: 55000       # 110 pods × 500 nodes
       gpu: 4000         # 8 GPUs × 500 nodes
 - id: create-local-queue
   type: SubmitObj
@@ -89,8 +91,8 @@ tasks:
       namespace: default
       clusterQueue: team
 
-# Configure Kueue
-- id: configure
+# Configure Kueue with optimized settings
+- id: configure-kueue
   type: Configure
   params:
     configmaps:
@@ -113,15 +115,15 @@ tasks:
             resourceName: c1f6bfd2.kueue.x-k8s.io
           controller:
             groupKindConcurrency:
-              Job.batch: 5
-              Pod: 5
-              Workload.kueue.x-k8s.io: 5
-              LocalQueue.kueue.x-k8s.io: 1
-              ClusterQueue.kueue.x-k8s.io: 1
-              ResourceFlavor.kueue.x-k8s.io: 1
+              Job.batch: 50              # Increased from 5
+              Pod: 50                    # Increased from 5
+              Workload.kueue.x-k8s.io: 50 # Increased from 5
+              LocalQueue.kueue.x-k8s.io: 5  # Increased from 1
+              ClusterQueue.kueue.x-k8s.io: 5 # Increased from 1
+              ResourceFlavor.kueue.x-k8s.io: 5 # Increased from 1
           clientConnection:
-            qps: 50
-            burst: 100
+            qps: 100                    # Increased from 50
+            burst: 200                  # Increased from 100
           #pprofBindAddress: :8083
           waitForPodsReady:
             enable: true
@@ -129,7 +131,7 @@ tasks:
             blockAdmission: true
             requeuingStrategy:
               timestamp: Eviction
-              backoffLimitCount: null # null indicates infinite requeuing
+              backoffLimitCount: null
               backoffBaseSeconds: 60
               backoffMaxSeconds: 3600
           #manageJobsWithoutQueueName: true
@@ -168,11 +170,30 @@ tasks:
       name: kueue-controller-manager
     timeout: 10m
 
-- id: small-scale-test
+# Warmup phase - submit small batch to get system ready
+- id: warmup-batch
   type: SubmitObj
   params:
     refTaskId: register-job
-    count: 1
+    count: 20
+    params:
+      namespace: default
+      parallelism: 1
+      completions: 1
+      completionMode: NonIndexed
+      queueName: team-queue
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "60s"
+
+# Wave 1: Submit first batch of 50 jobs
+- id: wave1
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 50
     params:
       namespace: default
       parallelism: 1
@@ -185,89 +206,104 @@ tasks:
       gpu: 1
       ttl: "30s"
 
-# - id: small-scale-wait
-#   type: CheckPod
-#   params:
-#     refTaskId: small-scale-test
-#     status: Running
-#     timeout: 2m
+# Brief delay between waves
+- id: delay1
+  type: Sleep
+  params:
+    timeout: 10s
 
-# # Medium scale test - 200 pods
-# - id: medium-scale-test
-#   type: SubmitObj
-#   params:
-#     refTaskId: register-job
-#     count: 4
-#     params:
-#       namespace: default
-#       parallelism: 50
-#       completions: 50
-#       completionMode: NonIndexed
-#       queueName: team-queue
-#       image: ubuntu
-#       cpu: 100m
-#       memory: 128Mi
-#       gpu: 1
-#       ttl: "30s"
+# Wave 2: Submit second batch of 50 jobs
+- id: wave2
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 50
+    params:
+      namespace: default
+      parallelism: 1
+      completions: 1
+      completionMode: NonIndexed
+      queueName: team-queue
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
 
-# - id: medium-scale-wait
-#   type: CheckPod
-#   params:
-#     refTaskId: medium-scale-test
-#     status: Running
-#     timeout: 5m
+# Brief delay between waves
+- id: delay2
+  type: Sleep
+  params:
+    timeout: 10s
 
-# # Large scale test - 700 pods
-# - id: large-scale-test
-#   type: SubmitObj
-#   params:
-#     refTaskId: register-job
-#     count: 1
-#     params:
-#       namespace: default
-#       parallelism: 700
-#       completions: 700
-#       completionMode: NonIndexed
-#       queueName: team-queue
-#       image: ubuntu
-#       cpu: 100m
-#       memory: 128Mi
-#       gpu: 1
-#       ttl: "60s"
+# Wave 3: Submit third batch of 50 jobs
+- id: wave3
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 50
+    params:
+      namespace: default
+      parallelism: 1
+      completions: 1
+      completionMode: NonIndexed
+      queueName: team-queue
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
 
-# - id: large-scale-wait
-#   type: CheckPod
-#   params:
-#     refTaskId: large-scale-test
-#     status: Running
-#     timeout: 10m
+# Brief delay between waves
+- id: delay3
+  type: Sleep
+  params:
+    timeout: 10s
 
-# # Burst test - rapid submission of many jobs
-# - id: clear-previous-jobs
-#   type: DeleteObj
-#   params:
-#     refTaskId: large-scale-test
+# Wave 4: Submit fourth batch of 50 jobs
+- id: wave4
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 50
+    params:
+      namespace: default
+      parallelism: 1
+      completions: 1
+      completionMode: NonIndexed
+      queueName: team-queue
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
 
-# - id: burst-test
-#   type: SubmitObj
-#   params:
-#     refTaskId: register-job
-#     count: 100
-#     params:
-#       namespace: default
-#       parallelism: 5
-#       completions: 5
-#       completionMode: NonIndexed
-#       queueName: team-queue
-#       image: ubuntu
-#       cpu: 100m
-#       memory: 128Mi
-#       gpu: 1
-#       ttl: "30s"
+# Brief delay between waves
+- id: delay4
+  type: Sleep
+  params:
+    timeout: 15s
 
-# - id: burst-test-wait
-#   type: CheckPod
-#   params:
-#     refTaskId: burst-test
-#     status: Running
-#     timeout: 10m
+# Peak load test: Submit larger batch of 200 jobs at once
+- id: peak-load
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 200
+    params:
+      namespace: default
+      parallelism: 1
+      completions: 1
+      completionMode: NonIndexed
+      queueName: team-queue
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
+
+# Allow time for peak load processing
+- id: peak-processing
+  type: Sleep
+  params:
+    timeout: 60s
