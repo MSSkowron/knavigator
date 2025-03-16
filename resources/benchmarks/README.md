@@ -46,38 +46,24 @@ For Coscheduling:
 
 ## Performance
 
-The benchmark evaluates a scheduler's ability to handle large-scale deployments, which is essential for production environments with substantial computational needs.
-
-The benchmark workflow operates on 700 virtual GPU nodes with tho workflows. The first [workflow](performance/workflows/run-test-multi.yaml) submits is a job with 700 replicas, the second [workflow](performance/workflows/run-test-single.yaml) submits a batch of 700 single-node jobs.
+...
 
 For Kueue:
 
 ```bash
-# Multi-node job test
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-kueue.yaml,run-test-multi.yaml}" -v 4
-
-# Single-node job test
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-kueue.yaml,run-test-single.yaml}" -v 4
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{kueue.yaml}" -v 4
 ```
 
 For Volcano:
 
 ```bash
-# Multi-node job test
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-volcano.yaml,run-test-multi.yaml}" -v 4
-
-# Single-node job test
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-volcano.yaml,run-test-single.yaml}" -v 4
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{volcano.yaml}" -v 4
 ```
 
 For YuniKorn:
 
 ```bash
-# Multi-node job test
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test-multi.yaml}" -v 4
-
-# Single-node job test
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test-single.yaml}" -v 4
+./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn.yaml}" -v 4
 ```
 
 ## Topology Aware Benchmark
