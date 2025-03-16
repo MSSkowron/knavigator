@@ -39,7 +39,7 @@ tasks:
     timeout: 5m
 
 # Configure YuniKorn settings
-- id: configure-volcano
+- id: configure-yunikorn
   type: Configure
   params:
     configmaps:
@@ -79,240 +79,150 @@ tasks:
 - id: register-job
   type: RegisterObj
   params:
-    template: "resources/templates/yunikorn/job.yml"
+    template: "resources/benchmarks/performance/templates/yunikorn/job.yaml"
     nameFormat: "perftest-job{{._ENUM_}}"
     podNameFormat: "{{._NAME_}}-.*"
     podCount: "{{.parallelism}}"
-- id: register-configmap
-  type: RegisterObj
-  params:
-    template: "resources/templates/k8s/configmap.yaml"
 
-# Create metrics ConfigMap
-- id: create-metrics-configmap
+# Warmup phase - submit small batch to get system ready
+- id: warmup-batch
   type: SubmitObj
   params:
-    refTaskId: register-configmap
-    count: 1
+    refTaskId: register-job
+    count: 20
     params:
-      namespace: perf-benchmark
-      name: metrics-tracking
-      data:
-        test_phase: "setup"
-        start_time: ""
+      namespace: default
+      parallelism: 1
+      completions: 1
+      applicationId: "perf-warmup"
+      queue: "root.perf-benchmark"
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "15s"
 
-# Record baseline metrics
-- id: update-test-phase-baseline
-  type: UpdateObj
+- id: delay1
+  type: Sleep
   params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        test_phase: "baseline"
-        start_time: "{{now}}"
-    timeout: 5s
+    timeout: 10s
 
-# Small scale test - 50 pods
-- id: update-test-phase-small
-  type: UpdateObj
-  params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        test_phase: "small_scale"
-        start_time: "{{now}}"
-    timeout: 5s
-
-- id: small-scale-test
+# Wave 1: Submit first batch of 50 jobs
+- id: wave1
   type: SubmitObj
   params:
     refTaskId: register-job
     count: 50
     params:
-      namespace: perf-benchmark
+      namespace: default
       parallelism: 1
       completions: 1
-      applicationId: "perf-small-scale"
+      applicationId: "perf-wave1"
       queue: "root.perf-benchmark"
       image: ubuntu
-      cpu: 100m
+      cpu: 1
       memory: 128Mi
       gpu: 1
       ttl: "30s"
 
-- id: small-scale-wait
-  type: CheckPod
+# Brief delay between waves
+- id: delay2
+  type: Sleep
   params:
-    refTaskId: small-scale-test
-    status: Running
-    timeout: 2m
+    timeout: 10s
 
-- id: update-small-scale-metrics
-  type: UpdateObj
-  params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        small_scale_completion_time: "{{now}}"
-        small_scale_status: "completed"
-    timeout: 5s
-
-# Medium scale test - 200 pods
-- id: update-test-phase-medium
-  type: UpdateObj
-  params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        test_phase: "medium_scale"
-        start_time: "{{now}}"
-    timeout: 5s
-
-- id: medium-scale-test
+# Wave 2: Submit second batch of 50 jobs
+- id: wave2
   type: SubmitObj
   params:
     refTaskId: register-job
-    count: 4
+    count: 50
     params:
-      namespace: perf-benchmark
-      parallelism: 50
-      completions: 50
-      applicationId: "perf-medium-scale"
+      namespace: default
+      parallelism: 1
+      completions: 1
+      applicationId: "perf-wave2"
       queue: "root.perf-benchmark"
       image: ubuntu
-      cpu: 100m
+      cpu: 1
       memory: 128Mi
       gpu: 1
       ttl: "30s"
 
-- id: medium-scale-wait
-  type: CheckPod
+# Brief delay between waves
+- id: delay3
+  type: Sleep
   params:
-    refTaskId: medium-scale-test
-    status: Running
-    timeout: 5m
+    timeout: 10s
 
-- id: update-medium-scale-metrics
-  type: UpdateObj
-  params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        medium_scale_completion_time: "{{now}}"
-        medium_scale_status: "completed"
-    timeout: 5s
-
-# Large scale test - 700 pods
-- id: update-test-phase-large
-  type: UpdateObj
-  params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        test_phase: "large_scale"
-        start_time: "{{now}}"
-    timeout: 5s
-
-- id: large-scale-test
+# Wave 3: Submit third batch of 50 jobs
+- id: wave3
   type: SubmitObj
   params:
     refTaskId: register-job
-    count: 1
+    count: 50
     params:
-      namespace: perf-benchmark
-      parallelism: 700
-      completions: 700
-      applicationId: "perf-large-scale"
+      namespace: default
+      parallelism: 1
+      completions: 1
+      applicationId: "perf-wave3"
       queue: "root.perf-benchmark"
       image: ubuntu
-      cpu: 100m
-      memory: 128Mi
-      gpu: 1
-      ttl: "60s"
-
-- id: large-scale-wait
-  type: CheckPod
-  params:
-    refTaskId: large-scale-test
-    status: Running
-    timeout: 10m
-
-- id: update-large-scale-metrics
-  type: UpdateObj
-  params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        large_scale_completion_time: "{{now}}"
-        large_scale_status: "completed"
-    timeout: 5s
-
-# Burst test - rapid submission of many jobs
-- id: update-test-phase-burst
-  type: UpdateObj
-  params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        test_phase: "burst_test"
-        start_time: "{{now}}"
-    timeout: 5s
-
-- id: clear-previous-jobs
-  type: DeleteObj
-  params:
-    refTaskId: large-scale-test
-
-- id: burst-test
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 100
-    params:
-      namespace: perf-benchmark
-      parallelism: 5
-      completions: 5
-      applicationId: "perf-burst-test"
-      queue: "root.perf-benchmark"
-      image: ubuntu
-      cpu: 100m
+      cpu: 1
       memory: 128Mi
       gpu: 1
       ttl: "30s"
 
-- id: burst-test-wait
-  type: CheckPod
+# Brief delay between waves
+- id: delay4
+  type: Sleep
   params:
-    refTaskId: burst-test
-    status: Running
-    timeout: 10m
+    timeout: 10s
 
-- id: update-burst-test-metrics
-  type: UpdateObj
+# Wave 4: Submit fourth batch of 50 jobs
+- id: wave4
+  type: SubmitObj
   params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        burst_test_completion_time: "{{now}}"
-        burst_test_status: "completed"
-    timeout: 5s
+    refTaskId: register-job
+    count: 50
+    params:
+      namespace: default
+      parallelism: 1
+      completions: 1
+      applicationId: "perf-wave4"
+      queue: "root.perf-benchmark"
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
 
-# Generate final report
-- id: benchmark-summary
-  type: UpdateObj
+# Brief delay between waves
+- id: delay5
+  type: Sleep
   params:
-    refTaskId: create-metrics-configmap
-    state:
-      data:
-        test_phase: "completed"
-        completion_time: "{{now}}"
-    timeout: 5s
+    timeout: 15s
 
-- id: check-final-metrics
-  type: CheckConfigmap
+# Peak load test: Submit larger batch of 200 jobs at once
+- id: peak-load
+  type: SubmitObj
   params:
-    name: metrics-tracking
-    namespace: perf-benchmark
-    op: subset
-    data:
-      test_phase: "completed"
+    refTaskId: register-job
+    count: 200
+    params:
+      namespace: default
+      parallelism: 1
+      completions: 1
+      applicationId: "perf-peak"
+      queue: "root.perf-benchmark"
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
+
+# Allow time for peak load processing
+- id: peak-processing
+  type: Sleep
+  params:
+    timeout: 60s
