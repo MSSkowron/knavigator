@@ -71,100 +71,138 @@ tasks:
 - id: register-job
   type: RegisterObj
   params:
-    template: "resources/benchmarks/performance/templates/volcano/job.yml"
+    template: "resources/benchmarks/performance/templates/volcano/job.yaml"
     nameFormat: "perftest-job{{._ENUM_}}"
     podNameFormat: "{{._NAME_}}-test-[0-9]+"
     podCount: "{{.replicas}}"
 
-- id: small-scale-test
+# Warmup phase - submit small batch to get system ready
+- id: warmup-batch
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 20
+    params:
+      namespace: default
+      replicas: 1
+      priorityClassName: "normal-priority"
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "15s"
+
+- id: delay0
+  type: Sleep
+  params:
+    timeout: 10s
+
+# Wave 1: Submit first batch of 50 jobs
+- id: wave1
   type: SubmitObj
   params:
     refTaskId: register-job
     count: 50
     params:
-      namespace: perf-benchmark
+      namespace: default
       replicas: 1
       priorityClassName: "normal-priority"
       image: ubuntu
-      cpu: 100m
+      cpu: 1
       memory: 128Mi
       gpu: 1
       ttl: "30s"
 
-- id: small-scale-wait
-  type: CheckPod
+# Brief delay between waves
+- id: delay1
+  type: Sleep
   params:
-    refTaskId: small-scale-test
-    status: Running
-    timeout: 2m
+    timeout: 10s
 
-- id: medium-scale-test
+# Wave 2: Submit second batch of 50 jobs
+- id: wave2
   type: SubmitObj
   params:
     refTaskId: register-job
-    count: 4
+    count: 50
     params:
-      namespace: perf-benchmark
-      replicas: 50
+      namespace: default
+      replicas: 1
       priorityClassName: "normal-priority"
       image: ubuntu
-      cpu: 100m
+      cpu: 1
       memory: 128Mi
       gpu: 1
       ttl: "30s"
 
-- id: medium-scale-wait
-  type: CheckPod
+# Brief delay between waves
+- id: delay2
+  type: Sleep
   params:
-    refTaskId: medium-scale-test
-    status: Running
-    timeout: 5m
+    timeout: 10s
 
-- id: large-scale-test
+# Wave 3: Submit third batch of 50 jobs
+- id: wave3
   type: SubmitObj
   params:
     refTaskId: register-job
-    count: 1
+    count: 50
     params:
-      namespace: perf-benchmark
-      replicas: 700
+      namespace: default
+      replicas: 1
       priorityClassName: "normal-priority"
       image: ubuntu
-      cpu: 100m
-      memory: 128Mi
-      gpu: 1
-      ttl: "60s"
-
-- id: large-scale-wait
-  type: CheckPod
-  params:
-    refTaskId: large-scale-test
-    status: Running
-    timeout: 10m
-
-- id: clear-previous-jobs
-  type: DeleteObj
-  params:
-    refTaskId: large-scale-test
-
-- id: burst-test
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 100
-    params:
-      namespace: perf-benchmark
-      replicas: 5
-      priorityClassName: "normal-priority"
-      image: ubuntu
-      cpu: 100m
+      cpu: 1
       memory: 128Mi
       gpu: 1
       ttl: "30s"
 
-- id: burst-test-wait
-  type: CheckPod
+# Brief delay between waves
+- id: delay3
+  type: Sleep
   params:
-    refTaskId: burst-test
-    status: Running
-    timeout: 10m
+    timeout: 10s
+
+# Wave 4: Submit fourth batch of 50 jobs
+- id: wave4
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 50
+    params:
+      namespace: default
+      replicas: 1
+      priorityClassName: "normal-priority"
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
+
+# Brief delay between waves
+- id: delay4
+  type: Sleep
+  params:
+    timeout: 15s
+
+# Peak load test: Submit larger batch of 200 jobs at once
+- id: peak-load
+  type: SubmitObj
+  params:
+    refTaskId: register-job
+    count: 200
+    params:
+      namespace: default
+      replicas: 1
+      priorityClassName: "normal-priority"
+      image: ubuntu
+      cpu: 1
+      memory: 128Mi
+      gpu: 1
+      ttl: "30s"
+
+# Allow time for peak load processing
+- id: peak-processing
+  type: Sleep
+  params:
+    timeout: 60s

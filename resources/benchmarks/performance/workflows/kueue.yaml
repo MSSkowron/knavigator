@@ -188,7 +188,7 @@ tasks:
       gpu: 1
       ttl: "15s"
 
-- id: delay1
+- id: delay0
   type: Sleep
   params:
     timeout: 10s
