@@ -48,9 +48,6 @@ tasks:
                 - name: proportion
                 - name: nodeorder
                 - name: binpack
-      deploymentRestarts:
-        - namespace: volcano-system
-          name: volcano-scheduler
       timeout: 10m
 
   # Register job templates for different types

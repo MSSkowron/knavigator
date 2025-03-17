@@ -52,15 +52,6 @@ tasks:
                           memory: 700Ti
                           vcore: 89600000m     # 128 cores × 700 nodes
                           nvidia.com/gpu: 5600 # 8 GPUs × 700 nodes
-            # Performance-optimized settings
-            yunikorn-defaults.yaml: |
-              serviceCacheMaxJitter: 0
-              batchMaxJitterPercent: 0
-              enableForcefulNodeRemoval: true
-              cacheMetricsEnabled: true
-      deploymentRestarts:
-        - namespace: yunikorn
-          name: yunikorn-scheduler
       timeout: 5m
 
   # Register job templates for different types
