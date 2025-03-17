@@ -24,22 +24,31 @@ spec:
   completionMode: {{.completionMode}}
   template:
     metadata:
+      labels:
+        pod-init-container-running-failed.stage.kwok.x-k8s.io: "true"
       annotations:
-        {{- if .ttl }}
-        pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
-        pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
-        {{- end }}
+        pod-init-container-running-failed.stage.kwok.x-k8s.io/container-name: "{{.failureContainerName}}"
+        pod-init-container-running-failed.stage.kwok.x-k8s.io/reason: "{{.failureReason}}"
+        pod-init-container-running-failed.stage.kwok.x-k8s.io/message: "{{.failureMessage}}"
+        pod-init-container-running-failed.stage.kwok.x-k8s.io/exit-code: "{{.failureExitCode}}"
+        pod-init-container-running-failed.stage.kwok.x-k8s.io/delay: "{{.failureDelay}}"
+        pod-init-container-running-failed.stage.kwok.x-k8s.io/jitter-delay: "{{.failureJitterDelay}}"
     spec:
       schedulerName: default-scheduler
+      initContainers:
+      - name: {{.failureContainerName}}
+        image: {{.initContainerImage}}
       containers:
       - name: test
-        image: {{.image}}
+        image: {{.containerImage}}
         imagePullPolicy: IfNotPresent
         resources:
           limits:
             cpu: "{{.cpu}}"
             memory: {{.memory}}
+            nvidia.com/gpu: "{{.gpu}}"
           requests:
             cpu: "{{.cpu}}"
             memory: {{.memory}}
+            nvidia.com/gpu: "{{.gpu}}"
       restartPolicy: OnFailure

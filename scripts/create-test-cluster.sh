@@ -95,7 +95,7 @@ get_host_memory_gib() {
 main() {
     log_info "Starting test cluster creation script..."
 
-    # Check required commands
+    # Check required commands.md.md
     for cmd in "${REQUIRED_COMMANDS[@]}"; do
         check_command "$cmd" || exit 1
     done
