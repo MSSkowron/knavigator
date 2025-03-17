@@ -15,35 +15,80 @@
 name: test-backfill-1
 description: register, deploy and configure volcano custom resources
 tasks:
-- id: register
+- id: register-job-a
+  type: RegisterObj
+  params:
+    template: "resources/mytests/templates/volcano/job-sla.yaml"
+    nameFormat: "job-a-{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-test-[0-9]+"
+    podCount: "{{.replicas}}"
+- id: register-job-b
   type: RegisterObj
   params:
     template: "resources/mytests/templates/volcano/job.yaml"
-    nameFormat: "job{{._ENUM_}}"
+    nameFormat: "job-b-{{._ENUM_}}"
     podNameFormat: "{{._NAME_}}-test-[0-9]+"
     podCount: "{{.replicas}}"
-- id: job1
+- id: register-job-c
+  type: RegisterObj
+  params:
+    template: "resources/mytests/templates/volcano/job.yaml"
+    nameFormat: "job-c-{{._ENUM_}}"
+    podNameFormat: "{{._NAME_}}-test-[0-9]+"
+    podCount: "{{.replicas}}"
+- id: job-b-1
   type: SubmitObj
   params:
-    refTaskId: register
-    count: 5
+    refTaskId: register-job-b
+    count: 1
     params:
-      replicas: 2
-      ttl: 5m
-      cpu: 1
-      memory: "1Gi"
+      replicas: 1
+      ttl: 1.5m
+      cpu: 50
+      memory: "50Gi"
 - id: sleep
   type: Sleep
-  description: wait for the preemption delay to take effect
+  description: wait for job-a submission
   params:
     timeout: 10s
-- id: job2
+- id: job-a
   type: SubmitObj
   params:
-    refTaskId: register
-    count: 3
+    refTaskId: register-job-a
+    count: 1
     params:
-      replicas: 2
-      ttl: 60s
-      cpu: 2
-      memory: "2Gi"
+      replicas: 1
+      ttl: 1m
+      cpu: 60
+      memory: "60Gi"
+- id: sleep
+  type: Sleep
+  description: wait for the second job-b submission
+  params:
+    timeout: 20s
+- id: job-b-2
+  type: SubmitObj
+  params:
+    refTaskId: register-job-b
+    count: 1
+    params:
+      replicas: 1
+      ttl: 1.5m
+      cpu: 50
+      memory: "50Gi"
+- id: sleep
+  type: Sleep
+  description: wait for job-c submission
+  params:
+    timeout: 20s
+- id: job-c
+  type: SubmitObj
+  params:
+    refTaskId: register-job-c
+    count: 1
+    params:
+      replicas: 1
+      ttl: 0.5m
+      cpu: 50
+      memory: "50Gi"
+

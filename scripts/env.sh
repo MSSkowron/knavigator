@@ -98,8 +98,8 @@ deploy_kwok() {
 
     # Wait for KWOK to be ready
     log_info "Waiting for KWOK controller to be ready..."
-    kubectl -n kube-system wait --for=condition=available deployment/kwok-controller --timeout=60s || {
-        log_error "KWOK controller not ready after 60s"
+    kubectl -n kube-system wait --for=condition=available deployment/kwok-controller --timeout=600s || {
+        log_error "KWOK controller not ready after 600s"
         return 1  # Exit function with error if controller isn't ready
     }
 
@@ -146,6 +146,7 @@ prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
+    scrapeInterval: "5s"
 EOF
 
     # Wait for the Prometheus and Grafana pods to be ready
@@ -228,7 +229,7 @@ deploy_kueue() {
 
     # Validate configuration to ensure webhook is properly setup
     log_info "Waiting for Kueue controller manager to be ready..."
-    wait_for_pods "kueue-system" 1
+    wait_for_pods "kueue-system" 2
     kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=300s
 
     # Verify the installation by checking if controller manager is running
