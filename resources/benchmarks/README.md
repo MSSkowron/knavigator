@@ -46,61 +46,110 @@ For Coscheduling:
 
 ## Performance
 
-### V1
+The performance benchmarks provide a comprehensive evaluation of scheduling frameworks under different workload patterns, measuring throughput, scalability, and effectiveness of resource bin-packing. These tests simulate various real-world scenarios to assess how each scheduler responds to different types of demand.
 
-For Kueue:
+### V1: Large number of identical, independent jobs
+
+This benchmark tests the scheduler's ability to handle a large number of identical, independent jobs.
+
+**Test Configuration**:
+
+- 700 virtual nodes with 128 CPU cores, 1Ti memory, and 8 GPUs each
+- 700 jobs, where each job submits a single pod with moderate resource requirements:
+
+  - 16 CPU cores (12.5% of a node)
+  - 256Gi memory (25% of a node)
+  - 4 GPUs (50% of a node)
+
+**For Kueue**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{kueue-v1.yaml}" -v 4
 ```
 
-For Volcano:
+**For Volcano**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{volcano-v1.yaml}" -v 4
 ```
 
-For YuniKorn:
+**For YuniKorn**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn-v1.yaml}" -v 4
 ```
 
-### V2
+### V2: One large multi-pod job
 
-For Kueue:
+This benchmark tests the scheduler's efficiency when handling multi-pod jobs.
+
+**Test Configuration**:
+
+- 700 virtual nodes with 128 CPU cores, 1Ti memory, and 8 GPUs each
+- A single job that creates 700 pods, each with:
+
+  - 16 CPU cores (12.5% of a node)
+  - 256Gi memory (25% of a node)
+  - 4 GPUs (50% of a node)
+
+**For Kueue**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{kueue-v2.yaml}" -v 4
 ```
 
-For Volcano:
+**For Volcano**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{volcano-v2.yaml}" -v 4
 ```
 
-For YuniKorn:
+**For YuniKorn**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn-v2.yaml}" -v 4
 ```
 
-### V3
+### V3: Mixed workload
 
-For Kueue:
+This benchmark tests scheduler performance with diverse workloads that better represent real-world cluster usage patterns. It evaluates how well schedulers can handle heterogeneous job types with different resource requirements simultaneously.
+
+**Test Configuration**:
+
+- 700 virtual nodes with 128 CPU cores, 1Ti memory, and 8 GPUs each
+- Three distinct job types submitted in parallel:
+
+  - **High-GPU Jobs**: 300 jobs using full GPU nodes (8 GPUs per job)
+
+    - 16 CPU cores (12.5% of a node)
+    - 96Gi memory (9.4% of a node)
+    - 8 GPUs (100% of a node)
+
+  - **Medium-GPU Jobs**: 200 jobs with partial GPU usage (2 GPUs per job)
+
+    - 8 CPU cores (6.25% of a node)
+    - 32Gi memory (3.1% of a node)
+    - 2 GPUs (25% of a node)
+
+  - **CPU-Only Jobs**: 200 jobs with no GPU requirements
+
+    - 32 CPU cores (25% of a node)
+    - 128Gi memory (12.5% of a node)
+    - 0 GPUs
+
+**For Kueue**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{kueue-v3.yaml}" -v 4
 ```
 
-For Volcano:
+**For Volcano**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{volcano-v3.yaml}" -v 4
 ```
 
-For YuniKorn:
+**For YuniKorn**:
 
 ```bash
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn-v3.yaml}" -v 4
