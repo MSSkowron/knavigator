@@ -1,0 +1,289 @@
+name: kueue-performance-benchmark
+description: |
+  Kompleksowy benchmark dla testowania wydajności Kueue z wykorzystaniem zróżnicowanych
+  obciążeń, symulujących rzeczywiste scenariusze produkcyjne. Test obejmuje zadania
+  wykorzystujące całe węzły GPU, częściowe węzły oraz zadania wyłącznie CPU/pamięć.
+  Pozwala to na ocenę zarówno przepustowości harmonogramowania, jak i efektywności
+  bin-packingu (upakowania) zasobów.
+tasks:
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: hpc.gpu
+          count: 700
+          labels:
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              # enableClusterQueueResources: true
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 50              # Zwiększone dla lepszej wydajności
+                  Pod: 50                    # Zwiększone dla lepszej wydajności
+                  Workload.kueue.x-k8s.io: 50 # Zwiększone dla lepszej wydajności
+                  LocalQueue.kueue.x-k8s.io: 5  # Zwiększone z 1
+                  ClusterQueue.kueue.x-k8s.io: 5 # Zwiększone z 1
+                  ResourceFlavor.kueue.x-k8s.io: 5 # Zwiększone z 1
+              clientConnection:
+                qps: 100                    # Zwiększone z 50
+                burst: 200                  # Zwiększone ze 100
+              #pprofBindAddress: :8083
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              #manageJobsWithoutQueueName: true
+              #internalCertManagement:
+              #  enable: false
+              #  webhookServiceName: ""
+              #  webhookSecretName: ""
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/mxjob"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+              #  - "pod"
+              #  externalFrameworks:
+              #  - "Foo.v1.example.com"
+                podOptions:
+                  namespaceSelector:
+                    matchExpressions:
+                      - key: kubernetes.io/metadata.name
+                        operator: NotIn
+                        values: [ kube-system, kueue-system ]
+              #fairSharing:
+              #  enable: true
+              #  preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+              #resources:
+              #  excludeResourcePrefixes: []
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  # Register Kueue queue resources
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/cluster-queue.yaml"
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/local-queue.yaml"
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/resource-flavor.yaml"
+
+  # Register templates for different job types
+  - id: register-job-warmup
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/kueue/job.yaml"
+      nameFormat: "warmup-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.parallelism}}"
+
+  - id: register-job-high-gpu
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/kueue/job.yaml"
+      nameFormat: "high-gpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.parallelism}}"
+
+  - id: register-job-medium-gpu
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/kueue/job.yaml"
+      nameFormat: "medium-gpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.parallelism}}"
+
+  - id: register-job-cpu-only
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/kueue/job.yaml"
+      nameFormat: "cpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.parallelism}}"
+
+  # Create resource flavor and queues
+  - id: create-resource-flavor
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "gpu-node"
+        nodeLabels:
+          nvidia.com/gpu.count: "8"
+
+  - id: create-cluster-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: team
+        flavor: gpu-node
+        cpu: 89600 # 700 węzłów × 128 rdzeni
+        memory: 700Ti # 700 węzłów × 1Ti
+        pods: 77000 # 700 węzłów × 110 podów
+        gpu: 5600 # 700 węzłów × 8 GPU
+
+  - id: create-local-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: team-queue
+        namespace: default
+        clusterQueue: team
+
+  # Faza rozgrzewająca - inicjalizacja systemu
+  - id: warmup-batch
+    type: SubmitObj
+    params:
+      refTaskId: register-job-warmup
+      count: 5
+      params:
+        namespace: default
+        completions: 1
+        parallelism: 1
+        completionMode: NonIndexed
+        queueName: team-queue
+        image: ubuntu
+        cpu: 100m    # 0.1 rdzenia (0.078% węzła)
+        memory: 128M # 128MB (0.012% węzła)
+        gpu: 1       # 1 GPU (12.5% węzła)
+        ttl: 5s
+
+  # Krótkie opóźnienie po fazie rozgrzewki
+  - id: warmup-delay
+    type: Sleep
+    params:
+      timeout: 15s
+
+  # Grupa 1: Zadania wykorzystujące całe węzły GPU (8 GPU)
+  # Całkowite wykorzystanie zasobów:
+  # - 4,800 rdzeni CPU (300 × 16 = 5.36% klastra)
+  # - 28,800Gi ≈ 28.1Ti pamięci (300 × 96Gi = 4.02% klastra)
+  # - 2,400 GPU (300 × 8 = 42.86% klastra)
+  - id: high-gpu-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-job-high-gpu
+      count: 300
+      params:
+        namespace: default
+        completions: 1
+        parallelism: 1
+        completionMode: NonIndexed
+        queueName: team-queue
+        image: ubuntu
+        cpu: 16000m # 16 rdzeni (12.5% węzła)
+        memory: 96Gi # 96GB (9.4% węzła)
+        gpu: 8 # 8 GPU (100% węzła)
+        ttl: 5m
+
+  # Grupa 2: Zadania wykorzystujące częściowo węzły GPU (2 GPU)
+  # Całkowite wykorzystanie zasobów:
+  # - 1,600 rdzeni CPU (200 × 8 = 1.79% klastra)
+  # - 6,400Gi ≈ 6.25Ti pamięci (200 × 32Gi = 0.89% klastra)
+  # - 400 GPU (200 × 2 = 7.14% klastra)
+  - id: medium-gpu-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-job-medium-gpu
+      count: 200
+      params:
+        namespace: default
+        completions: 1
+        parallelism: 1
+        completionMode: NonIndexed
+        queueName: team-queue
+        image: ubuntu
+        cpu: 8000m # 8 rdzeni (6.25% węzła)
+        memory: 32Gi # 32GB (3.1% węzła)
+        gpu: 2 # 2 GPU (25% węzła)
+        ttl: 5m
+
+  # Grupa 3: Zadania wykorzystujące tylko CPU/RAM (bez GPU)
+  # Całkowite wykorzystanie zasobów:
+  # - 6,400 rdzeni CPU (200 × 32 = 7.14% klastra)
+  # - 25,600Gi ≈ 25Ti pamięci (200 × 128Gi = 3.57% klastra)
+  # - 0 GPU
+  - id: cpu-only-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-job-cpu-only
+      count: 200
+      params:
+        namespace: default
+        completions: 1
+        parallelism: 1
+        completionMode: NonIndexed
+        queueName: team-queue
+        image: ubuntu
+        cpu: 32000m # 32 rdzenie (25% węzła)
+        memory: 128Gi # 128GB (12.5% węzła)
+        gpu: 0 # Bez GPU
+        ttl: 5m
+
+  # Faza analizy - czas na zebranie metryk
+  - id: analysis-phase
+    type: Sleep
+    params:
+      timeout: 60s
+# Całkowite wykorzystanie klastra:
+# - 12,800 rdzeni CPU (14.3% klastra)
+# - ~59.4Ti pamięci (8.5% klastra)
+# - 2,800 GPU (50% klastra)
