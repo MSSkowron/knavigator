@@ -16,9 +16,13 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: "{{._NAME_}}"
-  namespace: "{{.namespace}}"
+  namespace: {{.namespace}}
+  labels:
+    kueue.x-k8s.io/queue-name: {{.queueName}}
+    {{- if .priority }}
+    kueue.x-k8s.io/priority-class: {{.priority}}
+    {{- end }}
 spec:
-  backoffLimit: {{.backoffLimit}}
   completions: {{.completions}}
   parallelism: {{.parallelism}}
   completionMode: {{.completionMode}}
@@ -30,7 +34,6 @@ spec:
         pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
         {{- end }}
     spec:
-      schedulerName: default-scheduler
       containers:
       - name: test
         image: {{.image}}
@@ -42,4 +45,4 @@ spec:
           requests:
             cpu: "{{.cpu}}"
             memory: {{.memory}}
-      restartPolicy: OnFailure
+      restartPolicy: Never
