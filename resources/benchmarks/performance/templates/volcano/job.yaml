@@ -28,13 +28,15 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: default
+  queue: {{.queue}}
   tasks:
   - replicas: {{.replicas}}
     name: test
     template:
       metadata:
         name: test
+        labels:
+          app: {{._NAME_}}
         annotations:
           pod-complete.stage.kwok.x-k8s.io/delay: {{.ttl}}
           pod-complete.stage.kwok.x-k8s.io/jitter-delay: {{.ttl}}

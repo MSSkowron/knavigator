@@ -18,20 +18,21 @@ metadata:
   name: "{{._NAME_}}"
   namespace: {{.namespace}}
 spec:
-  completions: {{.replicas}}
-  parallelism: {{.replicas}}
+  completions: {{.completions}}
+  parallelism: {{.parallelism}}
   template:
     metadata:
       labels:
-        applicationId: "test-{{._NAME_}}"
+        applicationId: "{{.applicationId}}"
         queue: {{.queue}}
+        app: {{._NAME_}}
       annotations:
         yunikorn.apache.org/task-group-name: group-{{._NAME_}}
         yunikorn.apache.org/schedulingPolicyParameters: "gangSchedulingStyle=Hard"
         yunikorn.apache.org/task-groups: |-
           [{
             "name": "group-{{._NAME_}}",
-            "minMember": {{.replicas}},
+            "minMember": {{.parallelism}},
             "minResource": {
               "cpu": {{.cpu}},
               "memory": {{.memory}},
@@ -47,7 +48,7 @@ spec:
       schedulerName: yunikorn
       containers:
       - name: test
-        image: ubuntu
+        image: {{.image}}
         imagePullPolicy: IfNotPresent
         resources:
           limits:

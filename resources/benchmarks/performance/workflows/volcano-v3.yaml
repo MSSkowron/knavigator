@@ -1,208 +1,170 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-name: volcano-performance-benchmark
+name: volcano-performance-benchmark-v3
 description: |
-  A comprehensive benchmark for Volcano's scheduling performance that gradually
-  increases load to test scheduling throughput and efficiency.
+  Performance benchmark for Volcano with diverse workloads.
+  This tests the scheduler's ability to handle heterogeneous job types
+  with different resource requirements simultaneously.
 tasks:
-# Configure node
-- id: configure-nodes
-  type: Configure
-  params:
-    nodes:
-    - type: hpc.gpu
-      count: 500
-      labels:
-        nvidia.com/gpu.count: "8"
-        nvidia.com/mlnxnics:  "16"
-        nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
-      resources:
-        cpu: 128
-        memory: "128Gi"
-        pods: 110
-        nvidia.com/gpu: 8
-        hugepages-1Gi: 0
-        hugepages-2Mi: 0
-        ephemeral-storage: "30Ti"
-    timeout: 5m
-
-# Configure Volcano settings
-- id: configure-volcano
-  type: Configure
-  params:
-    configmaps:
-    - name: volcano-scheduler-configmap
-      namespace: volcano-system
-      op: create
-      data:
-        volcano-scheduler.conf: |
-          actions: "enqueue, allocate, backfill"
-          tiers:
-          - plugins:
-            - name: priority
-            - name: gang
-            - name: conformance
-          - plugins:
-            - name: drf
-            - name: predicates
-            - name: proportion
-            - name: nodeorder
-            - name: binpack
-    deploymentRestarts:
-    - namespace: volcano-system
-      name: volcano-scheduler
-    - namespace: volcano-system
-      name: volcano-controllers
-    timeout: 10m
-
-# Register Volcano-specific resources
-- id: register-job
-  type: RegisterObj
-  params:
-    template: "resources/benchmarks/performance/templates/volcano/job.yaml"
-    nameFormat: "perftest-job{{._ENUM_}}"
-    podNameFormat: "{{._NAME_}}-test-[0-9]+"
-    podCount: "{{.replicas}}"
-
-# Warmup phase - submit small batch to get system ready
-- id: warmup-batch
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 20
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
     params:
-      namespace: default
-      replicas: 1
-      priorityClassName: "normal-priority"
-      image: ubuntu
-      cpu: 1
-      memory: 128Mi
-      gpu: 1
-      ttl: "15s"
+      nodes:
+        - type: hpc.gpu
+          count: 700
+          labels:
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
 
-- id: delay0
-  type: Sleep
-  params:
-    timeout: 10s
-
-# Wave 1: Submit first batch of 50 jobs
-- id: wave1
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 50
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
     params:
-      namespace: default
-      replicas: 1
-      priorityClassName: "normal-priority"
-      image: ubuntu
-      cpu: 1
-      memory: 128Mi
-      gpu: 1
-      ttl: "30s"
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+              - plugins:
+                - name: priority
+                - name: gang
+                - name: conformance
+              - plugins:
+                - name: drf
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
 
-# Brief delay between waves
-- id: delay1
-  type: Sleep
-  params:
-    timeout: 10s
-
-# Wave 2: Submit second batch of 50 jobs
-- id: wave2
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 50
+  # Register job templates for different types
+  - id: register-high-gpu
+    type: RegisterObj
     params:
-      namespace: default
-      replicas: 1
-      priorityClassName: "normal-priority"
-      image: ubuntu
-      cpu: 1
-      memory: 128Mi
-      gpu: 1
-      ttl: "30s"
+      template: "resources/benchmarks/performance/templates/volcano/job.yaml"
+      nameFormat: "high-gpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
 
-# Brief delay between waves
-- id: delay2
-  type: Sleep
-  params:
-    timeout: 10s
-
-# Wave 3: Submit third batch of 50 jobs
-- id: wave3
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 50
+  - id: register-medium-gpu
+    type: RegisterObj
     params:
-      namespace: default
-      replicas: 1
-      priorityClassName: "normal-priority"
-      image: ubuntu
-      cpu: 1
-      memory: 128Mi
-      gpu: 1
-      ttl: "30s"
+      template: "resources/benchmarks/performance/templates/volcano/job.yaml"
+      nameFormat: "medium-gpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
 
-# Brief delay between waves
-- id: delay3
-  type: Sleep
-  params:
-    timeout: 10s
-
-# Wave 4: Submit fourth batch of 50 jobs
-- id: wave4
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 50
+  - id: register-cpu-only
+    type: RegisterObj
     params:
-      namespace: default
-      replicas: 1
-      priorityClassName: "normal-priority"
-      image: ubuntu
-      cpu: 1
-      memory: 128Mi
-      gpu: 1
-      ttl: "30s"
+      template: "resources/benchmarks/performance/templates/volcano/job.yaml"
+      nameFormat: "cpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
 
-# Brief delay between waves
-- id: delay4
-  type: Sleep
-  params:
-    timeout: 15s
-
-# Peak load test: Submit larger batch of 200 jobs at once
-- id: peak-load
-  type: SubmitObj
-  params:
-    refTaskId: register-job
-    count: 200
+  # Warmup phase - submit a few small jobs to initialize system
+  - id: warmup-batch
+    type: SubmitObj
     params:
-      namespace: default
-      replicas: 1
-      priorityClassName: "normal-priority"
-      image: ubuntu
-      cpu: 1
-      memory: 128Mi
-      gpu: 1
-      ttl: "30s"
+      refTaskId: register-high-gpu
+      count: 5
+      params:
+        namespace: default
+        replicas: 1
+        queue: default
+        image: ubuntu
+        cpu: 100m
+        memory: 128M
+        gpu: 1
+        ttl: 5s
 
-# Allow time for peak load processing
-- id: peak-processing
-  type: Sleep
-  params:
-    timeout: 60s
+  # Short delay after warmup
+  - id: warmup-delay
+    type: Sleep
+    params:
+      timeout: 15s
+
+  # Group 1: High-GPU Jobs (8 GPUs per job)
+  # Total resources:
+  # - 4,800 CPU cores (300 × 16 = 5.36% of cluster)
+  # - ~28.1Ti memory (300 × 96Gi = 4.02% of cluster)
+  # - 2,400 GPUs (300 × 8 = 42.86% of cluster)
+  - id: high-gpu-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-high-gpu
+      count: 300
+      params:
+        namespace: default
+        replicas: 1
+        queue: default
+        image: ubuntu
+        cpu: 16000m # 16 cores (12.5% of node)
+        memory: 96Gi # 96GB (9.4% of node)
+        gpu: 8 # 8 GPUs (100% of node)
+        ttl: 5m
+
+  # Group 2: Medium-GPU Jobs (2 GPUs per job)
+  # Total resources:
+  # - 1,600 CPU cores (200 × 8 = 1.79% of cluster)
+  # - ~6.25Ti memory (200 × 32Gi = 0.89% of cluster)
+  # - 400 GPUs (200 × 2 = 7.14% of cluster)
+  - id: medium-gpu-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-gpu
+      count: 200
+      params:
+        namespace: default
+        replicas: 1
+        queue: default
+        image: ubuntu
+        cpu: 8000m # 8 cores (6.25% of node)
+        memory: 32Gi # 32GB (3.1% of node)
+        gpu: 2 # 2 GPUs (25% of node)
+        ttl: 5m
+
+  # Group 3: CPU-Only Jobs (no GPUs)
+  # Total resources:
+  # - 6,400 CPU cores (200 × 32 = 7.14% of cluster)
+  # - ~25Ti memory (200 × 128Gi = 3.57% of cluster)
+  # - 0 GPUs
+  - id: cpu-only-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-cpu-only
+      count: 200
+      params:
+        namespace: default
+        replicas: 1
+        image: ubuntu
+        cpu: 32000m # 32 cores (25% of node)
+        memory: 128Gi # 128GB (12.5% of node)
+        gpu: 0 # No GPUs
+        ttl: 5m
+
+  # Analysis phase - time to collect metrics
+  - id: analysis-phase
+    type: Sleep
+    params:
+      timeout: 60s
+# Total cluster utilization:
+# - 12,800 CPU cores (14.3% of cluster)
+# - ~59.4Ti memory (8.5% of cluster)
+# - 2,800 GPUs (50% of cluster)
