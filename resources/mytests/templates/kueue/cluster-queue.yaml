@@ -34,5 +34,5 @@ spec:
     reclaimWithinCohort: Any
     borrowWithinCohort:
       policy: LowerPriority
-      maxPriorityThreshold: 100
+      maxPriorityThreshold: 10000
     withinClusterQueue: LowerPriority
