@@ -6,5 +6,5 @@
   kubectl -n default delete job --all
 ```
 ```bash
-  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test1/run-test.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test1/run-test-100x100.yaml
 ```
