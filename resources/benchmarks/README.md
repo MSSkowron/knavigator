@@ -185,42 +185,22 @@ In this diagram:
 
 - **Evaluation**: Success is measured by whether the scheduler places all 3 pods on the optimal nodes (n5, n7, n8) that have been marked with net-optimal: true and have the lowest network distance between them.
 
-### Scheduler-Specific Implementations
+### Examples
 
-#### Kueue Topology Benchmark
+To run the benchmark test for Run:ai:
 
-Kueue's implementation focuses on resource flavors and affinity rules:
-
-- **Resource Flavors**: Defines a net-optimal-nodes flavor targeting nodes with optimal network characteristics
-- **Affinity Rules**: Uses both nodeAffinity to prefer optimal nodes and podAffinity with block and spine topology keys
-- **Test Pattern**: Submits a job with 3 replicas and validates pod placement
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/topology-aware/workflows/{config-nodes.yaml,config-kueue.yaml,run-test.yaml}"
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/nwtopo/workflows/{config-nodes.yaml,runai-test.yaml}'
 ```
 
-#### Volcano Topology Benchmark
+To run the benchmark test for Jobset:
 
-Volcano's implementation leverages its plugin system:
-
-- **Scheduler Plugins**: Configures the nodeorder plugin with network topology weights
-- **Predicates**: Uses LabelsPresence to filter for optimal nodes
-- **Gang Scheduling**: Ensures all pods in the job are scheduled together
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/topology-aware/workflows/{config-nodes.yaml,config-volcano.yaml,run-test.yaml}"
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/nwtopo/workflows/{config-nodes.yaml,config-jobset.yaml,run-test.yaml}'
 ```
 
-#### YuniKorn Topology Benchmark
-
-YuniKorn's implementation uses placement rules and scheduling policies:
-
-- **Placement Rules**: Configures tag-based placement to target optimal nodes
-- **Scheduling Policies**: Creates a custom default-topology-aware policy with node ordering weights
-- **Task Groups**: Uses gangScheduling with affinity terms to optimize placement
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/topology-aware/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test.yaml}"
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/nwtopo/workflows/{config-nodes-acc.yaml,config-jobset-acc.yaml,run-test-acc.yaml}'
 ```
 
 ## Fair Share Benchmark
