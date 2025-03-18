@@ -43,6 +43,27 @@ tasks:
                         max:
                           {memory: 100Gi, vcore: 100}
       timeout: 1m
+  - id: job0
+    type: SubmitObj
+    params:
+      refTaskId: register
+      count: 1
+      params:
+        jobName: job-0
+        namespace: default
+        parallelism: 1
+        completions: 1
+        applicationId: job-0
+        queue: root.sandbox
+        image: ubuntu
+        cpu: 80
+        memory: 80Gi
+        ttl: 1.5m
+  - id: sleep
+    type: Sleep
+    description: wait for job-a submission
+    params:
+      timeout: 10s
   - id: jobB-1
     type: SubmitObj
     params:
@@ -122,3 +143,5 @@ tasks:
         cpu: 50
         memory: 50Gi
         ttl: 0.5m
+        priorityClass: high-priority
+        deadlineSeconds: 10
