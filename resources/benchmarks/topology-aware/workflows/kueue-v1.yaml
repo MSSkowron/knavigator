@@ -13,7 +13,7 @@ description: |
    sw11    sw12    sw13    sw14    sw15    sw16
     /\      /\      /\      /\      /\      /\
   n1  n2  n3  n4  n5  n6  n7  n8  n9 n10 n11 n12
-  x       x           x                  x   x
+  x       x       ^^  x   ^^  ^^         x   x
   Then deploy a 3-replicas job. The optimal nodes from the
   network topology perspective for this job are nodes n5, n7, n8.
 

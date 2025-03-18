@@ -155,7 +155,7 @@ This benchmark tests scheduler performance with diverse workloads that better re
 ./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn-v3.yaml}" -v 4
 ```
 
-## Topology Aware Benchmark
+## Topology Aware
 
 The topology aware benchmark evaluates a scheduler's ability to intelligently place pods based on topology considerations. This capability is crucial for distributed workloads like deep learning training, where inter-pod communication latency can significantly impact performance.
 
@@ -194,6 +194,6 @@ To run the benchmark test for Kueue:
 
 TODO
 
-## Fair Share Benchmark
+## Fair Share
 
 TODO

@@ -1,0 +1,452 @@
+name: kueue-topology-aware-benchmark
+description: |
+  Test Kueue's Topology Aware Scheduling capabilities.
+  This benchmark verifies Kueue's ability to schedule pods based on network topology
+  for optimal performance of distributed workloads.
+
+  The benchmark creates a 15-nodes cluster with a tree-like network topology:
+            ______________ sw31 ________________
+           /            /       \               \
+       sw21          sw22          sw23          sw24
+       /  \          /  \          |    \            \
+   sw113  sw114  sw123 sw124     sw133    sw134       sw143
+    /|\    /|\    /|\   /|\       /|\       | \  \    | \ \
+  n1n2n3 n4n5n6 n7n8n9 n10n11n12 n13n14n15 n16n17n18 n19n20n21
+  ^^^^^^   x x    x       x  x         x   x            x
+
+  The configuration marks 6 nodes as unschedulable (marked with 'x').
+  The optimal nodes (n1, n2, n3) are all within the same block (sw113) - marked with '^'.
+  This setup is designed to test if the scheduler can place pods together on the same
+  network block level to minimize inter-pod communication latency.
+
+  NOTE: According to Kueue documentation, a ClusterQueue referencing a TAS Resource Flavor
+  (with the .spec.topologyName field) is incompatible with:
+  - CQ in cohort (.spec.cohort is set)
+  - CQ using preemption
+  - CQ using MultiKueue or ProvisioningRequest admission checks
+
+  IMPORTANT: Before continuing, you need to manually enable the TopologyAwareScheduling feature gate.
+  Please run the following command:
+  kubectl -n kueue-system patch deployment kueue-controller-manager --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=TopologyAwareScheduling=true"}]'
+  or
+  kubectl patch deployment kueue-controller-manager -n kueue-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","args":["--config=/controller_manager_config.yaml","--zap-log-level=2","--feature-gates=TopologyAwareScheduling=true"]}]}}}}'
+
+  If you would like to enable more than one feature:
+  kubectl -n kueue-system patch deployment kueue-controller-manager --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=TopologyAwareScheduling=true,LocalQueueMetrics=true,LocalQueueDefaulting=true"}]'
+tasks:
+  # Konfiguracja węzłów z topologią sieci
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        # Block sw113 - wszystkie 3 węzły dostępne i optymalne
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n1
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            net-optimal: "true"
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n2
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            net-optimal: "true"
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n3
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            net-optimal: "true"
+            nvidia.com/gpu.count: "8"
+
+        # Block sw114 - jeden węzeł niedostępny
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n4
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n5
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n6
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+
+        # Block sw123 - jeden węzeł niedostępny
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n7
+            network.topology.kubernetes.io/block: sw123
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n8
+            network.topology.kubernetes.io/block: sw123
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n9
+            network.topology.kubernetes.io/block: sw123
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+
+        # Block sw124 - jeden węzeł dostępny
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n10
+            network.topology.kubernetes.io/block: sw124
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n11
+            network.topology.kubernetes.io/block: sw124
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n12
+            network.topology.kubernetes.io/block: sw124
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+
+        # Block sw133 - jeden węzeł niedostępny
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n13
+            network.topology.kubernetes.io/block: sw133
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n14
+            network.topology.kubernetes.io/block: sw133
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n15
+            network.topology.kubernetes.io/block: sw133
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+
+        # Block sw134 - jeden węzeł niedostępny
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n16
+            network.topology.kubernetes.io/block: sw134
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n17
+            network.topology.kubernetes.io/block: sw134
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n18
+            network.topology.kubernetes.io/block: sw134
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+
+        # Block sw143 - jeden węzeł niedostępny
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n19
+            network.topology.kubernetes.io/block: sw143
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n20
+            network.topology.kubernetes.io/block: sw143
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: dgxa100.80g
+          count: 1
+          labels:
+            node-id: n21
+            network.topology.kubernetes.io/block: sw143
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+      timeout: 5m
+
+  # Oznaczenie niektórych węzłów jako zajęte (nieplanowalne)
+  - id: update-nodes
+    type: UpdateNodes
+    params:
+      selectors:
+        - node-id: n5 # Block sw114
+        - node-id: n6 # Block sw114
+        - node-id: n8 # Block sw123
+        - node-id: n11 # Block sw124
+        - node-id: n12 # Block sw124
+        - node-id: n15 # Block sw133
+        - node-id: n16 # Block sw134
+        - node-id: n20 # Block sw143
+      state:
+        spec:
+          unschedulable: true
+      timeout: 2m
+
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
+              clientConnection:
+                qps: 50
+                burst: 100
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/mxjob"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  # Rejestrowanie szablonów zasobów Kueue
+  - id: register-topology
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/topology.yaml"
+
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/resource-flavor.yaml"
+
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/cluster-queue.yaml"
+
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/local-queue.yaml"
+
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/job.yaml"
+      nameFormat: "tas-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # Tworzenie definicji topologii
+  - id: create-topology
+    type: SubmitObj
+    params:
+      refTaskId: register-topology
+      canExist: true
+      params:
+        name: "network-topology"
+        levels:
+          - nodeLabel: "network.topology.kubernetes.io/datacenter"
+          - nodeLabel: "network.topology.kubernetes.io/spine"
+          - nodeLabel: "network.topology.kubernetes.io/block"
+
+  # Tworzenie ResourceFlavor z odniesieniem do topologii
+  - id: create-resource-flavor
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "gpu-node-topo"
+        nodeLabels:
+          nvidia.com/gpu.count: "8"
+        topologyName: "network-topology"
+
+  # Tworzenie ClusterQueue i LocalQueue
+  - id: create-cluster-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: "topology-queue"
+        flavor: "gpu-node-topo"
+        cpu: 1000m
+        memory: 4Gi
+        pods: 10
+        gpu: 30
+
+  - id: create-local-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: "topology-local-queue"
+        namespace: "default"
+        clusterQueue: "topology-queue"
+
+  # Uruchomienie zadania z topology-aware scheduling (preferred)
+  - id: job-preferred
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        queueName: "topology-local-queue"
+        replicas: 3
+        completionMode: Indexed
+        image: ubuntu
+        cpu: 100m
+        memory: 512M
+        gpu: 8
+        ttl: "2m"
+        topologyType: "preferred"
+        topologyLevel: "network.topology.kubernetes.io/block"
+
+  # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
+  - id: check-preferred-topology
+    type: CheckPod
+    description: confirm that the pods initiated by the job are running on optimal nodes
+    params:
+      refTaskId: job-preferred
+      status: Running
+      nodeLabels:
+        net-optimal: "true"
+      timeout: 30s
+
+  # Usunięcie zadania
+  - id: cleanup-job-preferred
+    type: DeleteObj
+    params:
+      refTaskId: job-preferred
+
+  # Krótka przerwa między testami
+  - id: pause-between-tests
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Uruchomienie zadania z topology-aware scheduling (required)
+  - id: job-required
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        queueName: "topology-local-queue"
+        replicas: 3
+        completionMode: Indexed
+        image: ubuntu
+        cpu: 100m
+        memory: 512M
+        gpu: 8
+        ttl: "2m"
+        topologyType: "required"
+        topologyLevel: "network.topology.kubernetes.io/block"
+
+  # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
+  - id: check-required-topology
+    type: CheckPod
+    description: confirm that the pods initiated by the job with required topology are running on optimal nodes
+    params:
+      refTaskId: job-required
+      status: Running
+      nodeLabels:
+        net-optimal: "true"
+      timeout: 30s
