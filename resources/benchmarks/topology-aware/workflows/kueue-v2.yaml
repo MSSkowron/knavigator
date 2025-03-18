@@ -450,3 +450,9 @@ tasks:
       nodeLabels:
         net-optimal: "true"
       timeout: 30s
+
+  # Usunięcie zadania
+  - id: cleanup-job-required
+    type: DeleteObj
+    params:
+      refTaskId: job-required
