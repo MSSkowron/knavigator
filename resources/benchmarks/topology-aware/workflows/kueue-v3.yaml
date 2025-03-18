@@ -17,7 +17,7 @@ tasks:
     params:
       nodes:
         # Block sw113 - supernode and one regular node
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n1
@@ -25,16 +25,16 @@ tasks:
             network.topology.kubernetes.io/block: sw113
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
-            nvidia.com/gpu.count: "48"  # Higher capacity
+            nvidia.com/gpu.count: "24"  # Higher capacity
           resources:
             cpu: 256
             memory: "2Ti"
             pods: 110
-            nvidia.com/gpu: 48
+            nvidia.com/gpu: 24
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n2
@@ -53,7 +53,7 @@ tasks:
             ephemeral-storage: "30Ti"
 
         # Block sw114 - two regular nodes (will be marked unschedulable)
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n3
@@ -62,15 +62,7 @@ tasks:
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n4
@@ -79,17 +71,9 @@ tasks:
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
 
         # Block sw115 - three regular nodes
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n5
@@ -98,15 +82,7 @@ tasks:
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n6
@@ -115,15 +91,7 @@ tasks:
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n7
@@ -132,17 +100,9 @@ tasks:
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
 
         # Block sw116 (under sw22) - 2 available, 1 unavailable
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n8
@@ -151,15 +111,7 @@ tasks:
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n9
@@ -168,15 +120,7 @@ tasks:
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n10
@@ -185,17 +129,9 @@ tasks:
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
 
         # Block sw117 (under sw22) - 1 available, 2 unavailable
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n11
@@ -204,15 +140,7 @@ tasks:
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n12
@@ -221,15 +149,7 @@ tasks:
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-        - type: hpc.gpu
+        - type: dgxa100.80g
           count: 1
           labels:
             node-id: n13
@@ -238,14 +158,6 @@ tasks:
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
       timeout: 5m
 
   # Mark some nodes as unschedulable
@@ -258,7 +170,6 @@ tasks:
         - node-id: n10  # Block sw116 (1 unavailable)
         - node-id: n12  # Block sw117 (2 unavailable)
         - node-id: n13  # Block sw117 (2 unavailable)
-        - node-id: n6  # Block sw117 (2 unavailable)
       state:
         spec:
           unschedulable: true
@@ -385,10 +296,10 @@ tasks:
       params:
         name: "topology-queue"
         flavor: "worker-topo"
-        cpu: 2000m
-        memory: 8Gi
-        pods: 20
-        gpu: 100
+        cpu: 6
+        memory: 6Gi
+        pods: 6
+        gpu: 6
 
   # Create local queue
   - id: create-local-queue
@@ -413,11 +324,11 @@ tasks:
         replicas: 3
         completionMode: Indexed
         image: ubuntu
-        cpu: 200m
+        cpu: 1
         memory: 1Gi
-        gpu: 8
+        gpu: 1
         ttl: "2m"
-        topologyType: "required"
+        topologyType: "preferred"
         topologyLevel: "network.topology.kubernetes.io/block"
 
   # Verify pods are on the supernode
