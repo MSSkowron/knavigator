@@ -163,36 +163,158 @@ This benchmark creates a simulated network topology with various layers (e.g. da
 
 ### V1
 
-The benchmark configures 12 nodes with a tree-like network topology:
+The benchmark configures 16 nodes with a tree-like network topology:
 
-![topology aware scheduling](../../docs/assets/network-aware-scheduling.png)
+```mermaid
+graph TD
+    sw31[sw31 - Datacenter] --- sw21[sw21 - Spine]
+    sw31 --- sw22[sw22 - Spine]
+    sw31 --- sw23[sw23 - Spine]
+    sw31 --- sw24[sw24 - Spine]
+
+    sw21 --- sw11[sw11 - Block]
+    sw21 --- sw12[sw12 - Block]
+    sw22 --- sw13[sw13 - Block]
+    sw22 --- sw14[sw14 - Block]
+    sw23 --- sw15[sw15 - Block]
+    sw23 --- sw16[sw16 - Block]
+    sw24 --- sw17[sw17 - Block]
+    sw24 --- sw18[sw18 - Block]
+
+    sw11 --- n1[n1]
+    sw11 --- n2[n2]
+    sw12 --- n3[n3]
+    sw12 --- n4[n4]
+    sw13 --- n5[n5]
+    sw13 --- n6[n6]
+    sw14 --- n7[n7]
+    sw14 --- n8[n8]
+    sw15 --- n9[n9]
+    sw15 --- n10[n10]
+    sw16 --- n11[n11]
+    sw16 --- n12[n12]
+    sw17 --- n13[n13]
+    sw17 --- n14[n14]
+    sw18 --- n15[n15]
+    sw18 --- n16[n16]
+
+    classDef unschedulable fill:#ff6b6b,stroke:#333,stroke-width:2px;
+    classDef optimal fill:#51cf66,stroke:#333,stroke-width:2px;
+    classDef normal fill:#74c0fc,stroke:#333,stroke-width:2px;
+
+    class n1,n3,n6,n11,n12,n14,n16 unschedulable;
+    class n5,n7,n8 optimal;
+    class n2,n4,n9,n10,n13,n15 normal;
+```
 
 In this diagram:
 
-- Nodes n1, n3, n6, n11, and n12 are marked as unschedulable (X)
+- Nodes n1, n3, n6, n11, n12, n14, and n16 are marked as unschedulable (X)
 - Nodes n5, n7, and n8 are marked as "optimal" for network topology considerations
 
 **Test**:
 
-- **Node Setup**: The test creates 12 virtual nodes with network topology labels at different levels:
+- **Node Setup**: The test creates 16 virtual nodes with network topology labels at different levels:
 
   - network.topology.kubernetes.io/datacenter: Top-level network segment
   - network.topology.kubernetes.io/spine: Mid-level network segment
   - network.topology.kubernetes.io/block: Low-level network segment
 
-- **Workload**: A job with 3 pods requiring co-location for optimal performance is submitted to the cluster.
+- **Workload**: A job with 3 pods requiring co-location for optimal performance is submitted to the cluster using the *"preferred"*/*"soft"* topology strategy at the block level (`network.topology.kubernetes.io/block`).
 
 - **Evaluation**: Success is measured by whether the scheduler places all 3 pods on the optimal nodes (n5, n7, n8) that have been marked with net-optimal: true and have the lowest network distance between them.
 
 To run the benchmark test for Kueue:
 
 ```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue.yaml}'
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v1.yaml}'
 ```
 
 ### V2
 
+The benchmark configures 21 nodes with a more complex tree-like network topology:
+
+```mermaid
+graph TD
+    sw31[sw31 - Datacenter] --- sw21[sw21 - Spine]
+    sw31 --- sw22[sw22 - Spine]
+    sw31 --- sw23[sw23 - Spine]
+    sw31 --- sw24[sw24 - Spine]
+
+    sw21 --- sw113[sw113 - Block]
+    sw21 --- sw114[sw114 - Block]
+    sw22 --- sw123[sw123 - Block]
+    sw22 --- sw124[sw124 - Block]
+    sw23 --- sw133[sw133 - Block]
+    sw23 --- sw134[sw134 - Block]
+    sw24 --- sw143[sw143 - Block]
+
+    sw113 --- n1[n1]
+    sw113 --- n2[n2]
+    sw113 --- n3[n3]
+
+    sw114 --- n4[n4]
+    sw114 --- n5[n5]
+    sw114 --- n6[n6]
+
+    sw123 --- n7[n7]
+    sw123 --- n8[n8]
+    sw123 --- n9[n9]
+
+    sw124 --- n10[n10]
+    sw124 --- n11[n11]
+    sw124 --- n12[n12]
+
+    sw133 --- n13[n13]
+    sw133 --- n14[n14]
+    sw133 --- n15[n15]
+
+    sw134 --- n16[n16]
+    sw134 --- n17[n17]
+    sw134 --- n18[n18]
+
+    sw143 --- n19[n19]
+    sw143 --- n20[n20]
+    sw143 --- n21[n21]
+
+    classDef unschedulable fill:#ff6b6b,stroke:#333,stroke-width:2px;
+    classDef optimal fill:#51cf66,stroke:#333,stroke-width:2px;
+    classDef normal fill:#74c0fc,stroke:#333,stroke-width:2px;
+
+    class n5,n6,n8,n11,n12,n15,n16,n20 unschedulable;
+    class n1,n2,n3 optimal;
+    class n4,n7,n9,n10,n13,n14,n17,n18,n19,n21 normal;
+```
+
+In this diagram:
+
+- Nodes n5, n6, n8, n11, n12, n15, n16, and n20 are marked as unschedulable (X)
+- Nodes n1, n2, and n3 are all within the same network block (sw113) and are marked as "optimal"
+
+Test:
+
+- **Node Setup**: Similar to V1, but with a different topology structure where the optimal nodes are all within the same network block, providing the lowest possible latency for inter-pod communication.
+
+- **Workload**: The test runs two sequential scheduling tests at the block level (`network.topology.kubernetes.io/block`):
+
+  - A job with 3 pods using *"preferred"*/*"soft"* topology scheduling (soft constraint that the scheduler should try to satisfy)
+  - A job with 3 pods using *"required"*/*"hard"* topology scheduling (hard constraint that must be satisfied for scheduling)
+
+- **Evaluation**: Success is measured by whether the scheduler places all pods on the optimal nodes (n1, n2, n3) for both scheduling modes. This tests both the scheduler's ability to honor topology preferences when possible and to enforce strict topology requirements when necessary.
+
+To run the benchmark test for Kueue:
+
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v3.yaml}'
+```
+
+### V3
+
 TODO
+
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v3.yaml}'
+```
 
 ## Fair Share
 
