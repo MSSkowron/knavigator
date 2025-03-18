@@ -23,8 +23,8 @@ metadata:
     kueue.x-k8s.io/job-group: group-{{._NAME_}}
 spec:
   suspend: true
-  completions: {{.parallelism}}
-  parallelism: {{.completions}}
+  completions: {{.replicas}}
+  parallelism: {{.replicas}}
   completionMode: {{.completionMode}}
   template:
     metadata:

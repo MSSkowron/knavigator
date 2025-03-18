@@ -167,8 +167,7 @@ tasks:
       count: 1
       params:
         namespace: default
-        completions: 700
-        parallelism: 700
+        replicas: 700
         completionMode: NonIndexed
         queueName: team-queue
         image: ubuntu

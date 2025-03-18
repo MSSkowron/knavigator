@@ -76,8 +76,7 @@ tasks:
       count: 1
       params:
         namespace: default
-        completions: 700
-        parallelism: 700
+        replicas: 700
         applicationId: "perf-v2"
         queue: "root.perf-benchmark"
         image: ubuntu

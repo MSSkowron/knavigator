@@ -196,8 +196,7 @@ tasks:
       count: 5
       params:
         namespace: default
-        completions: 1
-        parallelism: 1
+        replicas: 1
         completionMode: NonIndexed
         queueName: team-queue
         image: ubuntu
@@ -224,8 +223,7 @@ tasks:
       count: 300
       params:
         namespace: default
-        completions: 1
-        parallelism: 1
+        replicas: 1
         completionMode: NonIndexed
         queueName: team-queue
         image: ubuntu
@@ -246,8 +244,7 @@ tasks:
       count: 200
       params:
         namespace: default
-        completions: 1
-        parallelism: 1
+        replicas: 1
         completionMode: NonIndexed
         queueName: team-queue
         image: ubuntu
@@ -268,8 +265,7 @@ tasks:
       count: 200
       params:
         namespace: default
-        completions: 1
-        parallelism: 1
+        replicas: 1
         completionMode: NonIndexed
         queueName: team-queue
         image: ubuntu

@@ -18,8 +18,8 @@ metadata:
   name: "{{._NAME_}}"
   namespace: {{.namespace}}
 spec:
-  completions: {{.completions}}
-  parallelism: {{.parallelism}}
+  completions: {{.replicas}}
+  parallelism: {{.replicas}}
   template:
     metadata:
       labels:
@@ -32,7 +32,7 @@ spec:
         yunikorn.apache.org/task-groups: |-
           [{
             "name": "group-{{._NAME_}}",
-            "minMember": {{.parallelism}},
+            "minMember": {{.replicas}},
             "minResource": {
               "cpu": {{.cpu}},
               "memory": {{.memory}},
