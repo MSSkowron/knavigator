@@ -8,42 +8,6 @@ This directory contains benchmark tests for the following workload managers and 
 
 The benchmark tests involve submitting workloads intended to evaluate the scheduler's performance under specific scenarios.
 
-These workloads are designed to fully utilize the cluster under optimal scheduling conditions.
-
-One approach to benchmarking is to run this workload on clusters with different schedulers and then compare the average GPU occupancy of the nodes.
-
-For all workload managers, the benchmark test involves two sequential workflows. The first workflow registers the CRDs, and the second workflow runs the common part of the test.
-
-## Gang Scheduling Benchmark
-
-Gang scheduling is a critical capability for AI and ML workloads where all pods in a job must be scheduled simultaneously to prevent resource deadlocks and inefficiencies.
-
-The benchmark workflow operates on 32 virtual GPU nodes, submitting a burst of 53 jobs with replica numbers ranging from 1 to 32 in a [predetermined order](gang-scheduling/workflows/run-test.yaml).
-
-For Kueue:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-kueue.yaml,run-test.yaml}"
-```
-
-For Volcano:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-volcano.yaml,run-test.yaml}"
-```
-
-For YuniKorn:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-yunikorn.yaml,run-test.yaml}"
-```
-
-For Coscheduling:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/gang-scheduling/workflows/{config-nodes.yaml,config-combo-coscheduling.yaml,run-test.yaml}"
-```
-
 ## Performance
 
 The performance benchmarks provide a comprehensive evaluation of scheduling frameworks under different workload patterns, measuring throughput, scalability, and effectiveness of resource bin-packing. These tests simulate various real-world scenarios to assess how each scheduler responds to different types of demand.
@@ -310,7 +274,75 @@ To run the benchmark test for Kueue:
 
 ### V3
 
-TODO
+The benchmark configures 7 nodes with a network topology that includes a "supernode" with high capacity and multiple regular nodes:
+
+```mermaid
+graph TD
+    sw31[sw31 - Datacenter] --- sw21[sw21 - Spine]
+    sw31 --- sw22[sw22 - Spine]
+
+    sw21 --- sw113[sw113 - Block]
+    sw21 --- sw114[sw114 - Block]
+    sw21 --- sw115[sw115 - Block]
+
+    sw22 --- sw116[sw116 - Block]
+    sw22 --- sw117[sw117 - Block]
+
+    sw113 --- n1[n1 - Supernode]
+    sw113 --- n2[n2]
+
+    sw114 --- n3[n3]
+    sw114 --- n4[n4]
+
+    sw115 --- n5[n5]
+    sw115 --- n6[n6]
+    sw115 --- n7[n7]
+
+    sw116 --- n8[n8]
+    sw116 --- n9[n9]
+    sw116 --- n10[n10]
+
+    sw117 --- n11[n11]
+    sw117 --- n12[n12]
+    sw117 --- n13[n13]
+
+    classDef unschedulable fill:#ff6b6b,stroke:#333,stroke-width:2px;
+    classDef supernode fill:#51cf66,stroke:#333,stroke-width:2px;
+    classDef normal fill:#74c0fc,stroke:#333,stroke-width:2px;
+
+    class n3,n4,n10,n12,n13 unschedulable;
+    class n1 supernode;
+    class n2,n5,n6,n7,n8,n9,n11 normal;
+```
+
+In this diagram:
+
+- Node n1 is a high-capacity "supernode" capable of hosting all pods of a job
+- Nodes n3, n4, n10, n12, and n13 are marked as unschedulable (×)
+- Block sw116 has 2 available nodes (n8, n9) and 1 unavailable (n10)
+- Block sw117 has 1 available node (n11) and 2 unavailable (n12, n13)
+- All nodes in block sw115 (n5, n6, n7) are available for scheduling
+
+**Test**:
+
+1. **Phase 1 - Single Node Placement**:
+   - The test creates a job with 3 pods requiring co-location at the block level
+   - With the supernode available, all pods should be scheduled on the same node (n1)
+   - This tests Kueue's preference for consolidating pods on a single node when topology constraints allow
+
+2. **Phase 2 - Distributed Placement**:
+   - The supernode is then marked as unschedulable
+   - A new job with the same requirements is submitted
+   - Pods should now be distributed across the available nodes in block sw115 (n5, n6, n7)
+   - This tests Kueue's ability to distribute pods within the same network block when a single node isn't available
+
+3. **Evaluation**:
+   - Success is measured by whether Kueue correctly places all pods on the supernode in phase 1
+   - And whether it distributes pods across multiple nodes within the same block in phase 2
+
+This test validates Kueue's ability to make smart placement decisions while still respecting topology constraints, both when consolidation is possible and when distribution is necessary.
+
+To run the benchmark test for Kueue:
 
 ```sh
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v3.yaml}'

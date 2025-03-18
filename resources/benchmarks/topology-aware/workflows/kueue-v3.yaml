@@ -1,0 +1,432 @@
+name: kueue-topology-aware-benchmark-v3
+description: |
+  Test Kueue's Topology Aware Scheduling capabilities with focus on single-node vs multi-node placement within the same block.
+
+  This benchmark creates a network topology with a "supernode" capable of hosting all pods within one block,
+  and multiple smaller nodes within another block. The test verifies:
+  1. Kueue's ability to place all pods on a single node when optimal for topology
+  2. Kueue's ability to distribute pods across multiple nodes within the same block when the single large node is unavailable
+
+  IMPORTANT: Before continuing, you need to manually enable the TopologyAwareScheduling feature gate.
+  Please run the following command:
+  kubectl -n kueue-system patch deployment kueue-controller-manager --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=TopologyAwareScheduling=true"}]'
+tasks:
+  # Configure nodes with network topology
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        # Block sw113 - supernode and one regular node
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n1
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "48"  # Higher capacity
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 48
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n2
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw114 - two regular nodes (will be marked unschedulable)
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n3
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n4
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw115 - three regular nodes
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n5
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw115
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n6
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw115
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n7
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw115
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw116 (under sw22) - 2 available, 1 unavailable
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n8
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw116
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n9
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw116
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n10
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw116
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw117 (under sw22) - 1 available, 2 unavailable
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n11
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw117
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n12
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw117
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          labels:
+            node-id: n13
+            kubernetes.io/role: worker
+            network.topology.kubernetes.io/block: sw117
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Mark some nodes as unschedulable
+  - id: update-nodes
+    type: UpdateNodes
+    params:
+      selectors:
+        - node-id: n3   # Block sw114
+        - node-id: n4   # Block sw114
+        - node-id: n10  # Block sw116 (1 unavailable)
+        - node-id: n12  # Block sw117 (2 unavailable)
+        - node-id: n13  # Block sw117 (2 unavailable)
+        - node-id: n6  # Block sw117 (2 unavailable)
+      state:
+        spec:
+          unschedulable: true
+      timeout: 2m
+
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
+              clientConnection:
+                qps: 50
+                burst: 100
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/mxjob"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  # Register Kueue resource templates
+  - id: register-topology
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/topology.yaml"
+
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/resource-flavor.yaml"
+
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/cluster-queue.yaml"
+
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/local-queue.yaml"
+
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/job.yaml"
+      nameFormat: "tas-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # Create topology definition
+  - id: create-topology
+    type: SubmitObj
+    params:
+      refTaskId: register-topology
+      canExist: true
+      params:
+        name: "network-topology"
+        levels:
+          - nodeLabel: "network.topology.kubernetes.io/datacenter"
+          - nodeLabel: "network.topology.kubernetes.io/spine"
+          - nodeLabel: "network.topology.kubernetes.io/block"
+
+  # Create resource flavor
+  - id: create-resource-flavor
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "worker-topo"
+        nodeLabels:
+          kubernetes.io/role: "worker"
+        topologyName: "network-topology"
+
+  # Create cluster queue
+  - id: create-cluster-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: "topology-queue"
+        flavor: "worker-topo"
+        cpu: 2000m
+        memory: 8Gi
+        pods: 20
+        gpu: 100
+
+  # Create local queue
+  - id: create-local-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: "topology-local-queue"
+        namespace: "default"
+        clusterQueue: "topology-queue"
+
+  # Submit a job that should use the supernode (n1)
+  - id: job-supernode
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        queueName: "topology-local-queue"
+        replicas: 3
+        completionMode: Indexed
+        image: ubuntu
+        cpu: 200m
+        memory: 1Gi
+        gpu: 8
+        ttl: "2m"
+        topologyType: "required"
+        topologyLevel: "network.topology.kubernetes.io/block"
+
+  # Verify pods are on the supernode
+  - id: check-supernode-placement
+    type: CheckPod
+    description: Confirm that pods are placed on the supernode
+    params:
+      refTaskId: job-supernode
+      status: Running
+      nodeLabels:
+        node-id: n1
+      timeout: 30s
