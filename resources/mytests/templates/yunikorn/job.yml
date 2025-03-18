@@ -21,6 +21,9 @@ metadata:
 spec:
   completions: {{.completions}}
   parallelism: {{.parallelism}}
+  {{- if .deadlineSeconds}}
+  activeDeadlineSeconds: {{.deadlineSeconds}}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -57,3 +60,6 @@ spec:
             cpu: "{{.cpu}}"
             memory: {{.memory}}
       restartPolicy: Never
+      {{- if .priorityClass }}
+      priorityClassName: {{.priorityClass}}
+      {{- end }}

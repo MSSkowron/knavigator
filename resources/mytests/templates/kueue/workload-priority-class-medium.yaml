@@ -1,0 +1,6 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: WorkloadPriorityClass
+metadata:
+  name: medium-priority
+value: 5000
+description: "Medium priority"

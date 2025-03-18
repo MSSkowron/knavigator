@@ -8,5 +8,5 @@
   ./bin/knavigator -workflow resources/mytests/backfill/volcano/test1/config-nodes.yaml
 ```
 ```bash
-  ./bin/knavigator -workflow resources/mytests/backfill/volcano/test1/run-test.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/volcano/test1/run-test-100x100.yaml
 ```
