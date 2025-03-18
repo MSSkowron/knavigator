@@ -5,7 +5,6 @@ metadata:
   namespace: {{.namespace}}
   labels:
     kueue.x-k8s.io/queue-name: {{.queueName}}
-    app: {{._NAME_}}
 spec:
   suspend: true
   completions: {{.replicas}}
@@ -13,11 +12,9 @@ spec:
   completionMode: {{.completionMode}}
   template:
     metadata:
-      labels:
-        app: {{._NAME_}}
       annotations:
-        pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
-        pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
+        pod-complete.stage.kwok.x-k8s.io/delay: {{.ttl}}
+        pod-complete.stage.kwok.x-k8s.io/jitter-delay: {{.ttl}}
         {{- if eq .topologyType "preferred" }}
         kueue.x-k8s.io/podset-preferred-topology: {{.topologyLevel}}
         {{- else if eq .topologyType "required" }}
@@ -31,11 +28,11 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           limits:
-            cpu: "{{.cpu}}"
+            cpu: {{.cpu}}
             memory: {{.memory}}
-            nvidia.com/gpu: "{{.gpu}}"
+            nvidia.com/gpu: {{.gpu}}
           requests:
-            cpu: "{{.cpu}}"
+            cpu: {{.cpu}}
             memory: {{.memory}}
-            nvidia.com/gpu: "{{.gpu}}"
+            nvidia.com/gpu: {{.gpu}}
       restartPolicy: Never

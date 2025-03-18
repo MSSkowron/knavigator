@@ -258,7 +258,7 @@ tasks:
       template: "resources/benchmarks/topology-aware/templates/kueue/job.yaml"
       nameFormat: "job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
-      podCount: "{{.parallelism}}"
+      podCount: "{{.replicas}}"
 
   # Tworzenie definicji topologii
   - id: create-topology
