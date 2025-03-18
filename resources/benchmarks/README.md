@@ -159,9 +159,9 @@ This benchmark tests scheduler performance with diverse workloads that better re
 
 The topology aware benchmark evaluates a scheduler's ability to intelligently place pods based on topology considerations. This capability is crucial for distributed workloads like deep learning training, where inter-pod communication latency can significantly impact performance.
 
-This benchmark creates a simulated network topology with various layers (datacenter, spine, block, accelerator) and tests how well each scheduler can place pods to minimize network distances between collaborating pods.
+This benchmark creates a simulated network topology with various layers (e.g. datacenter, spine, block) and tests how well each scheduler can place pods to minimize network distances between collaborating pods.
 
-### Topology Structure
+### V1
 
 The benchmark configures 12 nodes with a tree-like network topology:
 
@@ -172,36 +172,27 @@ In this diagram:
 - Nodes n1, n3, n6, n11, and n12 are marked as unschedulable (X)
 - Nodes n5, n7, and n8 are marked as "optimal" for network topology considerations
 
-### Test Methodology
+**Test**:
 
 - **Node Setup**: The test creates 12 virtual nodes with network topology labels at different levels:
 
   - network.topology.kubernetes.io/datacenter: Top-level network segment
   - network.topology.kubernetes.io/spine: Mid-level network segment
   - network.topology.kubernetes.io/block: Low-level network segment
-  - Some configurations also include network.topology.kubernetes.io/accelerator for NVLink-aware scheduling
 
 - **Workload**: A job with 3 pods requiring co-location for optimal performance is submitted to the cluster.
 
 - **Evaluation**: Success is measured by whether the scheduler places all 3 pods on the optimal nodes (n5, n7, n8) that have been marked with net-optimal: true and have the lowest network distance between them.
 
-### Examples
-
-To run the benchmark test for Run:ai:
+To run the benchmark test for Kueue:
 
 ```sh
-./bin/knavigator -workflow 'resources/benchmarks/nwtopo/workflows/{config-nodes.yaml,runai-test.yaml}'
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue.yaml}'
 ```
 
-To run the benchmark test for Jobset:
+### V2
 
-```sh
-./bin/knavigator -workflow 'resources/benchmarks/nwtopo/workflows/{config-nodes.yaml,config-jobset.yaml,run-test.yaml}'
-```
-
-```sh
-./bin/knavigator -workflow 'resources/benchmarks/nwtopo/workflows/{config-nodes-acc.yaml,config-jobset-acc.yaml,run-test-acc.yaml}'
-```
+TODO
 
 ## Fair Share Benchmark
 
