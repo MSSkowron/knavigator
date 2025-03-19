@@ -1,0 +1,441 @@
+name: volcano-topology-aware-benchmark
+description: |
+  Test Volcano's Network Topology Aware Scheduling capabilities.
+  This benchmark verifies Volcano's ability to schedule pods based on network topology
+  for optimal performance of distributed workloads.
+
+  The benchmark creates a 16-node cluster with a tree-like network topology and marks 7 nodes as busy:
+            __________ sw31 _________________________
+           /            |             \              \
+       sw21            sw22            sw23           sw24
+       /  \            /  \            /  \          /    \
+   sw11    sw12    sw13    sw14    sw15    sw16     sw17   sw18
+    /\      /\      /\      /\      /\      /\      /  \   /  \
+  n1  n2  n3  n4  n5  n6  n7  n8  n9 n10 n11 n12   n13 n14 n15 n16
+  x       x       ^^  x   ^^  ^^         x   x         x       x
+
+  Then deploy a 3-replicas job. The optimal nodes from the
+  network topology perspective for this job are nodes n5, n7, n8.
+
+  IMPORTANT: Before running this benchmark, make sure to deploy Volcano with
+  Network Topology Aware Scheduling enabled using the command:
+  helm upgrade --install volcano volcano-sh/volcano -n volcano-system --create-namespace --version="1.11.0-network-topology-preview.0"
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+              - plugins:
+                - name: priority
+                - name: gang
+              - plugins:
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack # Enable binpack plugin
+                  arguments:
+                    binpack.weight: 10 # Set a higher weight value to make binpack scoring dominant, minimizing resource fragmentation
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  # Configure nodes with network topology
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n1
+          labels:
+            node-id: n1
+            network.topology.kubernetes.io/block: sw11
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n2
+          labels:
+            node-id: n2
+            network.topology.kubernetes.io/block: sw11
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n3
+          labels:
+            node-id: n3
+            network.topology.kubernetes.io/block: sw12
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n4
+          labels:
+            node-id: n4
+            network.topology.kubernetes.io/block: sw12
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n5
+          labels:
+            node-id: n5
+            network.topology.kubernetes.io/block: sw13
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            net-optimal: "true"
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n6
+          labels:
+            node-id: n6
+            network.topology.kubernetes.io/block: sw13
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n7
+          labels:
+            node-id: n7
+            network.topology.kubernetes.io/block: sw14
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            net-optimal: "true"
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n8
+          labels:
+            node-id: n8
+            network.topology.kubernetes.io/block: sw14
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
+            net-optimal: "true"
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n9
+          labels:
+            node-id: n9
+            network.topology.kubernetes.io/block: sw15
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n10
+          labels:
+            node-id: n10
+            network.topology.kubernetes.io/block: sw15
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n11
+          labels:
+            node-id: n11
+            network.topology.kubernetes.io/block: sw16
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n12
+          labels:
+            node-id: n12
+            network.topology.kubernetes.io/block: sw16
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n13
+          labels:
+            node-id: n13
+            network.topology.kubernetes.io/block: sw17
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n14
+          labels:
+            node-id: n14
+            network.topology.kubernetes.io/block: sw17
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n15
+          labels:
+            node-id: n15
+            network.topology.kubernetes.io/block: sw18
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n16
+          labels:
+            node-id: n16
+            network.topology.kubernetes.io/block: sw18
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
+            nvidia.com/gpu.count: "8"
+      timeout: 5m
+
+  # Mark some nodes as unschedulable
+  - id: update-nodes
+    type: UpdateNodes
+    params:
+      selectors:
+        - node-id: n1 # Unschedulable
+        - node-id: n3 # Unschedulable
+        - node-id: n6 # Unschedulable
+        - node-id: n11 # Unschedulable
+        - node-id: n12 # Unschedulable
+        - node-id: n14 # Unschedulable
+        - node-id: n16 # Unschedulable
+      state:
+        spec:
+          unschedulable: true
+      timeout: 2m
+
+  # Define HyperNodes for the network topology
+  - id: register-hypernode
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/hypernode.yaml"
+
+  # Register job template
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
+      nameFormat: "volcano-tas-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Create leaf HyperNodes for blocks
+  - id: create-hypernode-sw11
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw11
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n1
+          - type: Node
+            exactMatch: n2
+
+  - id: create-hypernode-sw12
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw12
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n3
+          - type: Node
+            exactMatch: n4
+
+  - id: create-hypernode-sw13
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw13
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n5
+          - type: Node
+            exactMatch: n6
+
+  - id: create-hypernode-sw14
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw14
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n7
+          - type: Node
+            exactMatch: n8
+
+  - id: create-hypernode-sw15
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw15
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n9
+          - type: Node
+            exactMatch: n10
+
+  - id: create-hypernode-sw16
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw16
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n11
+          - type: Node
+            exactMatch: n12
+
+  - id: create-hypernode-sw17
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw17
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n13
+          - type: Node
+            exactMatch: n14
+
+  - id: create-hypernode-sw18
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw18
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n15
+          - type: Node
+            exactMatch: n16
+
+  # Create spine layer HyperNodes
+  - id: create-hypernode-sw21
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw21
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: sw11
+          - type: HyperNode
+            exactMatch: sw12
+
+  - id: create-hypernode-sw22
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw22
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: sw13
+          - type: HyperNode
+            exactMatch: sw14
+
+  - id: create-hypernode-sw23
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw23
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: sw15
+          - type: HyperNode
+            exactMatch: sw16
+
+  - id: create-hypernode-sw24
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw24
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: sw17
+          - type: HyperNode
+            exactMatch: sw18
+
+  # Create datacenter layer HyperNode
+  - id: create-hypernode-sw31
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw31
+        tier: 3
+        members:
+          - type: HyperNode
+            exactMatch: sw21
+          - type: HyperNode
+            exactMatch: sw22
+          - type: HyperNode
+            exactMatch: sw23
+          - type: HyperNode
+            exactMatch: sw24
+
+  # Submit a job with network topology constraints (soft mode)
+  - id: job
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        replicas: 3
+        queue: default
+        image: ubuntu
+        cpu: 100m
+        memory: 512M
+        gpu: 8
+        ttl: "2m"
+        networkTopology: true
+        topologyMode: soft
+        highestTierAllowed: 1
+
+  # Check if pods are running on the optimal nodes
+  - id: status
+    type: CheckPod
+    description: confirm that the pods initiated by the job are running on optimal nodes
+    params:
+      refTaskId: job
+      status: Running
+      nodeLabels:
+        net-optimal: "true"
+      timeout: 30s

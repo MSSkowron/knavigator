@@ -345,7 +345,7 @@ tasks:
         clusterQueue: "topology-queue"
 
   # Uruchomienie zadania z topology-aware scheduling (preferred)
-  - id: job
+  - id: job-preferred
     type: SubmitObj
     params:
       refTaskId: register-job
@@ -368,7 +368,7 @@ tasks:
     type: CheckPod
     description: confirm that the pods initiated by the job are running on optimal nodes
     params:
-      refTaskId: job
+      refTaskId: job-preferred
       status: Running
       nodeLabels:
         net-optimal: "true"

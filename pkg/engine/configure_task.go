@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -58,6 +59,8 @@ type configureTaskParams struct {
 type virtualNode struct {
 	Type        string                 `yaml:"type" json:"type"`
 	Count       int                    `yaml:"count" json:"count"`
+	Name        string                 `yaml:"name,omitempty" json:"name,omitempty"`             // Nowe pole
+	NamePrefix  string                 `yaml:"namePrefix,omitempty" json:"namePrefix,omitempty"` // Nowe pole
 	Annotations map[string]string      `yaml:"annotations,omitempty" json:"annotations,omitempty"`
 	Labels      map[string]string      `yaml:"labels,omitempty" json:"labels,omitempty"`
 	Conditions  []map[string]string    `yaml:"conditions,omitempty" json:"conditions,omitempty"`
@@ -415,20 +418,32 @@ func (task *ConfigureTask) updateVirtualNodes(ctx context.Context) error {
 		return err
 	}
 
-	// update helm repo
-	args := []string{"repo", "add", "--force-update", "knavigator", "https://nvidia.github.io/knavigator/helm-charts"}
+	repoPath := "./charts/virtual-nodes"
 
-	log.V(4).Infof("Updating helm repo")
+	// Sprawdź czy lokalny szablon istnieje
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		// Jeśli nadal nie istnieje, użyj repozytorium zewnętrznego jako fallbacku
+		log.V(4).Infof("Local chart not found, using external repository")
 
-	if err = runCommand(ctx, "helm", args); err != nil {
-		return err
+		// update helm repo
+		args := []string{"repo", "add", "--force-update", "knavigator", "https://nvidia.github.io/knavigator/helm-charts"}
+		log.V(4).Infof("Updating helm repo")
+		if err = runCommand(ctx, "helm", args); err != nil {
+			return err
+		}
+
+		// upgrade helm chart from repository
+		args = []string{"upgrade", "--install", "virtual-nodes", "knavigator/virtual-nodes",
+			"--wait", "--set-json", nodeExpr}
+		log.V(4).Infof("Updating nodes with %v", append([]string{"helm"}, args...))
+		return runCommand(ctx, "helm", args)
 	}
 
-	// upgrade helm chart
-	args = []string{"upgrade", "--install", "virtual-nodes", "knavigator/virtual-nodes",
+	// Używamy lokalnego szablonu
+	args := []string{"upgrade", "--install", "virtual-nodes", repoPath,
 		"--wait", "--set-json", nodeExpr}
 
-	log.V(4).Infof("Updating nodes with %v", append([]string{"helm"}, args...))
+	log.V(4).Infof("Updating nodes with local chart: %v", append([]string{"helm"}, args...))
 
 	return runCommand(ctx, "helm", args)
 }

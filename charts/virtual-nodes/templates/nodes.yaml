@@ -65,6 +65,21 @@
 {{- $count := ($node.count | int) }}
 {{- range until $count }}
 {{- $suffix := ( randAlphaNum 6 | lower ) }}
+{{/* Check if a specific node name is provided, otherwise generate one */}}
+{{- $nodeName := "" }}
+{{- if and $node.namePrefix (gt $count 1) }}
+  {{/* When using namePrefix with multiple nodes, append index */}}
+  {{- $nodeName = printf "%s-%d" $node.namePrefix . }}
+{{- else if $node.namePrefix }}
+  {{/* Single node case, just use the prefix */}}
+  {{- $nodeName = $node.namePrefix }}
+{{- else if $node.name }}
+  {{/* Direct name specification */}}
+  {{- $nodeName = $node.name }}
+{{- else }}
+  {{/* Fallback to random generation */}}
+  {{- $nodeName = printf "virtual-%s-%s" $node.type $suffix }}
+{{- end }}
 ---
 apiVersion: v1
 kind: Node
@@ -79,7 +94,7 @@ metadata:
     beta.kubernetes.io/arch: amd64
     beta.kubernetes.io/os: linux
     kubernetes.io/arch: amd64
-    kubernetes.io/hostname: virtual-{{ $node.type }}-{{ $suffix }}
+    kubernetes.io/hostname: {{ $nodeName }}
     kubernetes.io/os: linux
     kubernetes.io/role: agent
     node-role.kubernetes.io/agent: ""
@@ -87,7 +102,7 @@ metadata:
     {{ $key }}: {{ $value | quote }}
     {{- end }}
     type: kwok
-  name: virtual-{{ $node.type }}-{{ $suffix }}
+  name: {{ $nodeName }}
 status:
   conditions:
   - message: kubelet has sufficient memory available

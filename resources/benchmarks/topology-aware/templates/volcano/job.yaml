@@ -15,6 +15,11 @@ spec:
     svc: []
   maxRetry: 5
   queue: {{.queue}}
+  {{- if .networkTopology }}
+  networkTopology:
+    mode: {{.topologyMode}}
+    highestTierAllowed: {{.highestTierAllowed}}
+  {{- end }}
   tasks:
   - replicas: {{.replicas}}
     name: test

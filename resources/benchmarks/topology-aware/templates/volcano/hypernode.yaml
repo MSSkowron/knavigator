@@ -1,2 +1,19 @@
 apiVersion: topology.volcano.sh/v1alpha1
 kind: HyperNode
+metadata:
+  name: {{.name}}
+spec:
+  tier: {{.tier}}
+  members:
+  {{- range .members }}
+  - type: {{.type}}
+    selector:
+    {{- if .exactMatch }}
+      exactMatch:
+        name: "{{.exactMatch}}"
+    {{- end }}
+    {{- if .regexMatch }}
+      regexMatch:
+        name: "{{.regexMatch}}"
+    {{- end }}
+  {{- end }}
