@@ -22,7 +22,7 @@ readonly KWOK_RELEASE="v0.6.1"
 readonly PROMETHEUS_STACK_VERSION="69.8.0"
 
 readonly KUEUE_VERSION="v0.10.2"
-readonly VOLCANO_VERSION="v1.11.0"
+readonly VOLCANO_VERSION="1.11.0"
 readonly YUNIKORN_VERSION="v1.6.1"
 
 # Color definitions
@@ -186,6 +186,15 @@ deploy_workload_manager() {
 deploy_kueue() {
     log_info "Deploying Kueue ${KUEUE_VERSION}..."
 
+    # Ask user if they want to enable Topology Aware Scheduling
+    echo "Select Kueue deployment type:"
+    echo "1) Standard Kueue (default)"
+    echo "2) With Topology Aware Scheduling enabled"
+    read -p "Enter your choice [1]: " kueue_type
+
+    # Set default if no input
+    kueue_type=${kueue_type:-1}
+
     # Install the main Kueue components
     kubectl apply --server-side -f "https://github.com/kubernetes-sigs/kueue/releases/download/${KUEUE_VERSION}/manifests.yaml"
 
@@ -203,9 +212,25 @@ deploy_kueue() {
     wait_for_pods "kueue-system" 1
     kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=300s
 
+    # If user selected Topology Aware Scheduling, apply the patch
+    if [ "$kueue_type" = "2" ]; then
+        log_info "Enabling Topology Aware Scheduling feature gate..."
+        kubectl -n kueue-system patch deployment kueue-controller-manager \
+            --type='json' \
+            -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=TopologyAwareScheduling=true"}]'
+
+        # Wait for the patched deployment to become available
+        log_info "Waiting for the patched controller manager to be ready..."
+        kubectl -n kueue-system rollout status deployment/kueue-controller-manager --timeout=300s
+    fi
+
     # Verify the installation by checking if controller manager is running
     if kubectl -n kueue-system get pods -l control-plane=controller-manager | grep -q Running; then
         log_success "Kueue deployment complete"
+
+        if [ "$kueue_type" = "2" ]; then
+            log_info "Topology Aware Scheduling has been enabled"
+        fi
     else
         log_error "Kueue deployment failed - controller manager is not running"
         return 1
@@ -217,12 +242,30 @@ deploy_kueue() {
 deploy_volcano() {
     log_info "Deploying Volcano ${VOLCANO_VERSION}..."
 
+    # Add prompt for Network Topology Aware Scheduling
+    echo "Select Volcano deployment type:"
+    echo "1) Standard Volcano (default)"
+    echo "2) Network Topology Aware Scheduling enabled"
+    read -p "Enter your choice [1]: " volcano_type
+
+    # Set default if no input
+    volcano_type=${volcano_type:-1}
+
+    # Determine version based on user choice
+    if [ "$volcano_type" = "2" ]; then
+        log_info "Deploying Volcano with Network Topology Aware Scheduling..."
+        VERSION_TO_USE="${VOLCANO_VERSION}-network-topology-preview.0"
+    else
+        log_info "Deploying standard Volcano..."
+        VERSION_TO_USE="${VOLCANO_VERSION}"
+    fi
+
     helm repo add --force-update volcano-sh https://volcano-sh.github.io/helm-charts
 
-    # Deploy Volcano with metrics enabled
-    log_info "Installing Volcano with metrics enabled..."
+    # Deploy Volcano with appropriate version
+    log_info "Installing Volcano version ${VERSION_TO_USE}..."
     helm upgrade --install volcano volcano-sh/volcano -n volcano-system --create-namespace \
-        --version="$VOLCANO_VERSION" \
+        --version="${VERSION_TO_USE}" \
         --wait \
         --set custom.metrics_enable=true \
         --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
@@ -241,6 +284,12 @@ deploy_volcano() {
     # Verify the installation
     if kubectl -n volcano-system get pods | grep -q "volcano-scheduler"; then
         log_success "Volcano deployment complete"
+
+        if [ "$volcano_type" = "2" ]; then
+            log_info "Network Topology Aware Scheduling is enabled"
+            log_info "You'll need to create HyperNode CRs to define your network topology"
+        fi
+
         log_info "Volcano metrics are available at the /metrics endpoint of each component"
     else
         log_error "Volcano deployment failed - scheduler is not running"

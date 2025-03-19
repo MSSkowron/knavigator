@@ -1,0 +1,2 @@
+apiVersion: topology.volcano.sh/v1alpha1
+kind: HyperNode

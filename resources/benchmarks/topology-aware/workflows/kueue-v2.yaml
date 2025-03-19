@@ -19,8 +19,7 @@ description: |
   This setup is designed to test if the scheduler can place pods together on the same
   network block level to minimize inter-pod communication latency.
 
-  NOTE: According to Kueue documentation, a ClusterQueue referencing a TAS Resource Flavor
-  (with the .spec.topologyName field) is incompatible with:
+  NOTE: According to Kueue documentation, a ClusterQueue referencing a TAS Resource Flavor (with the .spec.topologyName field) is incompatible with:
   - CQ in cohort (.spec.cohort is set)
   - CQ using preemption
   - CQ using MultiKueue or ProvisioningRequest admission checks
