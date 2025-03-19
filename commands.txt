@@ -2,6 +2,10 @@
 
 kubectl delete node $(kubectl get nodes --no-headers | awk '/^n/ {print $1}')
 
+# Kueue
+
+kubectl delete jobs --all && kubectl delete localqueues.kueue.x-k8s.io --all && kubectl delete clusterqueues.kueue.x-k8s.io --all &&  kubectl delete resourceflavors.kueue.x-k8s.io --all && kubectl delete topologies.kueue.x-k8s.io --all
+
 # Volcano
 
 kubectl delete hypernodes.topology.volcano.sh --all && kubectl delete jobs.batch.volcano.sh --all

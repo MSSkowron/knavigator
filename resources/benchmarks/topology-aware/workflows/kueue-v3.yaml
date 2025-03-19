@@ -427,7 +427,7 @@ tasks:
           - nodeLabel: "network.topology.kubernetes.io/datacenter"
           - nodeLabel: "network.topology.kubernetes.io/spine"
           - nodeLabel: "network.topology.kubernetes.io/block"
-          - nodeLabel: "node-id"
+          - nodeLabel: "kubernetes.io/hostname"
 
   # Create resource flavor
   - id: create-resource-flavor
@@ -482,8 +482,8 @@ tasks:
         memory: 2Gi
         gpu: 6  # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
         ttl: "2m"
-        topologyType: "preferred"
-        topologyLevel: "node-id"  # Try to place all pods on the same node
+        topologyType: "required"
+        topologyLevel: "kubernetes.io/hostname"  # Try to place all pods on the same node
 
   # Verify pods are on the supernode
   - id: check-supernode-placement
@@ -536,7 +536,7 @@ tasks:
         gpu: 6  # Same resources as before, but now should be distributed
         ttl: "2m"
         topologyType: "preferred"
-        topologyLevel: "node-id"
+        topologyLevel: "kubernetes.io/hostname"
 
   # Check that pods are distributed across multiple nodes in block sw115
   - id: check-block-placement
@@ -554,21 +554,3 @@ tasks:
     type: DeleteObj
     params:
       refTaskId: job-multinode
-
-  # Restore supernode to schedulable state
-  - id: enable-supernode
-    type: UpdateNodes
-    params:
-      selectors:
-        - node-id: n1  # Supernode
-      state:
-        spec:
-          unschedulable: false
-      timeout: 10s
-
-  # Final summary pause
-  - id: test-summary
-    type: Sleep
-    description: Test completed successfully - both placement strategies verified
-    params:
-      timeout: 2s

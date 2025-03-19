@@ -380,48 +380,6 @@ tasks:
         namespace: "default"
         clusterQueue: "topology-queue"
 
-  # Uruchomienie zadania z topology-aware scheduling (preferred)
-  - id: job-preferred
-    type: SubmitObj
-    params:
-      refTaskId: register-job
-      count: 1
-      params:
-        namespace: default
-        queueName: "topology-local-queue"
-        replicas: 3
-        completionMode: Indexed
-        image: ubuntu
-        cpu: 100m
-        memory: 512M
-        gpu: 8
-        ttl: "2m"
-        topologyType: "preferred"
-        topologyLevel: "network.topology.kubernetes.io/block"
-
-  # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
-  - id: check-preferred-topology
-    type: CheckPod
-    description: confirm that the pods initiated by the job are running on optimal nodes
-    params:
-      refTaskId: job-preferred
-      status: Running
-      nodeLabels:
-        net-optimal: "true"
-      timeout: 30s
-
-  # Usunięcie zadania
-  - id: cleanup-job-preferred
-    type: DeleteObj
-    params:
-      refTaskId: job-preferred
-
-  # Krótka przerwa między testami
-  - id: pause-between-tests
-    type: Sleep
-    params:
-      timeout: 5s
-
   # Uruchomienie zadania z topology-aware scheduling (required)
   - id: job-required
     type: SubmitObj
@@ -457,3 +415,33 @@ tasks:
     type: DeleteObj
     params:
       refTaskId: job-required
+
+  # Uruchomienie zadania z topology-aware scheduling (preferred)
+  - id: job-preferred
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        queueName: "topology-local-queue"
+        replicas: 3
+        completionMode: Indexed
+        image: ubuntu
+        cpu: 100m
+        memory: 512M
+        gpu: 8
+        ttl: "2m"
+        topologyType: "preferred"
+        topologyLevel: "network.topology.kubernetes.io/block"
+
+  # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
+  - id: check-preferred-topology
+    type: CheckPod
+    description: confirm that the pods initiated by the job are running on optimal nodes
+    params:
+      refTaskId: job-preferred
+      status: Running
+      nodeLabels:
+        net-optimal: "true"
+      timeout: 30s
