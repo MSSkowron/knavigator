@@ -558,7 +558,7 @@ tasks:
         ttl: "2m"
         networkTopology: true
         topologyMode: soft
-        highestTierAllowed: 1
+        highestTierAllowed: 3
 
   # Check if pods are running on the optimal nodes
   - id: status
