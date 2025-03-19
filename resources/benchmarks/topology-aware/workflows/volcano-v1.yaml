@@ -48,9 +48,6 @@ tasks:
           name: volcano-scheduler
       timeout: 10m
 
-  - id: manual-check
-    type: Pause
-
   # Configure nodes with network topology
   - id: configure-nodes
     type: Configure
@@ -357,11 +354,19 @@ tasks:
       template: "resources/benchmarks/topology-aware/templates/volcano/hypernode.yaml"
 
   # Register job template
-  - id: register-job
+  - id: register-job-soft
     type: RegisterObj
     params:
       template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
-      nameFormat: "volcano-tas-job{{._ENUM_}}"
+      nameFormat: "volcano-tas-job-soft{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-hard
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
+      nameFormat: "volcano-tas-job-hard{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
@@ -541,11 +546,47 @@ tasks:
           - type: HyperNode
             exactMatch: sw24
 
-  # Submit a job with network topology constraints (soft mode)
-  - id: job
+  # Submit a job with network topology constraints (hard mode)
+  - id: job-hard
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register-job-hard
+      count: 1
+      params:
+        namespace: default
+        replicas: 3
+        queue: default
+        image: ubuntu
+        cpu: 100m
+        memory: 512M
+        gpu: 8
+        ttl: "2m"
+        networkTopology: true
+        topologyMode: hard
+        highestTierAllowed: 2
+
+  # Check if pods are running on the optimal nodes
+  - id: status
+    type: CheckPod
+    description: confirm that the pods initiated by the job are running on optimal nodes
+    params:
+      refTaskId: job-hard
+      status: Running
+      nodeLabels:
+        net-optimal: "true"
+      timeout: 30s
+
+  # Cleanup
+  - id: cleanup-job-hard
+    type: DeleteObj
+    params:
+      refTaskId: job-hard
+
+  # Submit a job with network topology constraints (soft mode)
+  - id: job-soft
+    type: SubmitObj
+    params:
+      refTaskId: register-job-soft
       count: 1
       params:
         namespace: default
@@ -558,14 +599,14 @@ tasks:
         ttl: "2m"
         networkTopology: true
         topologyMode: soft
-        highestTierAllowed: 3
+        highestTierAllowed: 2
 
   # Check if pods are running on the optimal nodes
   - id: status
     type: CheckPod
     description: confirm that the pods initiated by the job are running on optimal nodes
     params:
-      refTaskId: job
+      refTaskId: job-soft
       status: Running
       nodeLabels:
         net-optimal: "true"
