@@ -1,0 +1,3 @@
+# kubectl
+
+kubectl delete node $(kubectl get nodes --no-headers | awk '/^n/ {print $1}')
