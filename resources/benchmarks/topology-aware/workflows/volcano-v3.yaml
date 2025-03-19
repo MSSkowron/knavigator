@@ -44,9 +44,13 @@ tasks:
                 - name: predicates
                 - name: proportion
                 - name: nodeorder
-                - name: binpack # Enable binpack plugin
+                - name: binpack
                   arguments:
-                    binpack.weight: 10 # High weight to prioritize consolidation
+                    - binpack.weight: 10
+                    - binpack.resources: nvidia.com/gpu
+                    - binpack.cpu: 1
+                    - binpack.memory: 1
+                    - binpack.resources.nvidia.com/gpu: 2
       deploymentRestarts:
         - namespace: volcano-system
           name: volcano-scheduler
@@ -311,11 +315,11 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n3   # Block sw114 (2 unavailable)
-        - node-id: n4   # Block sw114 (2 unavailable)
-        - node-id: n10  # Block sw116 (1 unavailable)
-        - node-id: n12  # Block sw117 (2 unavailable)
-        - node-id: n13  # Block sw117 (2 unavailable)
+        - node-id: n3 # Block sw114 (2 unavailable)
+        - node-id: n4 # Block sw114 (2 unavailable)
+        - node-id: n10 # Block sw116 (1 unavailable)
+        - node-id: n12 # Block sw117 (2 unavailable)
+        - node-id: n13 # Block sw117 (2 unavailable)
       state:
         spec:
           unschedulable: true
@@ -464,7 +468,7 @@ tasks:
         image: ubuntu
         cpu: 2
         memory: 2Gi
-        gpu: 6  # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
+        gpu: 6 # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
         ttl: "2m"
         networkTopology: true
         topologyMode: hard
@@ -492,7 +496,7 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n1  # Supernode
+        - node-id: n1 # Supernode
       state:
         spec:
           unschedulable: true
@@ -511,11 +515,11 @@ tasks:
         image: ubuntu
         cpu: 2
         memory: 2Gi
-        gpu: 6  # Same resources as before, but now should be distributed
+        gpu: 6 # Same resources as before, but now should be distributed
         ttl: "2m"
         networkTopology: true
         topologyMode: soft
-        highestTierAllowed: 1  # Block level - should place pods within the same block
+        highestTierAllowed: 1 # Block level - should place pods within the same block
 
   # Check that pods are distributed across multiple nodes in block sw115
   - id: check-block-placement
@@ -525,7 +529,7 @@ tasks:
       refTaskId: job-multinode
       status: Running
       nodeLabels:
-        block-sw115: "true"  # All pods should be in block sw115
+        block-sw115: "true" # All pods should be in block sw115
       timeout: 30s
 
   # Cleanup
