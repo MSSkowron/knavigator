@@ -287,11 +287,19 @@ tasks:
     params:
       template: "resources/benchmarks/topology-aware/templates/kueue/local-queue.yaml"
 
-  - id: register-job
+  - id: register-job-preferred
     type: RegisterObj
     params:
       template: "resources/benchmarks/topology-aware/templates/kueue/job.yaml"
-      nameFormat: "job{{._ENUM_}}"
+      nameFormat: "job-preferred{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-required
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/job.yaml"
+      nameFormat: "job-required{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
 
@@ -344,11 +352,47 @@ tasks:
         namespace: "default"
         clusterQueue: "topology-queue"
 
+  # Uruchomienie zadania z topology-aware scheduling (required)
+  - id: job-required
+    type: SubmitObj
+    params:
+      refTaskId: register-job-required
+      count: 1
+      params:
+        namespace: default
+        queueName: "topology-local-queue"
+        replicas: 3
+        completionMode: Indexed
+        image: ubuntu
+        cpu: 100m
+        memory: 512M
+        gpu: 8
+        ttl: "2m"
+        topologyType: "required"
+        topologyLevel: "network.topology.kubernetes.io/spine"
+
+  # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
+  - id: status
+    type: CheckPod
+    description: confirm that the pods initiated by the job are running on optimal nodes
+    params:
+      refTaskId: job-required
+      status: Running
+      nodeLabels:
+        net-optimal: "true"
+      timeout: 30s
+
+  # Cleanup
+  - id: cleanup-job-required
+    type: DeleteObj
+    params:
+      refTaskId: job-required
+
   # Uruchomienie zadania z topology-aware scheduling (preferred)
   - id: job-preferred
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register-job-preferred
       count: 1
       params:
         namespace: default
@@ -361,7 +405,7 @@ tasks:
         gpu: 8
         ttl: "2m"
         topologyType: "preferred"
-        topologyLevel: "network.topology.kubernetes.io/block"
+        topologyLevel: "network.topology.kubernetes.io/spine"
 
   # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
   - id: status
