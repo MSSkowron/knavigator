@@ -27,6 +27,8 @@ description: |
   or
   kubectl patch deployment kueue-controller-manager -n kueue-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","args":["--config=/controller_manager_config.yaml","--zap-log-level=2","--feature-gates=TopologyAwareScheduling=true"]}]}}}}'
 
+  To verify it: kubectl -n kueue-system get deployment kueue-controller-manager -o yaml | grep -A 5 args
+
   If you would like to enable more than one feature:
   kubectl -n kueue-system patch deployment kueue-controller-manager --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=TopologyAwareScheduling=true,LocalQueueMetrics=true,LocalQueueDefaulting=true"}]'
 tasks:

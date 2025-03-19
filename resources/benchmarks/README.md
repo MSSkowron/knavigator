@@ -274,7 +274,7 @@ To run the benchmark test for Kueue:
 
 ### V3
 
-The benchmark configures 7 nodes with a network topology that includes a "supernode" with high capacity and multiple regular nodes:
+The benchmark configures 13 nodes with a network topology that includes a "supernode" with high capacity and multiple regular nodes:
 
 ```mermaid
 graph TD
@@ -317,7 +317,8 @@ graph TD
 
 In this diagram:
 
-- Node n1 is a high-capacity "supernode" capable of hosting all pods of a job
+- Node n1 is a high-capacity "supernode" (24 GPUs, 256 CPU cores) capable of hosting all pods of a resource-intensive job
+- Regular nodes have standard capacity (8 GPUs, 128 CPU cores each)
 - Nodes n3, n4, n10, n12, and n13 are marked as unschedulable (×)
 - Block sw116 has 2 available nodes (n8, n9) and 1 unavailable (n10)
 - Block sw117 has 1 available node (n11) and 2 unavailable (n12, n13)
@@ -326,21 +327,29 @@ In this diagram:
 **Test**:
 
 1. **Phase 1 - Single Node Placement**:
-   - The test creates a job with 3 pods requiring co-location at the block level
-   - With the supernode available, all pods should be scheduled on the same node (n1)
-   - This tests Kueue's preference for consolidating pods on a single node when topology constraints allow
+
+    - The test creates a job with 3 pods, each requiring 6 GPUs (18 GPUs total)
+    - With the node-level topology preference, all pods should be scheduled on the supernode (n1)
+    - This tests Kueue's ability to consolidate pods on a single node when resources allow and topology constraints prefer it
+    - Regular nodes (8 GPUs each) would require multiple nodes to fulfill the request
 
 2. **Phase 2 - Distributed Placement**:
-   - The supernode is then marked as unschedulable
-   - A new job with the same requirements is submitted
-   - Pods should now be distributed across the available nodes in block sw115 (n5, n6, n7)
-   - This tests Kueue's ability to distribute pods within the same network block when a single node isn't available
+
+    - The supernode is then marked as unschedulable
+    - A new job with identical resource requirements is submitted
+    - With the node-level topology preference, since it is impossible to place on one node, pods should now be distributed across the available nodes in block sw115
+    - This tests Kueue's ability to distribute pods within the same network block when a single node isn't available
 
 3. **Evaluation**:
-   - Success is measured by whether Kueue correctly places all pods on the supernode in phase 1
-   - And whether it distributes pods across multiple nodes within the same block in phase 2
 
-This test validates Kueue's ability to make smart placement decisions while still respecting topology constraints, both when consolidation is possible and when distribution is necessary.
+    - Success is measured by whether Kueue correctly places all pods on the supernode in phase 1
+    - And whether it distributes pods across multiple nodes while maintaining them within the same block in phase 2
+
+This test validates Kueue's sophisticated topology-aware placement functionality, demonstrating its ability to:
+
+1. Consider topology at different levels (node and block)
+2. Consolidate workloads when optimal
+3. Distribute workloads while respecting topology constraints when necessary
 
 To run the benchmark test for Kueue:
 
