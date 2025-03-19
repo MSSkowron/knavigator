@@ -1,0 +1,535 @@
+name: volcano-topology-aware-benchmark-v3
+description: |
+  Test Volcano's Network Topology Aware Scheduling capabilities with focus on single-node vs multi-node placement.
+  This benchmark verifies Volcano's ability to place workloads based on network topology constraints with a supernode.
+
+  The benchmark creates a network topology with these levels:
+  - Datacenter (sw31)
+  - Spine (sw21, sw22)
+  - Block (sw113, sw114, sw115, sw116, sw117)
+  - Node (n1-n13)
+
+  Key test configurations:
+  - Block sw113 contains a "supernode" (n1) with high capacity (24 GPUs, 256 CPU cores)
+    capable of hosting all pods of a multi-pod job
+  - Other blocks contain regular nodes with standard capacity (8 GPUs, 128 CPU cores)
+  - Some nodes are marked as unschedulable to simulate a realistic cluster environment
+
+  The test verifies:
+  1. Phase 1: Volcano's ability to place all pods on a single node (the supernode) when it's
+     optimal for topology
+  2. Phase 2: Volcano's ability to distribute pods across multiple nodes within the same block
+     when the supernode becomes unavailable
+
+  IMPORTANT: Before running this benchmark, make sure to deploy Volcano with
+  Network Topology Aware Scheduling enabled using the command:
+  helm upgrade --install volcano volcano-sh/volcano -n volcano-system --create-namespace --version="1.11.0-network-topology-preview.0"
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+              - plugins:
+                - name: priority
+                - name: gang
+              - plugins:
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack # Enable binpack plugin
+                  arguments:
+                    binpack.weight: 10 # High weight to prioritize consolidation
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  # Configure nodes with network topology
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        # Block sw113 - supernode and one regular node
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n1
+          labels:
+            node-id: n1
+            super-node: "true"
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "24"
+            nvidia.com/mlnxnics: "48"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 24
+            nvidia.com/mlnxnics: 48
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n2
+          labels:
+            node-id: n2
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw114 - two regular nodes (will be marked unschedulable)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n3
+          labels:
+            node-id: n3
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n4
+          labels:
+            node-id: n4
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw115 - three regular nodes
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n5
+          labels:
+            node-id: n5
+            block-sw115: "true"
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n6
+          labels:
+            node-id: n6
+            block-sw115: "true"
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n7
+          labels:
+            node-id: n7
+            block-sw115: "true"
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw116 (under sw22) - 2 available, 1 unavailable
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n8
+          labels:
+            node-id: n8
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n9
+          labels:
+            node-id: n9
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n10
+          labels:
+            node-id: n10
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+
+        # Block sw117 (under sw22) - 1 available, 2 unavailable
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n11
+          labels:
+            node-id: n11
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n12
+          labels:
+            node-id: n12
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n13
+          labels:
+            node-id: n13
+            kubernetes.io/role: worker
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Mark some nodes as unschedulable
+  - id: update-nodes
+    type: UpdateNodes
+    params:
+      selectors:
+        - node-id: n3   # Block sw114 (2 unavailable)
+        - node-id: n4   # Block sw114 (2 unavailable)
+        - node-id: n10  # Block sw116 (1 unavailable)
+        - node-id: n12  # Block sw117 (2 unavailable)
+        - node-id: n13  # Block sw117 (2 unavailable)
+      state:
+        spec:
+          unschedulable: true
+      timeout: 2m
+
+  # Define HyperNodes for the network topology
+  - id: register-hypernode
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/hypernode.yaml"
+
+  # Register job template
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
+      nameFormat: "volcano-tas-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Create leaf HyperNodes for blocks
+  - id: create-hypernode-sw113
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw113
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n1
+          - type: Node
+            exactMatch: n2
+
+  - id: create-hypernode-sw114
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw114
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n3
+          - type: Node
+            exactMatch: n4
+
+  - id: create-hypernode-sw115
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw115
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n5
+          - type: Node
+            exactMatch: n6
+          - type: Node
+            exactMatch: n7
+
+  - id: create-hypernode-sw116
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw116
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n8
+          - type: Node
+            exactMatch: n9
+          - type: Node
+            exactMatch: n10
+
+  - id: create-hypernode-sw117
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw117
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n11
+          - type: Node
+            exactMatch: n12
+          - type: Node
+            exactMatch: n13
+
+  # Create spine layer HyperNodes
+  - id: create-hypernode-sw21
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw21
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: sw113
+          - type: HyperNode
+            exactMatch: sw114
+          - type: HyperNode
+            exactMatch: sw115
+
+  - id: create-hypernode-sw22
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw22
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: sw116
+          - type: HyperNode
+            exactMatch: sw117
+
+  # Create datacenter layer HyperNode
+  - id: create-hypernode-sw31
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: sw31
+        tier: 3
+        members:
+          - type: HyperNode
+            exactMatch: sw21
+          - type: HyperNode
+            exactMatch: sw22
+
+  # Phase 1: Submit a job that should use the supernode (n1)
+  - id: job-supernode
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        replicas: 3
+        queue: default
+        image: ubuntu
+        cpu: 2
+        memory: 2Gi
+        gpu: 6  # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
+        ttl: "2m"
+        networkTopology: true
+        topologyMode: hard
+        highestTierAllowed: 1
+
+  # Verify pods are on the supernode
+  - id: check-supernode-placement
+    type: CheckPod
+    description: Confirm that all pods are placed on the supernode
+    params:
+      refTaskId: job-supernode
+      status: Running
+      nodeLabels:
+        node-id: n1
+      timeout: 30s
+
+  # Clean up after first test
+  - id: cleanup-job-supernode
+    type: DeleteObj
+    params:
+      refTaskId: job-supernode
+
+  # Phase 2: Mark supernode as unschedulable
+  - id: disable-supernode
+    type: UpdateNodes
+    params:
+      selectors:
+        - node-id: n1  # Supernode
+      state:
+        spec:
+          unschedulable: true
+      timeout: 30s
+
+  # Submit a job that should now use multiple nodes in block sw115
+  - id: job-multinode
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        replicas: 3
+        queue: default
+        image: ubuntu
+        cpu: 2
+        memory: 2Gi
+        gpu: 6  # Same resources as before, but now should be distributed
+        ttl: "2m"
+        networkTopology: true
+        topologyMode: soft
+        highestTierAllowed: 1  # Block level - should place pods within the same block
+
+  # Check that pods are distributed across multiple nodes in block sw115
+  - id: check-block-placement
+    type: CheckPod
+    description: Confirm that pods are distributed but within the same block
+    params:
+      refTaskId: job-multinode
+      status: Running
+      nodeLabels:
+        block-sw115: "true"  # All pods should be in block sw115
+      timeout: 30s
+
+  # Cleanup
+  - id: cleanup-job-multinode
+    type: DeleteObj
+    params:
+      refTaskId: job-multinode

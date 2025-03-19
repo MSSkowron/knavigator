@@ -502,12 +502,6 @@ tasks:
     params:
       refTaskId: job-supernode
 
-  # Short pause between tests
-  - id: pause-between-tests
-    type: Sleep
-    params:
-      timeout: 5s
-
   # Phase 2: Mark supernode as unschedulable
   - id: disable-supernode
     type: UpdateNodes
