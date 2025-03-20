@@ -121,13 +121,15 @@ This benchmark tests scheduler performance with diverse workloads that better re
 
 ## Topology Aware
 
-The topology aware benchmark evaluates a scheduler's ability to intelligently place pods based on topology considerations. This capability is crucial for distributed workloads like deep learning training, where inter-pod communication latency can significantly impact performance.
+Benchmark Topology Aware ocenia zdolność schedulera do inteligentnego rozmieszczania podów w oparciu o topologię sieci. Ta funkcjonalność jest kluczowa dla rozproszonych obciążeń, takich jak trening deep learning, gdzie opóźnienie komunikacji między podami może znacząco wpływać na wydajność.
 
-This benchmark creates a simulated network topology with various layers (e.g. datacenter, spine, block) and tests how well each scheduler can place pods to minimize network distances between collaborating pods.
+Testy tworzą symulowaną topologię sieci z różnymi warstwami (datacenter, spine, block) i sprawdzają, jak dobrze scheduler potrafi umieszczać pody, aby zminimalizować odległości sieciowe między współpracującymi podami.
 
-### V1
+Benchmarki są zaimplementowane tylko dla Kueue i Volcano, ponieważ YuniKorn nie wspiera obecnie planowania opartego na topologii sieci.
 
-The benchmark configures 16 nodes with a tree-like network topology:
+### V1: Planowanie na 2 poziomie hierarchii (spine)
+
+Test konfiguruje 16 węzłów w układzie drzewiastym reprezentującym topologię sieci:
 
 ```mermaid
 graph TD
@@ -171,32 +173,41 @@ graph TD
     class n2,n4,n9,n10,n13,n15 normal;
 ```
 
-In this diagram:
+Na tym diagramie:
 
-- Nodes n1, n3, n6, n11, n12, n14, and n16 are marked as unschedulable (X)
-- Nodes n5, n7, and n8 are marked as "optimal" for network topology considerations
+- Węzły n1, n3, n6, n11, n12, n14 i n16 są oznaczone jako nieplanowalne (X)
+- Węzły n5, n7 i n8 są oznaczone jako "optymalne" ze względu na topologię sieci (pod sw22)
 
 **Test**:
 
-- **Node Setup**: The test creates 16 virtual nodes with network topology labels at different levels:
+- **Konfiguracja węzłów**: Test tworzy 16 wirtualnych węzłów z etykietami topologii sieci na różnych poziomach:
 
-  - network.topology.kubernetes.io/datacenter: Top-level network segment
-  - network.topology.kubernetes.io/spine: Mid-level network segment
-  - network.topology.kubernetes.io/block: Low-level network segment
+  - network.topology.kubernetes.io/datacenter: Segment sieci najwyższego poziomu
+  - network.topology.kubernetes.io/spine: Segment sieci średniego poziomu
+  - network.topology.kubernetes.io/block: Segment sieci najniższego poziomu
 
-- **Workload**: A job with 3 pods requiring co-location for optimal performance is submitted to the cluster using the *"preferred"*/*"soft"* topology strategy at the block level (`network.topology.kubernetes.io/block`).
+- **Obciążenie: Test przeprowadza dwie fazy**:
 
-- **Evaluation**: Success is measured by whether the scheduler places all 3 pods on the optimal nodes (n5, n7, n8) that have been marked with net-optimal: true and have the lowest network distance between them.
+  - Uruchamia job z 3 podami używając strategii *"required" (Kueue) / "hard" (Volcano)* na poziomie spine (network.topology.kubernetes.io/spine)
+  - Uruchamia ten sam job z 3 podami używając strategii *"preferred" (Kueue) / "soft" (Volcano)* na poziomie spine
 
-To run the benchmark test for Kueue:
+- **Ocena**: Sukces jest mierzony zdolnością schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n5, n7, n8), które zostały oznaczone etykietą "net-optimal: true" i mają najmniejszą odległość sieciową między sobą.
+
+Aby uruchomić benchmark dla Kueue:
 
 ```sh
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v1.yaml}'
 ```
 
-### V2
+Aby uruchomić benchmark dla Volcano:
 
-The benchmark configures 21 nodes with a more complex tree-like network topology:
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{volcano-v1.yaml}'
+```
+
+### V2: Planowanie na 1 poziomie hierarchii (block)
+
+Benchmark konfiguruje 21 węzłów w bardziej złożonym układzie drzewiastym:
 
 ```mermaid
 graph TD
@@ -250,31 +261,38 @@ graph TD
     class n4,n7,n9,n10,n13,n14,n17,n18,n19,n21 normal;
 ```
 
-In this diagram:
+Na tym diagramie:
 
-- Nodes n5, n6, n8, n11, n12, n15, n16, and n20 are marked as unschedulable (X)
-- Nodes n1, n2, and n3 are all within the same network block (sw113) and are marked as "optimal"
+- Węzły n5, n6, n8, n11, n12, n15, n16 i n20 są oznaczone jako nieplanowalne (X)
+- Węzły n1, n2 i n3 znajdują się w tym samym bloku sieci (sw113) i są oznaczone jako "optymalne"
 
-Test:
+**Test**:
 
-- **Node Setup**: Similar to V1, but with a different topology structure where the optimal nodes are all within the same network block, providing the lowest possible latency for inter-pod communication.
+- **Konfiguracja węzłów**: Podobna do V1, ale z inną strukturą topologii, gdzie optymalne węzły znajdują się wszystkie w tym samym bloku sieci, zapewniając najmniejsze możliwe opóźnienie dla komunikacji między podami.
 
-- **Workload**: The test runs two sequential scheduling tests at the block level (`network.topology.kubernetes.io/block`):
+- **Obciążenie**: Test przeprowadza dwie sekwencyjne próby planowania na poziomie bloku (network.topology.kubernetes.io/block):
 
-  - A job with 3 pods using *"preferred"*/*"soft"* topology scheduling (soft constraint that the scheduler should try to satisfy)
-  - A job with 3 pods using *"required"*/*"hard"* topology scheduling (hard constraint that must be satisfied for scheduling)
+  - Job z 3 podami używający strategii *"required" (Kueue) /"hard" (Volcano)* (twarde ograniczenie, które musi być spełnione do zaplanowania)
 
-- **Evaluation**: Success is measured by whether the scheduler places all pods on the optimal nodes (n1, n2, n3) for both scheduling modes. This tests both the scheduler's ability to honor topology preferences when possible and to enforce strict topology requirements when necessary.
+  - Job z 3 podami używający strategii *"preferred" (Kueue) /"soft" (Volcano)* (miękkie ograniczenie, które scheduler powinien starać się spełnić)
 
-To run the benchmark test for Kueue:
+- **Ocena**: Sukces jest mierzony przez zdolność schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n1, n2, n3) dla obu trybów planowania. Test sprawdza zarówno zdolność schedulera do honorowania preferencji topologii, gdy jest to możliwe, jak i do egzekwowania ścisłych wymagań topologicznych, gdy jest to konieczne.
+
+Aby uruchomić benchmark dla Kueue:
 
 ```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v3.yaml}'
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v2.yaml}'
 ```
 
-### V3
+Aby uruchomić benchmark dla Volcano:
 
-The benchmark configures 13 nodes with a network topology that includes a "supernode" with high capacity and multiple regular nodes:
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{volcano-v2.yaml}'
+```
+
+### V3: Superwęzeł vs. wiele węzłów w bloku
+
+Benchmark konfiguruje 13 węzłów z topologią sieci, która zawiera "superwęzeł" o wysokiej pojemności oraz wiele zwykłych węzłów:
 
 ```mermaid
 graph TD
@@ -315,46 +333,47 @@ graph TD
     class n2,n5,n6,n7,n8,n9,n11 normal;
 ```
 
-In this diagram:
+Na tym diagramie:
 
-- Node n1 is a high-capacity "supernode" (24 GPUs, 256 CPU cores) capable of hosting all pods of a resource-intensive job
-- Regular nodes have standard capacity (8 GPUs, 128 CPU cores each)
-- Nodes n3, n4, n10, n12, and n13 are marked as unschedulable (×)
-- Block sw116 has 2 available nodes (n8, n9) and 1 unavailable (n10)
-- Block sw117 has 1 available node (n11) and 2 unavailable (n12, n13)
-- All nodes in block sw115 (n5, n6, n7) are available for scheduling
+- Węzeł n1 to "superwęzeł" o wysokiej pojemności (24 GPU, 256 rdzeni CPU), zdolny do hostowania wszystkich podów zasobochłonnego joba
+- Zwykłe węzły mają standardową pojemność (8 GPU, 128 rdzeni CPU)
+- Węzły n3, n4, n10, n12 i n13 są oznaczone jako nieplanowalne (X)
+- Blok sw116 ma 2 dostępne węzły (n8, n9) i 1 niedostępny (n10)
+- Blok sw117 ma 1 dostępny węzeł (n11) i 2 niedostępne (n12, n13)
+- Wszystkie węzły w bloku sw115 (n5, n6, n7) są dostępne do planowania
 
 **Test**:
 
-1. **Phase 1 - Single Node Placement**:
+- **Faza 1 - Umieszczanie na pojedynczym węźle**:
 
-    - The test creates a job with 3 pods, each requiring 6 GPUs (18 GPUs total)
-    - With the node-level topology preference, all pods should be scheduled on the supernode (n1)
-    - This tests Kueue's ability to consolidate pods on a single node when resources allow and topology constraints prefer it
-    - Regular nodes (8 GPUs each) would require multiple nodes to fulfill the request
+  - Test tworzy job z 3 podami, każdy wymagający 6 GPU (łącznie 18 GPU) z wymaganiem umieszczenia zadania na jednym węźle w Kueue i z wymaganiem umieszczenia zadania na pierwszym poziomie hierarchii (block) w Volcano (Volcano nie wspiera możliwości definiowania poziomu węzła w topologii - najniższy możliwy poziom to poziom 1).
+  - Wszystkie pody powinny być zaplanowane na superwęźle (n1)
+  - Test sprawdza zdolność schedulera do konsolidacji podów na pojedynczym węźle, gdy zasoby na to pozwalają i preferencje topologii to sugerują
+  - Zwykłe węzły (8 GPU każdy) wymagałyby wielu węzłów do spełnienia żądania
 
-2. **Phase 2 - Distributed Placement**:
+- **Faza 2 - Dystrybucja na wielu węzłach**:
 
-    - The supernode is then marked as unschedulable
-    - A new job with identical resource requirements is submitted
-    - With the node-level topology preference, since it is impossible to place on one node, pods should now be distributed across the available nodes in block sw115
-    - This tests Kueue's ability to distribute pods within the same network block when a single node isn't available
+  - Superwęzeł zostaje oznaczony jako nieplanowany
+  - Nowy job z identycznymi wymaganiami zasobowymi jest uruchamiany
+  - Z preferencją topologii na poziomie węzła w Kueue i z preferencją topologii na 1 poziomie hierarchii (block) w Volcano
+  - Ponieważ niemożliwe jest umieszczenie na jednym węźle, pody powinny być teraz rozłożone na dostępnych węzłach w bloku sw115
+  - Test sprawdza zdolność schedulera do dystrybucji podów na wielu węzłach, zachowując je w tym samym bloku sieciowym, gdy pojedynczy węzeł nie jest dostępny
 
-3. **Evaluation**:
+- **Ocena**:
 
-    - Success is measured by whether Kueue correctly places all pods on the supernode in phase 1
-    - And whether it distributes pods across multiple nodes while maintaining them within the same block in phase 2
+  - Sukces jest mierzony zdolnością schedulera do prawidłowego umieszczenia wszystkich podów na superwęźle w fazie 1
+  - I zdolnością do dystrybucji podów na wielu węzłach w tym samym bloku w fazie 2
 
-This test validates Kueue's sophisticated topology-aware placement functionality, demonstrating its ability to:
-
-1. Consider topology at different levels (node and block)
-2. Consolidate workloads when optimal
-3. Distribute workloads while respecting topology constraints when necessary
-
-To run the benchmark test for Kueue:
+Aby uruchomić benchmark dla Kueue:
 
 ```sh
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v3.yaml}'
+```
+
+Aby uruchomić benchmark dla Volcano:
+
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{volcano-v3.yaml}'
 ```
 
 ## Fair Share
