@@ -44,10 +44,8 @@ tasks:
         # Block sw113 - supernode and one regular node
         - type: hpc.gpu
           count: 1
+          namePrefix: n1
           labels:
-            node-id: n1
-            super-node: true
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw113
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -65,9 +63,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n2
           labels:
-            node-id: n2
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw113
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -87,9 +84,8 @@ tasks:
         # Block sw114 - two regular nodes (will be marked unschedulable)
         - type: hpc.gpu
           count: 1
+          namePrefix: n3
           labels:
-            node-id: n3
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw114
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -107,9 +103,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n4
           labels:
-            node-id: n4
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw114
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -129,9 +124,8 @@ tasks:
         # Block sw115 - three regular nodes
         - type: hpc.gpu
           count: 1
+          namePrefix: n5
           labels:
-            node-id: n5
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw115
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -149,9 +143,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n6
           labels:
-            node-id: n6
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw115
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -169,9 +162,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n7
           labels:
-            node-id: n7
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw115
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -191,9 +183,8 @@ tasks:
         # Block sw116 (under sw22) - 2 available, 1 unavailable
         - type: hpc.gpu
           count: 1
+          namePrefix: n8
           labels:
-            node-id: n8
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw116
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -211,9 +202,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n9
           labels:
-            node-id: n9
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw116
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -231,9 +221,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n10
           labels:
-            node-id: n10
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw116
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -253,9 +242,8 @@ tasks:
         # Block sw117 (under sw22) - 1 available, 2 unavailable
         - type: hpc.gpu
           count: 1
+          namePrefix: n11
           labels:
-            node-id: n11
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw117
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -273,9 +261,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n12
           labels:
-            node-id: n12
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw117
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -293,9 +280,8 @@ tasks:
             ephemeral-storage: "30Ti"
         - type: hpc.gpu
           count: 1
+          namePrefix: n13
           labels:
-            node-id: n13
-            kubernetes.io/role: worker
             network.topology.kubernetes.io/block: sw117
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -318,11 +304,11 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n3 # Block sw114 (2 unavailable)
-        - node-id: n4 # Block sw114 (2 unavailable)
-        - node-id: n10 # Block sw116 (1 unavailable)
-        - node-id: n12 # Block sw117 (2 unavailable)
-        - node-id: n13 # Block sw117 (2 unavailable)
+        - kubernetes.io/hostname: n3 # Block sw114 (2 unavailable)
+        - kubernetes.io/hostname: n4 # Block sw114 (2 unavailable)
+        - kubernetes.io/hostname: n10 # Block sw116 (1 unavailable)
+        - kubernetes.io/hostname: n12 # Block sw117 (2 unavailable)
+        - kubernetes.io/hostname: n13 # Block sw117 (2 unavailable)
       state:
         spec:
           unschedulable: true
@@ -461,9 +447,9 @@ tasks:
       refTaskId: register-resource-flavor
       canExist: true
       params:
-        name: "worker-topo"
+        name: "topology-resource-flavor"
         nodeLabels:
-          kubernetes.io/role: "worker"
+          type: "kwok"
         topologyName: "network-topology"
 
   # Create cluster queue
@@ -473,8 +459,8 @@ tasks:
       refTaskId: register-cluster-queue
       canExist: true
       params:
-        name: "topology-queue"
-        flavor: "worker-topo"
+        name: "topology-cluster-queue"
+        flavor: "topology-resource-flavor"
         cpu: 1792 # 256 + (12 × 128) = 1792
         memory: 14Ti # 2Ti + (12 × 1Ti) = 14Ti
         pods: 1540 # 220 + 12 × 110 = 1540
@@ -489,7 +475,7 @@ tasks:
       params:
         name: "topology-local-queue"
         namespace: "default"
-        clusterQueue: "topology-queue"
+        clusterQueue: "topology-cluster-queue"
 
   # Submit a job that should use the supernode (n1)
   - id: job-supernode
@@ -518,7 +504,7 @@ tasks:
       refTaskId: job-supernode
       status: Running
       nodeLabels:
-        node-id: n1
+        kubernetes.io/hostname: n1 # Supernode
       timeout: 30s
 
   # Clean up after first test
@@ -532,7 +518,7 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n1 # Supernode
+        - kubernetes.io/hostname: n1 # Supernode
       state:
         spec:
           unschedulable: true
