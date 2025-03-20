@@ -68,9 +68,7 @@ tasks:
           count: 1
           namePrefix: n1
           labels:
-            node-id: n1
             super-node: "true"
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "24"
             nvidia.com/mlnxnics: "48"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -87,8 +85,6 @@ tasks:
           count: 1
           namePrefix: n2
           labels:
-            node-id: n2
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -107,8 +103,6 @@ tasks:
           count: 1
           namePrefix: n3
           labels:
-            node-id: n3
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -125,8 +119,6 @@ tasks:
           count: 1
           namePrefix: n4
           labels:
-            node-id: n4
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -145,9 +137,7 @@ tasks:
           count: 1
           namePrefix: n5
           labels:
-            node-id: n5
             block-sw115: "true"
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -164,9 +154,7 @@ tasks:
           count: 1
           namePrefix: n6
           labels:
-            node-id: n6
             block-sw115: "true"
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -183,9 +171,7 @@ tasks:
           count: 1
           namePrefix: n7
           labels:
-            node-id: n7
             block-sw115: "true"
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -204,8 +190,6 @@ tasks:
           count: 1
           namePrefix: n8
           labels:
-            node-id: n8
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -222,8 +206,6 @@ tasks:
           count: 1
           namePrefix: n9
           labels:
-            node-id: n9
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -240,8 +222,6 @@ tasks:
           count: 1
           namePrefix: n10
           labels:
-            node-id: n10
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -260,8 +240,6 @@ tasks:
           count: 1
           namePrefix: n11
           labels:
-            node-id: n11
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -278,8 +256,6 @@ tasks:
           count: 1
           namePrefix: n12
           labels:
-            node-id: n12
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -296,8 +272,6 @@ tasks:
           count: 1
           namePrefix: n13
           labels:
-            node-id: n13
-            kubernetes.io/role: worker
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -317,11 +291,11 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n3 # Block sw114 (2 unavailable)
-        - node-id: n4 # Block sw114 (2 unavailable)
-        - node-id: n10 # Block sw116 (1 unavailable)
-        - node-id: n12 # Block sw117 (2 unavailable)
-        - node-id: n13 # Block sw117 (2 unavailable)
+        - kubernetes.io/hostname: n3 # Block sw114 (2 unavailable)
+        - kubernetes.io/hostname: n4 # Block sw114 (2 unavailable)
+        - kubernetes.io/hostname: n10 # Block sw116 (1 unavailable)
+        - kubernetes.io/hostname: n12 # Block sw117 (2 unavailable)
+        - kubernetes.io/hostname: n13 # Block sw117 (2 unavailable)
       state:
         spec:
           unschedulable: true
@@ -466,6 +440,7 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         image: ubuntu
         cpu: 2
@@ -484,7 +459,7 @@ tasks:
       refTaskId: job-supernode
       status: Running
       nodeLabels:
-        node-id: n1
+        kubernetes.io/hostname: n1 # Supernode
       timeout: 30s
 
   # Clean up after first test
@@ -498,7 +473,7 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n1 # Supernode
+        - kubernetes.io/hostname: n1 # Supernode
       state:
         spec:
           unschedulable: true
@@ -513,6 +488,7 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         image: ubuntu
         cpu: 2
