@@ -1,131 +1,116 @@
-# Benchmark Tests
+# Benchmarki
 
-This directory contains benchmark tests for the following workload managers and schedulers:
+Ten katalog zawiera benchmarki dla porównania i oceny wydajności następujących systemów zarządzania obciążeniem i schedulerów:
 
 - Kueue
 - Volcano
-- Yunikorn
+- YuniKorn
 
-The benchmark tests involve submitting workloads intended to evaluate the scheduler's performance under specific scenarios.
+Benchmarki te służą do oceny różnych aspektów wydajności schedulerów pod kątem przepustowości, skalowalności, świadomości topologii sieci oraz sprawiedliwego podziału zasobów.
 
-## Performance
+## Wydajność (Performance)
 
-The performance benchmarks provide a comprehensive evaluation of scheduling frameworks under different workload patterns, measuring throughput, scalability, and effectiveness of resource bin-packing. These tests simulate various real-world scenarios to assess how each scheduler responds to different types of demand.
+Benchmarki wydajności dostarczają kompleksowej oceny framework'ów schedulerów w różnych wzorcach obciążeń, mierząc przepustowość, skalowalność i efektywność wykorzystania zasobów. Testy te symulują różne scenariusze, które mogą wystąpić w rzeczywistych środowiskach produkcyjnych.
 
-### V1: Large number of identical, independent jobs
+### V1: Duża liczba identycznych, niezależnych jobów
 
-This benchmark tests the scheduler's ability to handle a large number of identical, independent jobs.
+Benchmark testuje zdolność schedulera do obsługi dużej liczby identycznych, niezależnych zadań. Mierzy przepustowość schedulera i efektywność w obsłudze wielu małych zadań.
 
-**Test Configuration**:
+**Konfiguracja testu**:
 
-- 700 virtual nodes with 128 CPU cores, 1Ti memory, and 8 GPUs each
-- 700 jobs, where each job submits a single pod with moderate resource requirements:
+- 300 wirtualnych węzłów, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
+- 300 niezależnych jobów, gdzie każdy składa się z pojedynczego poda o wymaganiach:
 
-  - 16 CPU cores (12.5% of a node)
-  - 256Gi memory (25% of a node)
-  - 4 GPUs (50% of a node)
+  - 16 rdzeni CPU (12,5% węzła)
+  - 256Gi pamięci (25% węzła)
+  - 4 GPU (50% węzła)
 
-**For Kueue**:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{kueue-v1.yaml}" -v 4
-```
-
-**For Volcano**:
+**Skrypty do uruchomienia**:
 
 ```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{volcano-v1.yaml}" -v 4
+# Dla Kueue
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1.yaml" -v 4
+
+# Dla Volcano
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1.yaml" -v 4
+
+# Dla YuniKorn
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1.yaml" -v 4
 ```
 
-**For YuniKorn**:
+### V2: Jeden duży wielopodowy job
+
+Benchmark testuje efektywność schedulera w obsłudze zadań składających się z wielu podów. Ocenia, jak dobrze scheduler radzi sobie z dużym, spójnym obciążeniem.
+
+**Konfiguracja testu**:
+
+- 300 wirtualnych węzłów, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
+- Jeden job z 300 podami, gdzie każdy ma wymagania:
+
+  - 16 rdzeni CPU (12,5% węzła)
+  - 256Gi pamięci (25% węzła)
+  - 4 GPU (50% węzła)
+
+**Skrypty do uruchomienia**:
 
 ```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn-v1.yaml}" -v 4
+# Dla Kueue
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v2.yaml" -v 4
+
+# Dla Volcano
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v2.yaml" -v 4
+
+# Dla YuniKorn
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v2.yaml" -v 4
 ```
 
-### V2: One large multi-pod job
+### V3: Mieszane stopniowe obciążenie
 
-This benchmark tests the scheduler's efficiency when handling multi-pod jobs.
+Benchmark testuje wydajność schedulera z różnorodnymi obciążeniami, które lepiej reprezentują rzeczywiste wzorce użytkowania klastra. Ocenia, jak dobrze scheduler radzi sobie z heterogenicznymi typami zadań o różnych wymaganiach zasobowych jednocześnie.
 
-**Test Configuration**:
+**Konfiguracja testu**:
 
-- 700 virtual nodes with 128 CPU cores, 1Ti memory, and 8 GPUs each
-- A single job that creates 700 pods, each with:
+- 300 wirtualnych węzłów, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
+- Trzy różne typy zadań uruchamiane równolegle:
 
-  - 16 CPU cores (12.5% of a node)
-  - 256Gi memory (25% of a node)
-  - 4 GPUs (50% of a node)
+  - **Zadania o wysokim użyciu GPU**: 100 jobów wykorzystujących całe węzły GPU (8 GPU na job)
 
-**For Kueue**:
+    - 16 rdzeni CPU (12,5% węzła)
+    - 96Gi pamięci (9,4% węzła)
+    - 8 GPU (100% węzła)
+
+  - **Zadania o średnim użyciu GPU**: 100 jobów z częściowym wykorzystaniem GPU (2 GPU na job)
+
+    - 8 rdzeni CPU (6,25% węzła)
+    - 32Gi pamięci (3,1% węzła)
+    - 2 GPU (25% węzła)
+
+  - **Zadania CPU-only**: 100 jobów bez wymagań GPU
+
+    - 32 rdzenie CPU (25% węzła)
+    - 128Gi pamięci (12,5% węzła)
+    - 0 GPU
+
+**Skrypty do uruchomienia**:
 
 ```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{kueue-v2.yaml}" -v 4
+# Dla Kueue
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v3.yaml" -v 4
+
+# Dla Volcano
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v3.yaml" -v 4
+
+# Dla YuniKorn
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v3.yaml" -v 4
 ```
 
-**For Volcano**:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{volcano-v2.yaml}" -v 4
-```
-
-**For YuniKorn**:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn-v2.yaml}" -v 4
-```
-
-### V3: Mixed workload
-
-This benchmark tests scheduler performance with diverse workloads that better represent real-world cluster usage patterns. It evaluates how well schedulers can handle heterogeneous job types with different resource requirements simultaneously.
-
-**Test Configuration**:
-
-- 700 virtual nodes with 128 CPU cores, 1Ti memory, and 8 GPUs each
-- Three distinct job types submitted in parallel:
-
-  - **High-GPU Jobs**: 300 jobs using full GPU nodes (8 GPUs per job)
-
-    - 16 CPU cores (12.5% of a node)
-    - 96Gi memory (9.4% of a node)
-    - 8 GPUs (100% of a node)
-
-  - **Medium-GPU Jobs**: 200 jobs with partial GPU usage (2 GPUs per job)
-
-    - 8 CPU cores (6.25% of a node)
-    - 32Gi memory (3.1% of a node)
-    - 2 GPUs (25% of a node)
-
-  - **CPU-Only Jobs**: 200 jobs with no GPU requirements
-
-    - 32 CPU cores (25% of a node)
-    - 128Gi memory (12.5% of a node)
-    - 0 GPUs
-
-**For Kueue**:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{kueue-v3.yaml}" -v 4
-```
-
-**For Volcano**:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{volcano-v3.yaml}" -v 4
-```
-
-**For YuniKorn**:
-
-```bash
-./bin/knavigator -workflow "./resources/benchmarks/performance/workflows/{yunikorn-v3.yaml}" -v 4
-```
-
-## Topology Aware
+## Świadomość topologii klastra (Topology Awareness)
 
 Benchmark Topology Aware ocenia zdolność schedulera do inteligentnego rozmieszczania podów w oparciu o topologię sieci. Ta funkcjonalność jest kluczowa dla rozproszonych obciążeń, takich jak trening deep learning, gdzie opóźnienie komunikacji między podami może znacząco wpływać na wydajność.
 
 Testy tworzą symulowaną topologię sieci z różnymi warstwami (datacenter, spine, block) i sprawdzają, jak dobrze scheduler potrafi umieszczać pody, aby zminimalizować odległości sieciowe między współpracującymi podami.
 
-Benchmarki są zaimplementowane tylko dla Kueue i Volcano, ponieważ YuniKorn nie wspiera obecnie planowania opartego na topologii sieci.
+Benchmarki są zaimplementowane dla Kueue i Volcano, ponieważ YuniKorn nie wspiera obecnie planowania opartego na topologii sieci.
 
 ### V1: Planowanie na 2 poziomie hierarchii (spine)
 
@@ -191,18 +176,16 @@ Na tym diagramie:
   - Uruchamia job z 3 podami używając strategii *"required" (Kueue) / "hard" (Volcano)* na poziomie spine
   - Uruchamia ten sam job z 3 podami używając strategii *"preferred" (Kueue) / "soft" (Volcano)* na poziomie spine
 
-- **Ocena**: Sukces jest mierzony zdolnością schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n5, n7, n8), które zostały oznaczone etykietą "net-optimal: true" i mają najmniejszą odległość sieciową między sobą.
+- **Ocena**: Sukces jest mierzony zdolnością schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n5, n7, n8), które zostały oznaczone etykietą "ta-optimal: true" i mają najmniejszą odległość sieciową między sobą.
 
-Aby uruchomić benchmark dla Kueue:
-
-```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v1.yaml}'
-```
-
-Aby uruchomić benchmark dla Volcano:
+**Skrypty do uruchomienia**:
 
 ```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{volcano-v1.yaml}'
+# Dla Kueue
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v1.yaml'
+
+# Dla Volcano
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v1.yaml'
 ```
 
 ### V2: Planowanie na 1 poziomie hierarchii (block)
@@ -278,19 +261,17 @@ Na tym diagramie:
 
 - **Ocena**: Sukces jest mierzony przez zdolność schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n1, n2, n3) dla obu trybów planowania. Test sprawdza zarówno zdolność schedulera do honorowania preferencji topologii, gdy jest to możliwe, jak i do egzekwowania ścisłych wymagań topologicznych, gdy jest to konieczne.
 
-Aby uruchomić benchmark dla Kueue:
+**Skrypty do uruchomienia**:
 
 ```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v2.yaml}'
+# Dla Kueue
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v2.yaml'
+
+# Dla Volcano
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v2.yaml'
 ```
 
-Aby uruchomić benchmark dla Volcano:
-
-```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{volcano-v2.yaml}'
-```
-
-### V3: Superwęzeł vs. wiele węzłów w bloku
+### V3: Planowanie na 0 poziomie hierarchii (node)
 
 Benchmark konfiguruje 13 węzłów z topologią sieci, która zawiera "superwęzeł" o wysokiej pojemności oraz wiele zwykłych węzłów:
 
@@ -346,7 +327,7 @@ Na tym diagramie:
 
 - **Faza 1 - Umieszczanie na pojedynczym węźle**:
 
-  - Test tworzy job z 3 podami, każdy wymagający 6 GPU (łącznie 18 GPU) z wymaganiem umieszczenia zadania na jednym węźle w Kueue i z wymaganiem umieszczenia zadania na pierwszym poziomie hierarchii (block) w Volcano (Volcano nie wspiera możliwości definiowania poziomu węzła w topologii - najniższy możliwy poziom to poziom 1).
+  - Test tworzy job z 3 podami, każdy wymagający 6 GPU (łącznie 18 GPU) z preferencją topologii na poziomie węzła używający strategii *"required" (Kueue) /"hard" (Volcano)* (twarde ograniczenie, które musi być spełnione do zaplanowania)
   - Wszystkie pody powinny być zaplanowane na superwęźle (n1)
   - Test sprawdza zdolność schedulera do konsolidacji podów na pojedynczym węźle, gdy zasoby na to pozwalają i preferencje topologii to sugerują
   - Zwykłe węzły (8 GPU każdy) wymagałyby wielu węzłów do spełnienia żądania
@@ -354,9 +335,8 @@ Na tym diagramie:
 - **Faza 2 - Dystrybucja na wielu węzłach**:
 
   - Superwęzeł zostaje oznaczony jako nieplanowany
-  - Nowy job z identycznymi wymaganiami zasobowymi jest uruchamiany
-  - Z preferencją topologii na poziomie węzła w Kueue i z preferencją topologii na 1 poziomie hierarchii (block) w Volcano
-  - Ponieważ niemożliwe jest umieszczenie na jednym węźle, pody powinny być teraz rozłożone na dostępnych węzłach w bloku sw115
+  - Nowy job z identycznymi wymaganiami zasobowymi jest uruchamiany z preferencją topologii na poziomie węzła używający strategii *"preferred" (Kueue) /"soft" (Volcano)* (miękkie ograniczenie, które scheduler powinien starać się spełnić)
+  - Ponieważ niemożliwe jest umieszczenie na jednym węźle, pody powinny być teraz rozłożone na dostępnych węzłach w bloku sw115, bo jest to drugi najniższy, możliwy poziom hierarchii, na którym zmieszą się wszystkie pody joba.
   - Test sprawdza zdolność schedulera do dystrybucji podów na wielu węzłach, zachowując je w tym samym bloku sieciowym, gdy pojedynczy węzeł nie jest dostępny
 
 - **Ocena**:
@@ -364,18 +344,16 @@ Na tym diagramie:
   - Sukces jest mierzony zdolnością schedulera do prawidłowego umieszczenia wszystkich podów na superwęźle w fazie 1
   - I zdolnością do dystrybucji podów na wielu węzłach w tym samym bloku w fazie 2
 
-Aby uruchomić benchmark dla Kueue:
+**Skrypty do uruchomienia**:
 
 ```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{kueue-v3.yaml}'
+# Dla Kueue
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v3.yaml'
+
+# Dla Volcano
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v3.yaml'
 ```
 
-Aby uruchomić benchmark dla Volcano:
+## Sprawiedliwy przydział zasobów (Fair Share)
 
-```sh
-./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/{volcano-v3.yaml}'
-```
-
-## Fair Share
-
-TODO
+Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobów między różnymi kolejkami i zadaniami. Testują, czy scheduler prawidłowo dostosowuje się do priorytetów zadań i zapobiega monopolizacji zasobów przez pojedyncze zadania lub grupy.
