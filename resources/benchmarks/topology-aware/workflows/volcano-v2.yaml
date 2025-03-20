@@ -62,12 +62,11 @@ tasks:
     params:
       nodes:
         # Block sw113 - all 3 nodes available and optimal
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n1
           labels:
-            node-id: n1
-            net-optimal: "true"
+            ta-optimal: "true"
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -80,12 +79,11 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n2
           labels:
-            node-id: n2
-            net-optimal: "true"
+            ta-optimal: "true"
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -98,12 +96,11 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n3
           labels:
-            node-id: n3
-            net-optimal: "true"
+            ta-optimal: "true"
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -118,11 +115,10 @@ tasks:
             ephemeral-storage: "30Ti"
 
         # Block sw114 - two nodes unschedulable
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n4
           labels:
-            node-id: n4
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -135,11 +131,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n5
           labels:
-            node-id: n5
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -152,11 +147,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n6
           labels:
-            node-id: n6
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -171,11 +165,10 @@ tasks:
             ephemeral-storage: "30Ti"
 
         # Block sw123 - one node unschedulable
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n7
           labels:
-            node-id: n7
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -188,11 +181,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n8
           labels:
-            node-id: n8
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -205,11 +197,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n9
           labels:
-            node-id: n9
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -224,11 +215,10 @@ tasks:
             ephemeral-storage: "30Ti"
 
         # Block sw124 - two nodes unschedulable
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n10
           labels:
-            node-id: n10
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -241,11 +231,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n11
           labels:
-            node-id: n11
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -258,11 +247,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n12
           labels:
-            node-id: n12
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -277,11 +265,10 @@ tasks:
             ephemeral-storage: "30Ti"
 
         # Block sw133 - one node unschedulable
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n13
           labels:
-            node-id: n13
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -294,11 +281,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n14
           labels:
-            node-id: n14
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -311,11 +297,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n15
           labels:
-            node-id: n15
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -330,11 +315,10 @@ tasks:
             ephemeral-storage: "30Ti"
 
         # Block sw134 - one node unschedulable
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n16
           labels:
-            node-id: n16
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -347,11 +331,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n17
           labels:
-            node-id: n17
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -364,11 +347,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n18
           labels:
-            node-id: n18
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -383,11 +365,10 @@ tasks:
             ephemeral-storage: "30Ti"
 
         # Block sw143 - one node unschedulable
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n19
           labels:
-            node-id: n19
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -400,11 +381,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n20
           labels:
-            node-id: n20
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -417,11 +397,10 @@ tasks:
             hugepages-1Gi: 0
             hugepages-2Mi: 0
             ephemeral-storage: "30Ti"
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
           namePrefix: n21
           labels:
-            node-id: n21
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -436,19 +415,19 @@ tasks:
             ephemeral-storage: "30Ti"
       timeout: 5m
 
-  # Mark some nodes as unschedulable
+  # Oznaczenie niektórych węzłów jako zajęte (nieplanowalne)
   - id: update-nodes
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n5 # Block sw114
-        - node-id: n6 # Block sw114
-        - node-id: n8 # Block sw123
-        - node-id: n11 # Block sw124
-        - node-id: n12 # Block sw124
-        - node-id: n15 # Block sw133
-        - node-id: n16 # Block sw134
-        - node-id: n20 # Block sw143
+        - kubernetes.io/hostname: n5 # Block sw114
+        - kubernetes.io/hostname: n6 # Block sw114
+        - kubernetes.io/hostname: n8 # Block sw123
+        - kubernetes.io/hostname: n11 # Block sw124
+        - kubernetes.io/hostname: n12 # Block sw124
+        - kubernetes.io/hostname: n15 # Block sw133
+        - kubernetes.io/hostname: n16 # Block sw134
+        - kubernetes.io/hostname: n20 # Block sw143
       state:
         spec:
           unschedulable: true
@@ -661,10 +640,11 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         image: ubuntu
-        cpu: 100m
-        memory: 512M
+        cpu: 16
+        memory: 32Gi
         gpu: 8
         ttl: "2m"
         networkTopology: true
@@ -679,7 +659,7 @@ tasks:
       refTaskId: job-hard
       status: Running
       nodeLabels:
-        net-optimal: "true"
+        ta-optimal: "true"
       timeout: 30s
 
   # Cleanup
@@ -697,10 +677,11 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         image: ubuntu
-        cpu: 100m
-        memory: 512M
+        cpu: 16
+        memory: 32Gi
         gpu: 8
         ttl: "2m"
         networkTopology: true
@@ -715,5 +696,5 @@ tasks:
       refTaskId: job-soft
       status: Running
       nodeLabels:
-        net-optimal: "true"
+        ta-optimal: "true"
       timeout: 30s
