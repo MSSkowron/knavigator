@@ -1,0 +1,7 @@
+name: job cleanup
+description: delete jobs
+tasks:
+- id: cleanup
+  type: DeleteObj
+  params:
+    refTaskId: job-a-1
