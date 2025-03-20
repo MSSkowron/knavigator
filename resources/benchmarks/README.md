@@ -188,7 +188,7 @@ Na tym diagramie:
 
 - **Obciążenie: Test przeprowadza dwie fazy**:
 
-  - Uruchamia job z 3 podami używając strategii *"required" (Kueue) / "hard" (Volcano)* na poziomie spine (network.topology.kubernetes.io/spine)
+  - Uruchamia job z 3 podami używając strategii *"required" (Kueue) / "hard" (Volcano)* na poziomie spine
   - Uruchamia ten sam job z 3 podami używając strategii *"preferred" (Kueue) / "soft" (Volcano)* na poziomie spine
 
 - **Ocena**: Sukces jest mierzony zdolnością schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n5, n7, n8), które zostały oznaczone etykietą "net-optimal: true" i mają najmniejszą odległość sieciową między sobą.

@@ -37,137 +37,313 @@ tasks:
     type: Configure
     params:
       nodes:
-        - type: dgxa100.80g
+        - type: hpc.gpu
           count: 1
+          namePrefix: n1
           labels:
-            node-id: n1
             network.topology.kubernetes.io/block: sw11
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n2
           labels:
-            node-id: n2
             network.topology.kubernetes.io/block: sw11
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n3
           labels:
-            node-id: n3
             network.topology.kubernetes.io/block: sw12
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n4
           labels:
-            node-id: n4
             network.topology.kubernetes.io/block: sw12
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n5
           labels:
-            node-id: n5
+            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw13
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
-            net-optimal: "true"
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n6
           labels:
-            node-id: n6
             network.topology.kubernetes.io/block: sw13
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n7
           labels:
-            node-id: n7
+            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw14
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
-            net-optimal: "true"
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n8
           labels:
-            node-id: n8
+            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw14
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
-            net-optimal: "true"
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n9
           labels:
-            node-id: n9
             network.topology.kubernetes.io/block: sw15
             network.topology.kubernetes.io/spine: sw23
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n10
           labels:
-            node-id: n10
             network.topology.kubernetes.io/block: sw15
             network.topology.kubernetes.io/spine: sw23
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n11
           labels:
-            node-id: n11
             network.topology.kubernetes.io/block: sw16
             network.topology.kubernetes.io/spine: sw23
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n12
           labels:
-            node-id: n12
             network.topology.kubernetes.io/block: sw16
             network.topology.kubernetes.io/spine: sw23
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n13
           labels:
-            node-id: n13
             network.topology.kubernetes.io/block: sw17
             network.topology.kubernetes.io/spine: sw24
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n14
           labels:
-            node-id: n14
             network.topology.kubernetes.io/block: sw17
             network.topology.kubernetes.io/spine: sw24
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n15
           labels:
-            node-id: n15
             network.topology.kubernetes.io/block: sw18
             network.topology.kubernetes.io/spine: sw24
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
-        - type: dgxa100.80g
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+        - type: hpc.gpu
           count: 1
+          namePrefix: n16
           labels:
-            node-id: n16
             network.topology.kubernetes.io/block: sw18
             network.topology.kubernetes.io/spine: sw24
             network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 256
+            memory: "2Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
       timeout: 5m
 
   # Oznaczenie niektórych węzłów jako zajęte (nieplanowalne)
@@ -175,13 +351,13 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n1 # Unschedulable
-        - node-id: n3 # Unschedulable
-        - node-id: n6 # Unschedulable
-        - node-id: n11 # Unschedulable
-        - node-id: n12 # Unschedulable
-        - node-id: n14 # Unschedulable
-        - node-id: n16 # Unschedulable
+        - kubernetes.io/hostname: n1 # Unschedulable
+        - kubernetes.io/hostname: n3 # Unschedulable
+        - kubernetes.io/hostname: n6 # Unschedulable
+        - kubernetes.io/hostname: n11 # Unschedulable
+        - kubernetes.io/hostname: n12 # Unschedulable
+        - kubernetes.io/hostname: n14 # Unschedulable
+        - kubernetes.io/hostname: n16 # Unschedulable
       state:
         spec:
           unschedulable: true
@@ -327,9 +503,9 @@ tasks:
       refTaskId: register-resource-flavor
       canExist: true
       params:
-        name: "gpu-node-topo"
+        name: "topology-resource-flavor"
         nodeLabels:
-          nvidia.com/gpu.count: "8"
+          type: "kwok"
         topologyName: "network-topology"
 
   # Tworzenie ClusterQueue i LocalQueue
@@ -339,12 +515,12 @@ tasks:
       refTaskId: register-cluster-queue
       canExist: true
       params:
-        name: "topology-queue"
-        flavor: "gpu-node-topo"
-        cpu: 1000m
-        memory: 4Gi
-        pods: 10
-        gpu: 30
+        name: "topology-cluster-queue"
+        flavor: "topology-resource-flavor"
+        cpu: 4096       # 16 nodes × 256 CPUs
+        memory: 32Ti    # 16 nodes × 2Ti
+        pods: 1760      # 16 nodes × 110 pods
+        gpu: 128        # 16 nodes × 8 GPUs
 
   - id: create-local-queue
     type: SubmitObj
@@ -354,7 +530,7 @@ tasks:
       params:
         name: "topology-local-queue"
         namespace: "default"
-        clusterQueue: "topology-queue"
+        clusterQueue: "topology-cluster-queue"
 
   # Uruchomienie zadania z topology-aware scheduling (required)
   - id: job-required
@@ -368,8 +544,8 @@ tasks:
         replicas: 3
         completionMode: Indexed
         image: ubuntu
-        cpu: 100m
-        memory: 512M
+        cpu: 16
+        memory: 32Gi
         gpu: 8
         ttl: "2m"
         topologyType: "required"
@@ -383,7 +559,7 @@ tasks:
       refTaskId: job-required
       status: Running
       nodeLabels:
-        net-optimal: "true"
+        ta-optimal: "true"
       timeout: 30s
 
   # Cleanup
@@ -391,6 +567,12 @@ tasks:
     type: DeleteObj
     params:
       refTaskId: job-required
+
+  # Krótkie opóźnienie po 1 fazie
+  - id: job-delay
+    type: Sleep
+    params:
+      timeout: 5s
 
   # Uruchomienie zadania z topology-aware scheduling (preferred)
   - id: job-preferred
@@ -404,8 +586,8 @@ tasks:
         replicas: 3
         completionMode: Indexed
         image: ubuntu
-        cpu: 100m
-        memory: 512M
+        cpu: 16
+        memory: 32Gi
         gpu: 8
         ttl: "2m"
         topologyType: "preferred"
@@ -419,5 +601,5 @@ tasks:
       refTaskId: job-preferred
       status: Running
       nodeLabels:
-        net-optimal: "true"
+        ta-optimal: "true"
       timeout: 30s
