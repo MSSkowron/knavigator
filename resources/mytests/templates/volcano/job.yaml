@@ -27,7 +27,7 @@ spec:
     ssh: []
     env: []
     svc: []
-  maxRetry: 5
+  maxRetry: 0
   queue: default
   tasks:
   - replicas: {{.replicas}}
@@ -52,4 +52,4 @@ spec:
             requests:
               cpu: "{{.cpu}}"
               memory: {{.memory}}
-      restartPolicy: OnFailure
+      restartPolicy: Never
