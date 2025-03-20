@@ -12,7 +12,7 @@ tasks:
     params:
       nodes:
         - type: hpc.gpu
-          count: 700
+          count: 300
           labels:
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
@@ -177,10 +177,10 @@ tasks:
       params:
         name: team
         flavor: gpu-node
-        cpu: 89600 # 700 węzłów × 128 rdzeni
-        memory: 700Ti # 700 węzłów × 1Ti
-        pods: 77000 # 700 węzłów × 110 podów
-        gpu: 5600 # 700 węzłów × 8 GPU
+        cpu: 38400 # 300 węzłów × 128 rdzeni
+        memory: 300Ti # 300 węzłów × 1Ti
+        pods: 33000 # 300 węzłów × 110 podów
+        gpu: 2400 # 300 węzłów × 8 GPU
 
   - id: create-local-queue
     type: SubmitObj
@@ -215,16 +215,16 @@ tasks:
     params:
       timeout: 15s
 
-  # Grupa 1: Zadania wykorzystujące całe węzły GPU (8 GPU)
-  # Całkowite wykorzystanie zasobów:
-  # - 4,800 rdzeni CPU (300 × 16 = 5.36% klastra)
-  # - 28,800Gi ≈ 28.1Ti pamięci (300 × 96Gi = 4.02% klastra)
-  # - 2,400 GPU (300 × 8 = 42.86% klastra)
+  # Group 1: High-GPU Jobs (8 GPUs per job)
+  # Total resources:
+  # - 1,600 CPU cores (100 × 16 = 4.17% of cluster)
+  # - ~9.4Ti memory (100 × 96Gi = 3.13% of cluster)
+  # - 800 GPUs (100 × 8 = 33.33% of cluster)
   - id: high-gpu-jobs
     type: SubmitObj
     params:
       refTaskId: register-job-high-gpu
-      count: 300
+      count: 100
       params:
         namespace: default
         replicas: 1
@@ -242,16 +242,16 @@ tasks:
     params:
       timeout: 15s
 
-  # Grupa 2: Zadania wykorzystujące częściowo węzły GPU (2 GPU)
-  # Całkowite wykorzystanie zasobów:
-  # - 1,600 rdzeni CPU (200 × 8 = 1.79% klastra)
-  # - 6,400Gi ≈ 6.25Ti pamięci (200 × 32Gi = 0.89% klastra)
-  # - 400 GPU (200 × 2 = 7.14% klastra)
+  # Group 2: Medium-GPU Jobs (2 GPUs per job)
+  # Total resources:
+  # - 800 CPU cores (100 × 8 = 2.08% of cluster)
+  # - ~3.13Ti memory (100 × 32Gi = 1.04% of cluster)
+  # - 200 GPUs (100 × 2 = 8.33% of cluster)
   - id: medium-gpu-jobs
     type: SubmitObj
     params:
       refTaskId: register-job-medium-gpu
-      count: 200
+      count: 100
       params:
         namespace: default
         replicas: 1
@@ -269,16 +269,16 @@ tasks:
     params:
       timeout: 15s
 
-  # Grupa 3: Zadania wykorzystujące tylko CPU/RAM (bez GPU)
-  # Całkowite wykorzystanie zasobów:
-  # - 6,400 rdzeni CPU (200 × 32 = 7.14% klastra)
-  # - 25,600Gi ≈ 25Ti pamięci (200 × 128Gi = 3.57% klastra)
-  # - 0 GPU
+  # Group 3: CPU-Only Jobs (no GPUs)
+  # Total resources:
+  # - 3,200 CPU cores (100 × 32 = 8.33% of cluster)
+  # - ~12.5Ti memory (100 × 128Gi = 4.17% of cluster)
+  # - 0 GPUs
   - id: cpu-only-jobs
     type: SubmitObj
     params:
       refTaskId: register-job-cpu-only
-      count: 200
+      count: 100
       params:
         namespace: default
         replicas: 1
@@ -289,7 +289,7 @@ tasks:
         memory: 128Gi # 128GB (12.5% węzła)
         gpu: 0 # Bez GPU
         ttl: 5m
-# Całkowite wykorzystanie klastra:
-# - 12,800 rdzeni CPU (14.3% klastra)
-# - ~59.4Ti pamięci (8.5% klastra)
-# - 2,800 GPU (50% klastra)
+# Total cluster utilization:
+# - 5,600 CPU cores (14.58% of cluster)
+# - ~25Ti memory (8.33% of cluster)
+# - 1,000 GPUs (41.67% of cluster)

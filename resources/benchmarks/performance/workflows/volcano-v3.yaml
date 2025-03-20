@@ -42,7 +42,7 @@ tasks:
     params:
       nodes:
         - type: hpc.gpu
-          count: 700
+          count: 300
           labels:
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
@@ -95,9 +95,9 @@ tasks:
         replicas: 1
         queue: default
         image: ubuntu
-        cpu: 100m
-        memory: 128M
-        gpu: 1
+        cpu: 100m # 0.1 rdzenia (0.078% węzła)
+        memory: 128M # 128MB (0.012% węzła)
+        gpu: 1 # 1 GPU (12.5% węzła)
         ttl: 5s
 
   # Krótkie opóźnienie po fazie rozgrzewki
@@ -108,14 +108,14 @@ tasks:
 
   # Group 1: High-GPU Jobs (8 GPUs per job)
   # Total resources:
-  # - 4,800 CPU cores (300 × 16 = 5.36% of cluster)
-  # - ~28.1Ti memory (300 × 96Gi = 4.02% of cluster)
-  # - 2,400 GPUs (300 × 8 = 42.86% of cluster)
+  # - 1,600 CPU cores (100 × 16 = 4.17% of cluster)
+  # - ~9.4Ti memory (100 × 96Gi = 3.13% of cluster)
+  # - 800 GPUs (100 × 8 = 33.33% of cluster)
   - id: high-gpu-jobs
     type: SubmitObj
     params:
       refTaskId: register-high-gpu
-      count: 300
+      count: 100
       params:
         namespace: default
         minAvailable: 1
@@ -135,14 +135,14 @@ tasks:
 
   # Group 2: Medium-GPU Jobs (2 GPUs per job)
   # Total resources:
-  # - 1,600 CPU cores (200 × 8 = 1.79% of cluster)
-  # - ~6.25Ti memory (200 × 32Gi = 0.89% of cluster)
-  # - 400 GPUs (200 × 2 = 7.14% of cluster)
+  # - 800 CPU cores (100 × 8 = 2.08% of cluster)
+  # - ~3.13Ti memory (100 × 32Gi = 1.04% of cluster)
+  # - 200 GPUs (100 × 2 = 8.33% of cluster)
   - id: medium-gpu-jobs
     type: SubmitObj
     params:
       refTaskId: register-medium-gpu
-      count: 200
+      count: 100
       params:
         namespace: default
         minAvailable: 1
@@ -162,24 +162,25 @@ tasks:
 
   # Group 3: CPU-Only Jobs (no GPUs)
   # Total resources:
-  # - 6,400 CPU cores (200 × 32 = 7.14% of cluster)
-  # - ~25Ti memory (200 × 128Gi = 3.57% of cluster)
+  # - 3,200 CPU cores (100 × 32 = 8.33% of cluster)
+  # - ~12.5Ti memory (100 × 128Gi = 4.17% of cluster)
   # - 0 GPUs
   - id: cpu-only-jobs
     type: SubmitObj
     params:
       refTaskId: register-cpu-only
-      count: 200
+      count: 100
       params:
         namespace: default
         minAvailable: 1
         replicas: 1
+        queue: default
         image: ubuntu
         cpu: 32000m # 32 cores (25% of node)
         memory: 128Gi # 128GB (12.5% of node)
         gpu: 0 # No GPUs
         ttl: 5m
 # Total cluster utilization:
-# - 12,800 CPU cores (14.3% of cluster)
-# - ~59.4Ti memory (8.5% of cluster)
-# - 2,800 GPUs (50% of cluster)
+# - 5,600 CPU cores (14.58% of cluster)
+# - ~25Ti memory (8.33% of cluster)
+# - 1,000 GPUs (41.67% of cluster)
