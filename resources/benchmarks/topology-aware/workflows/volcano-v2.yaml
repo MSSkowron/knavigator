@@ -38,13 +38,19 @@ tasks:
               - plugins:
                 - name: priority
                 - name: gang
+                - name: conformance
               - plugins:
+                - name: drf
                 - name: predicates
                 - name: proportion
                 - name: nodeorder
-                - name: binpack # Enable binpack plugin
+                - name: binpack
                   arguments:
-                    binpack.weight: 10 # Higher weight to make binpack scoring dominant
+                    binpack.weight: 10
+                    binpack.resources: nvidia.com/gpu
+                    binpack.cpu: 1
+                    binpack.memory: 1
+                    binpack.resources.nvidia.com/gpu: 2
       deploymentRestarts:
         - namespace: volcano-system
           name: volcano-scheduler

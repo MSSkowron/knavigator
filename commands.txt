@@ -8,4 +8,6 @@ kubectl delete node $(kubectl get nodes --no-headers | awk '/^n/ {print $1}')
 
 kubectl delete hypernodes.topology.volcano.sh --all && kubectl delete jobs.batch.volcano.sh --all
 
+kubectl get configmap volcano-scheduler-configmap -n volcano-system -o yaml
+
 kubectl get job.batch.volcano.sh
