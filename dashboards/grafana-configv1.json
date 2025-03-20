@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 28,
+  "id": 29,
   "links": [],
   "panels": [
     {
@@ -380,7 +380,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(kube_node_status_allocatable{node!=\"kind-control-plane\", resource=\"memory\"})",
+          "expr": "sum(kube_node_status_allocatable{node!=\"kind-control-plane\", resource=\"memory\"})/(1000000000*1.073741824)",
           "instant": false,
           "interval": "",
           "legendFormat": "Memory limit",
@@ -393,7 +393,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "namespace_memory:kube_pod_container_resource_requests:sum{namespace=~\"$namespace\"}",
+          "expr": "namespace_memory:kube_pod_container_resource_requests:sum{namespace=~\"$namespace\"}/(1000000000*1.073741824)",
           "hide": false,
           "instant": false,
           "legendFormat": "Memory requests",
@@ -401,7 +401,7 @@
           "refId": "Memory requested"
         }
       ],
-      "title": "Memory requests",
+      "title": "Memory requests (GiB)",
       "type": "timeseries"
     },
     {
@@ -620,6 +620,152 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "min": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "(sum (  cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests{resource=\"cpu\"}   * on (pod) group_left    kube_pod_status_phase{namespace=\"default\", phase=\"Running\"} ) / sum(kube_node_status_allocatable{node!=\"kind-control-plane\", resource=\"cpu\"}))*100",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "CPU cluster utilization",
+          "range": true,
+          "refId": "CPU limits"
+        }
+      ],
+      "title": "Average CPU utilisation (%) over period",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "min": 0,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(sum (\r\n  cluster:namespace:pod_memory:active:kube_pod_container_resource_requests{resource=\"memory\"}\r\n  * on (pod) group_left \r\n  kube_pod_status_phase{namespace=\"default\", phase=\"Running\"}\r\n) / sum(kube_node_status_allocatable{node!=\"kind-control-plane\", resource=\"memory\"}))*100",
+          "hide": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Memory limit",
+          "range": true,
+          "refId": "Memory limits"
+        }
+      ],
+      "title": "Average memory utilisation (%) over period",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "palette-classic"
           },
           "custom": {
@@ -677,7 +823,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 32
       },
       "id": 1,
       "options": {
@@ -779,7 +925,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 32
       },
       "id": 2,
       "options": {
@@ -916,7 +1062,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 40
       },
       "id": 3,
       "options": {
@@ -1014,7 +1160,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 48
       },
       "id": 4,
       "options": {
@@ -1112,7 +1258,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 56
       },
       "id": 5,
       "options": {
@@ -1210,7 +1356,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 65
       },
       "id": 6,
       "options": {
@@ -1282,13 +1428,13 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Kubernetes Pods Scheduling metrics",
   "uid": "ee3uye536gbggd",
-  "version": 1,
+  "version": 5,
   "weekStart": ""
 }
