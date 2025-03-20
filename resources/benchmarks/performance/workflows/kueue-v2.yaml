@@ -3,7 +3,7 @@ description: |
   TODO
 tasks:
   # Configure nodes
-  - id: configure
+  - id: configure-nodes
     type: Configure
     params:
       nodes:
@@ -25,7 +25,7 @@ tasks:
       timeout: 5m
 
   # Configure Kueue
-  - id: configure
+  - id: configure-kueue
     type: Configure
     params:
       configmaps:
@@ -79,7 +79,6 @@ tasks:
                 - "ray.io/rayjob"
                 - "ray.io/raycluster"
                 - "jobset.x-k8s.io/jobset"
-                - "kubeflow.org/mxjob"
                 - "kubeflow.org/paddlejob"
                 - "kubeflow.org/pytorchjob"
                 - "kubeflow.org/tfjob"
@@ -103,6 +102,11 @@ tasks:
           name: kueue-controller-manager
       timeout: 10m
 
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
   # Register Kueue-specific resources
   - id: register-cluster-queue
     type: RegisterObj
@@ -122,7 +126,7 @@ tasks:
       template: "resources/benchmarks/performance/templates/kueue/job.yaml"
       nameFormat: "perftest-v2-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
-      podCount: "{{.parallelism}}"
+      podCount: "{{.replicas}}"
 
   # Submit Kueue-specific resources
   - id: create-resource-flavor

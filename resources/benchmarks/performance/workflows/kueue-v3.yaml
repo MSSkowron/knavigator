@@ -52,15 +52,15 @@ tasks:
                 resourceName: c1f6bfd2.kueue.x-k8s.io
               controller:
                 groupKindConcurrency:
-                  Job.batch: 50              # Zwiększone dla lepszej wydajności
-                  Pod: 50                    # Zwiększone dla lepszej wydajności
-                  Workload.kueue.x-k8s.io: 50 # Zwiększone dla lepszej wydajności
-                  LocalQueue.kueue.x-k8s.io: 5  # Zwiększone z 1
-                  ClusterQueue.kueue.x-k8s.io: 5 # Zwiększone z 1
-                  ResourceFlavor.kueue.x-k8s.io: 5 # Zwiększone z 1
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
               clientConnection:
-                qps: 100                    # Zwiększone z 50
-                burst: 200                  # Zwiększone ze 100
+                qps: 50
+                burst: 100
               #pprofBindAddress: :8083
               waitForPodsReady:
                 enable: true
@@ -83,7 +83,6 @@ tasks:
                 - "ray.io/rayjob"
                 - "ray.io/raycluster"
                 - "jobset.x-k8s.io/jobset"
-                - "kubeflow.org/mxjob"
                 - "kubeflow.org/paddlejob"
                 - "kubeflow.org/pytorchjob"
                 - "kubeflow.org/tfjob"
@@ -107,6 +106,11 @@ tasks:
           name: kueue-controller-manager
       timeout: 10m
 
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
   # Register Kueue queue resources
   - id: register-cluster-queue
     type: RegisterObj
@@ -128,7 +132,7 @@ tasks:
       template: "resources/benchmarks/performance/templates/kueue/job.yaml"
       nameFormat: "warmup-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
-      podCount: "{{.parallelism}}"
+      podCount: "{{.replicas}}"
 
   - id: register-job-high-gpu
     type: RegisterObj
@@ -136,7 +140,7 @@ tasks:
       template: "resources/benchmarks/performance/templates/kueue/job.yaml"
       nameFormat: "high-gpu-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
-      podCount: "{{.parallelism}}"
+      podCount: "{{.replicas}}"
 
   - id: register-job-medium-gpu
     type: RegisterObj
@@ -144,7 +148,7 @@ tasks:
       template: "resources/benchmarks/performance/templates/kueue/job.yaml"
       nameFormat: "medium-gpu-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
-      podCount: "{{.parallelism}}"
+      podCount: "{{.replicas}}"
 
   - id: register-job-cpu-only
     type: RegisterObj
@@ -152,7 +156,7 @@ tasks:
       template: "resources/benchmarks/performance/templates/kueue/job.yaml"
       nameFormat: "cpu-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
-      podCount: "{{.parallelism}}"
+      podCount: "{{.replicas}}"
 
   # Create resource flavor and queues
   - id: create-resource-flavor
@@ -200,9 +204,9 @@ tasks:
         completionMode: NonIndexed
         queueName: team-queue
         image: ubuntu
-        cpu: 100m    # 0.1 rdzenia (0.078% węzła)
+        cpu: 100m # 0.1 rdzenia (0.078% węzła)
         memory: 128M # 128MB (0.012% węzła)
-        gpu: 1       # 1 GPU (12.5% węzła)
+        gpu: 1 # 1 GPU (12.5% węzła)
         ttl: 5s
 
   # Krótkie opóźnienie po fazie rozgrzewki
@@ -232,6 +236,12 @@ tasks:
         gpu: 8 # 8 GPU (100% węzła)
         ttl: 5m
 
+  # Krótkie opóźnienie po 1 fazie
+  - id: high-gpu-delay
+    type: Sleep
+    params:
+      timeout: 15s
+
   # Grupa 2: Zadania wykorzystujące częściowo węzły GPU (2 GPU)
   # Całkowite wykorzystanie zasobów:
   # - 1,600 rdzeni CPU (200 × 8 = 1.79% klastra)
@@ -253,6 +263,12 @@ tasks:
         gpu: 2 # 2 GPU (25% węzła)
         ttl: 5m
 
+  # Krótkie opóźnienie po 2 fazie
+  - id: medium-gpu-delay
+    type: Sleep
+    params:
+      timeout: 15s
+
   # Grupa 3: Zadania wykorzystujące tylko CPU/RAM (bez GPU)
   # Całkowite wykorzystanie zasobów:
   # - 6,400 rdzeni CPU (200 × 32 = 7.14% klastra)
@@ -273,12 +289,6 @@ tasks:
         memory: 128Gi # 128GB (12.5% węzła)
         gpu: 0 # Bez GPU
         ttl: 5m
-
-  # Faza analizy - czas na zebranie metryk
-  - id: analysis-phase
-    type: Sleep
-    params:
-      timeout: 60s
 # Całkowite wykorzystanie klastra:
 # - 12,800 rdzeni CPU (14.3% klastra)
 # - ~59.4Ti pamięci (8.5% klastra)
