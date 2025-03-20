@@ -2,6 +2,8 @@
 
 kubectl delete jobs --all && kubectl delete localqueues.kueue.x-k8s.io --all && kubectl delete clusterqueues.kueue.x-k8s.io --all &&  kubectl delete resourceflavors.kueue.x-k8s.io --all && kubectl delete topologies.kueue.x-k8s.io --all
 
+kubectl logs pod/kueue-controller-manager-
+
 # Volcano
 
 kubectl delete node $(kubectl get nodes --no-headers | awk '/^n/ {print $1}')

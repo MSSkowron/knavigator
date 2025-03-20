@@ -175,13 +175,13 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n1   # Unschedulable
-        - node-id: n3   # Unschedulable
-        - node-id: n6   # Unschedulable
-        - node-id: n11  # Unschedulable
-        - node-id: n12  # Unschedulable
-        - node-id: n14  # Unschedulable
-        - node-id: n16  # Unschedulable
+        - node-id: n1 # Unschedulable
+        - node-id: n3 # Unschedulable
+        - node-id: n6 # Unschedulable
+        - node-id: n11 # Unschedulable
+        - node-id: n12 # Unschedulable
+        - node-id: n14 # Unschedulable
+        - node-id: n16 # Unschedulable
       state:
         spec:
           unschedulable: true
@@ -242,7 +242,6 @@ tasks:
                 - "ray.io/rayjob"
                 - "ray.io/raycluster"
                 - "jobset.x-k8s.io/jobset"
-                - "kubeflow.org/mxjob"
                 - "kubeflow.org/paddlejob"
                 - "kubeflow.org/pytorchjob"
                 - "kubeflow.org/tfjob"
@@ -265,6 +264,11 @@ tasks:
         - namespace: kueue-system
           name: kueue-controller-manager
       timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
 
   # Rejestrowanie szablonów zasobów Kueue
   - id: register-topology

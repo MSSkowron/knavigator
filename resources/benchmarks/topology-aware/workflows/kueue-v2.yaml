@@ -260,6 +260,7 @@ tasks:
                 healthProbeBindAddress: :8081
               metrics:
                 bindAddress: :8080
+              # enableClusterQueueResources: true
               webhook:
                 port: 9443
               leaderElection:
@@ -276,15 +277,21 @@ tasks:
               clientConnection:
                 qps: 50
                 burst: 100
+              #pprofBindAddress: :8083
               waitForPodsReady:
                 enable: true
                 timeout: 5m
                 blockAdmission: true
                 requeuingStrategy:
                   timestamp: Eviction
-                  backoffLimitCount: null
+                  backoffLimitCount: null # null indicates infinite requeuing
                   backoffBaseSeconds: 60
                   backoffMaxSeconds: 3600
+              #manageJobsWithoutQueueName: true
+              #internalCertManagement:
+              #  enable: false
+              #  webhookServiceName: ""
+              #  webhookSecretName: ""
               integrations:
                 frameworks:
                 - "batch/job"
@@ -292,15 +299,33 @@ tasks:
                 - "ray.io/rayjob"
                 - "ray.io/raycluster"
                 - "jobset.x-k8s.io/jobset"
-                - "kubeflow.org/mxjob"
                 - "kubeflow.org/paddlejob"
                 - "kubeflow.org/pytorchjob"
                 - "kubeflow.org/tfjob"
                 - "kubeflow.org/xgboostjob"
+              #  - "pod"
+              #  externalFrameworks:
+              #  - "Foo.v1.example.com"
+              #  podOptions:
+              #    namespaceSelector:
+              #      matchExpressions:
+              #        - key: kubernetes.io/metadata.name
+              #          operator: NotIn
+              #          values: [ kube-system, kueue-system ]
+              #fairSharing:
+              #  enable: true
+              #  preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+              #resources:
+              #  excludeResourcePrefixes: []
       deploymentRestarts:
         - namespace: kueue-system
           name: kueue-controller-manager
       timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
 
   # Rejestrowanie szablonów zasobów Kueue
   - id: register-topology

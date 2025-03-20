@@ -318,11 +318,11 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n3   # Block sw114 (2 unavailable)
-        - node-id: n4   # Block sw114 (2 unavailable)
-        - node-id: n10  # Block sw116 (1 unavailable)
-        - node-id: n12  # Block sw117 (2 unavailable)
-        - node-id: n13  # Block sw117 (2 unavailable)
+        - node-id: n3 # Block sw114 (2 unavailable)
+        - node-id: n4 # Block sw114 (2 unavailable)
+        - node-id: n10 # Block sw116 (1 unavailable)
+        - node-id: n12 # Block sw117 (2 unavailable)
+        - node-id: n13 # Block sw117 (2 unavailable)
       state:
         spec:
           unschedulable: true
@@ -344,6 +344,7 @@ tasks:
                 healthProbeBindAddress: :8081
               metrics:
                 bindAddress: :8080
+              # enableClusterQueueResources: true
               webhook:
                 port: 9443
               leaderElection:
@@ -360,15 +361,21 @@ tasks:
               clientConnection:
                 qps: 50
                 burst: 100
+              #pprofBindAddress: :8083
               waitForPodsReady:
                 enable: true
                 timeout: 5m
                 blockAdmission: true
                 requeuingStrategy:
                   timestamp: Eviction
-                  backoffLimitCount: null
+                  backoffLimitCount: null # null indicates infinite requeuing
                   backoffBaseSeconds: 60
                   backoffMaxSeconds: 3600
+              #manageJobsWithoutQueueName: true
+              #internalCertManagement:
+              #  enable: false
+              #  webhookServiceName: ""
+              #  webhookSecretName: ""
               integrations:
                 frameworks:
                 - "batch/job"
@@ -376,15 +383,33 @@ tasks:
                 - "ray.io/rayjob"
                 - "ray.io/raycluster"
                 - "jobset.x-k8s.io/jobset"
-                - "kubeflow.org/mxjob"
                 - "kubeflow.org/paddlejob"
                 - "kubeflow.org/pytorchjob"
                 - "kubeflow.org/tfjob"
                 - "kubeflow.org/xgboostjob"
+              #  - "pod"
+              #  externalFrameworks:
+              #  - "Foo.v1.example.com"
+              #  podOptions:
+              #    namespaceSelector:
+              #      matchExpressions:
+              #        - key: kubernetes.io/metadata.name
+              #          operator: NotIn
+              #          values: [ kube-system, kueue-system ]
+              #fairSharing:
+              #  enable: true
+              #  preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+              #resources:
+              #  excludeResourcePrefixes: []
       deploymentRestarts:
         - namespace: kueue-system
           name: kueue-controller-manager
       timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
 
   # Register Kueue resource templates
   - id: register-topology
@@ -480,10 +505,10 @@ tasks:
         image: ubuntu
         cpu: 2
         memory: 2Gi
-        gpu: 6  # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
+        gpu: 6 # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
         ttl: "2m"
         topologyType: "required"
-        topologyLevel: "kubernetes.io/hostname"  # Try to place all pods on the same node
+        topologyLevel: "kubernetes.io/hostname" # Try to place all pods on the same node
 
   # Verify pods are on the supernode
   - id: check-supernode-placement
@@ -507,7 +532,7 @@ tasks:
     type: UpdateNodes
     params:
       selectors:
-        - node-id: n1  # Supernode
+        - node-id: n1 # Supernode
       state:
         spec:
           unschedulable: true
@@ -527,7 +552,7 @@ tasks:
         image: ubuntu
         cpu: 2
         memory: 2Gi
-        gpu: 6  # Same resources as before, but now should be distributed
+        gpu: 6 # Same resources as before, but now should be distributed
         ttl: "2m"
         topologyType: "preferred"
         topologyLevel: "kubernetes.io/hostname"
@@ -540,7 +565,7 @@ tasks:
       refTaskId: job-multinode
       status: Running
       nodeLabels:
-        network.topology.kubernetes.io/block: sw115  # All pods should be in block sw115
+        network.topology.kubernetes.io/block: sw115 # All pods should be in block sw115
       timeout: 30s
 
   # Cleanup

@@ -23,7 +23,7 @@ readonly PROMETHEUS_STACK_VERSION="69.8.0"
 
 readonly KUEUE_VERSION="v0.10.2"
 readonly VOLCANO_VERSION="1.11.0"
-readonly YUNIKORN_VERSION="v1.6.1"
+readonly YUNIKORN_VERSION="1.6.2"
 
 # Color definitions
 declare -A COLORS=(

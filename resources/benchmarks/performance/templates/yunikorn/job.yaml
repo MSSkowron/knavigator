@@ -32,7 +32,7 @@ spec:
         yunikorn.apache.org/task-groups: |-
           [{
             "name": "group-{{._NAME_}}",
-            "minMember": {{.replicas}},
+            "minMember": {{.minMember}},
             "minResource": {
               "cpu": {{.cpu}},
               "memory": {{.memory}},

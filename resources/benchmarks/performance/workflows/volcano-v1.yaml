@@ -30,6 +30,11 @@ tasks:
           name: volcano-scheduler
       timeout: 10m
 
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
   # Configure nodes
   - id: configure
     type: Configure
@@ -72,6 +77,7 @@ tasks:
       count: 700
       params:
         namespace: default
+        minAvailable: 1
         replicas: 1
         queue: default
         image: ubuntu
