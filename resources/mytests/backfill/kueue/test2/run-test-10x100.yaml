@@ -77,8 +77,8 @@ tasks:
       params:
         name: default-cluster-queue
         flavor: default-flavor
-        cpu: 10010
-        memory: 10000.5Gi
+        cpu: 1000
+        memory: 1000Gi
   - id: create-local-queue
     type: SubmitObj
     params:

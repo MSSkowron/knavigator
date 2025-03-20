@@ -53,5 +53,5 @@ tasks:
       jobName: job-c-hehe
       replicas: 1
       ttl: 5s
-      cpu: 30
-      memory: "30Gi"
+      cpu: 10
+      memory: "10Gi"
