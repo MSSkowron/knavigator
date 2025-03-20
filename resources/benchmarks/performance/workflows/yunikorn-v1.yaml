@@ -26,21 +26,26 @@ tasks:
                           vcore: 10000m
                           nvidia.com/gpu: 100
                         max:
-                          memory: 700Ti
-                          vcore: 89600000m     # 128 cores × 700 nodes
-                          nvidia.com/gpu: 5600 # 8 GPUs × 700 nodes
+                          memory: 300Ti        # 1Ti × 300 nodes
+                          vcore: 38400000m     # 128 cores × 300 nodes
+                          nvidia.com/gpu: 2400 # 8 GPUs × 300 nodes
       deploymentRestarts:
         - namespace: yunikorn
           name: yunikorn-scheduler
       timeout: 10m
 
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
   # Configure nodes
-  - id: configure
+  - id: configure-nodes
     type: Configure
     params:
       nodes:
         - type: hpc.gpu
-          count: 700
+          count: 300
           labels:
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
@@ -63,20 +68,21 @@ tasks:
       template: "resources/benchmarks/performance/templates/yunikorn/job.yaml"
       nameFormat: "perftest-v1-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-.*"
-      podCount: "{{.parallelism}}"
+      podCount: "{{.replicas}}"
 
-  # Submit 700 separate jobs, each creating 1 pod
-  # CPU = 700 jobs × 16 cores (16000m) = 11,200 cores total (12.5% z 89,600)
-  # Memory = 700 jobs × 256Gi = 179,200Gi = ~175Ti total (25% z 700Ti)
-  # GPU = 700 jobs × 4 GPU = 2,800 GPUs total (50% z 5,600)
+  # Submit 1 job with 300 replicas
+  # CPU = 300 pods × 16 cores (16000m) = 4,800 cores total (12.5% z 38,400)
+  # Memory = 300 pods × 256Gi = 76,800Gi = ~75Ti total (25% z 300Ti)
+  # GPU = 300 pods × 4 GPU = 1,200 GPUs total (50% z 2,400)
   - id: job
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 700
+      count: 300
       params:
         namespace: default
         replicas: 1
+        minMember: 1
         applicationId: "perf-v1"
         queue: "root.perf-benchmark"
         image: ubuntu
