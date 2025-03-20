@@ -8,7 +8,7 @@ tasks:
     params:
       nodes:
         - type: hpc.gpu
-          count: 700
+          count: 300
           labels:
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
@@ -146,10 +146,10 @@ tasks:
       params:
         name: team
         flavor: gpu-node
-        cpu: 89600 # 700 nodes with 128 CPU each
-        memory: 700Ti # 700 nodes with 1Ti each
-        pods: 77000 # 700 nodes with 110 pods each
-        gpu: 5600 # 700 nodes with 8 GPUs each
+        cpu: 38400    # 300 węzłów × 128 CPU każdy
+        memory: 300Ti # 300 węzłów × 1Ti każdy
+        pods: 33000   # 300 węzłów × 110 podów każdy
+        gpu: 2400     # 300 węzłów × 8 GPU każdy
   - id: create-local-queue
     type: SubmitObj
     params:
@@ -160,10 +160,10 @@ tasks:
         namespace: default
         clusterQueue: team
 
-  # Submit 1 job that creates 700 pods
-  # CPU = 700 jobs × 16 cores (16000m) = 11,200 cores total (12.5% z 89,600)
-  # Memory = 700 jobs × 256Gi = 179,200Gi = ~175Ti total (25% z 700Ti)
-  # GPU = 700 jobs × 4 GPU = 2,800 GPUs total (50% z 5,600)
+  # Submit 1 job with 300 replicas
+  # CPU = 300 pods × 16 cores (16000m) = 4,800 cores total (12.5% z 38,400)
+  # Memory = 300 pods × 256Gi = 76,800Gi = ~75Ti total (25% z 300Ti)
+  # GPU = 300 pods × 4 GPU = 1,200 GPUs total (50% z 2,400)
   - id: job
     type: SubmitObj
     params:
@@ -171,7 +171,7 @@ tasks:
       count: 1
       params:
         namespace: default
-        replicas: 700
+        replicas: 300
         completionMode: NonIndexed
         queueName: team-queue
         image: ubuntu
