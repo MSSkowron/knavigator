@@ -1,0 +1,17 @@
+
+nodes:
+- type: backfill-test-1
+  count: 0
+  resources:
+    cpu: 100.1
+    memory: 100.05Gi
+- type: backfill-test-100x100
+  count: 0
+  resources:
+    cpu: 100.1
+    memory: 100.05Gi
+- type: backfill-test-10x100
+  count: 0
+  resources:
+    cpu: 100.1
+    memory: 100.05Gi
