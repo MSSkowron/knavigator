@@ -37,13 +37,27 @@ tasks:
                   queues:
                   - name: root
                     queues:
-                    - name: sandbox
+                    - name: queue-a
                       submitacl: '*'
                       properties:
-                        application.sort.policy: disabled
+                        application.sort.policy: fair
                       resources:
                         max:
-                          {memory: 1000Gi, vcore: 1000}
+                          {memory: 600Gi, vcore: 600}
+                    - name: queue-b
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                      resources:
+                        max:
+                          {memory: 300Gi, vcore: 300}
+                    - name: queue-c
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                      resources:
+                        max:
+                          {memory: 100Gi, vcore: 100}
       timeout: 1m
   - id: job-a
     type: SubmitObj
@@ -56,7 +70,7 @@ tasks:
         parallelism: 1
         completions: 1
         applicationId: job-a
-        queue: root.sandbox
+        queue: root.queue-a
         image: ubuntu
         cpu: 60
         memory: 60Gi
@@ -72,7 +86,7 @@ tasks:
         parallelism: 1
         completions: 1
         applicationId: job-b
-        queue: root.sandbox
+        queue: root.queue-b
         image: ubuntu
         cpu: 30
         memory: 30Gi
@@ -88,7 +102,7 @@ tasks:
         parallelism: 1
         completions: 1
         applicationId: job-c
-        queue: root.sandbox
+        queue: root.queue-c
         image: ubuntu
         cpu: 10
         memory: 10Gi

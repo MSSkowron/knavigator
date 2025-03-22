@@ -604,7 +604,7 @@
           "expr": "(sum (\r\n  cluster:namespace:pod_memory:active:kube_pod_container_resource_requests{resource=\"memory\"}\r\n  * on (pod) group_left \r\n  kube_pod_status_phase{namespace=\"default\", phase=\"Running\"}\r\n) / sum(kube_node_status_allocatable{node!=\"kind-control-plane\", resource=\"memory\"}))*100",
           "instant": false,
           "interval": "",
-          "legendFormat": "Memory limit",
+          "legendFormat": "Memory cluster utilization",
           "range": true,
           "refId": "Memory limits"
         }
@@ -919,7 +919,32 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "sum(\r\n  kube_pod_container_status_running{namespace=~\"default\"}\r\n)"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -1428,13 +1453,13 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Kubernetes Pods Scheduling metrics",
   "uid": "ee3uye536gbggd",
-  "version": 5,
+  "version": 2,
   "weekStart": ""
 }

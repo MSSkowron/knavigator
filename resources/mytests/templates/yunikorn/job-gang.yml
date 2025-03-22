@@ -30,6 +30,20 @@ spec:
         applicationId: "test-{{._NAME_}}"
         queue: {{.queue}}
       annotations:
+        yunikorn.apache.org/task-group-name: group-{{._NAME_}}
+        yunikorn.apache.org/schedulingPolicyParameters: "gangSchedulingStyle=Hard"
+        yunikorn.apache.org/task-groups: |-
+          [{
+            "name": "group-{{._NAME_}}",
+            "minMember": {{.parallelism}},
+            "minResource": {
+              "cpu": {{.cpu}},
+              "memory": "{{.memory}}"
+            },
+            "nodeSelector": {},
+            "tolerations": [],
+            "affinity": {}
+          }]
         pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
         pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
     spec:

@@ -10,5 +10,5 @@
   ./bin/knavigator -workflow resources/mytests/backfill/volcano/test2/cleanup.yaml
 ```
 ```bash
-  ./bin/knavigator -workflow resources/mytests/backfill/volcano/test2/run-test-10x100.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/volcano/test2/run-test-10x100-fifo.yaml
 ```
