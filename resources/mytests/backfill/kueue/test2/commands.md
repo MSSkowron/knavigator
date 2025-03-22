@@ -11,5 +11,5 @@
 ```
 ```bash
   ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-100x100.yaml
-  ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-10x100.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-10x100-fifo.yaml
 ```

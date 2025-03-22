@@ -43,7 +43,7 @@ tasks:
                         application.sort.policy: disabled
                       resources:
                         max:
-                          {memory: 1000Gi, vcore: 1000}
+                          {memory: 10000Gi, vcore: 10000}
       timeout: 1m
   - id: job-a
     type: SubmitObj
