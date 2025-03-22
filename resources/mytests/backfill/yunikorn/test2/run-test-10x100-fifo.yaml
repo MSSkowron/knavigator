@@ -40,7 +40,7 @@ tasks:
                     - name: sandbox
                       submitacl: '*'
                       properties:
-                        application.sort.policy: disabled
+                        application.sort.policy: fifo
                       resources:
                         max:
                           {memory: 1000Gi, vcore: 1000}

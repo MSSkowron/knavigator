@@ -18,7 +18,7 @@ tasks:
   - id: register
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/yunikorn/job.yml"
+      template: "resources/mytests/templates/yunikorn/job-gang.yml"
       nameFormat: "{{.jobName}}-{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-.*"
       podCount: "{{.parallelism}}"
@@ -40,7 +40,7 @@ tasks:
                     - name: sandbox
                       submitacl: '*'
                       properties:
-                        application.sort.policy: disabled
+                        application.sort.policy: fifo
                       resources:
                         max:
                           {memory: 1000Gi, vcore: 1000}
