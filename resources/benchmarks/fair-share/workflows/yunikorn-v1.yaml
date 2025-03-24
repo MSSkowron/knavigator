@@ -1,0 +1,40 @@
+name: yunikorn-fair-share-benchmark-v1
+description: |
+  TODO
+tasks:
+  # Configure YuniKorn
+  - id: configure-yunikorn
+    type: Configure
+    params:
+      configmaps:
+        - name: yunikorn-configs
+          namespace: yunikorn
+          op: create
+          data:
+            queues.yaml: |
+              partitions:
+      deploymentRestarts:
+        - namespace: yunikorn
+          name: yunikorn-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes: ...
+      timeout: 5m
+
+  # Register job template
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      nameFormat: "fairshare-v1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"

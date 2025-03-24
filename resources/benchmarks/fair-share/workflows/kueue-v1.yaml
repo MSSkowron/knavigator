@@ -1,29 +1,7 @@
-name: kueue-performance-benchmark
+name: kueue-fair-share-benchmark-v1
 description: |
   TODO
 tasks:
-  # Configure nodes
-  - id: configure-nodes
-    type: Configure
-    params:
-      nodes:
-        - type: hpc.gpu
-          count: 6
-          labels:
-            nvidia.com/gpu.count: "8"
-            nvidia.com/mlnxnics: "16"
-            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
-          resources:
-            cpu: 128
-            memory: "1Ti"
-            pods: 110
-            nvidia.com/gpu: 8
-            nvidia.com/mlnxnics: 16
-            hugepages-1Gi: 0
-            hugepages-2Mi: 0
-            ephemeral-storage: "30Ti"
-      timeout: 5m
-
   # Configure Kueue
   - id: configure-kueue
     type: Configure
@@ -40,7 +18,6 @@ tasks:
                 healthProbeBindAddress: :8081
               metrics:
                 bindAddress: :8080
-              # enableClusterQueueResources: true
               webhook:
                 port: 9443
               leaderElection:
@@ -57,7 +34,6 @@ tasks:
               clientConnection:
                 qps: 50
                 burst: 100
-              #pprofBindAddress: :8083
               waitForPodsReady:
                 enable: true
                 timeout: 5m
@@ -67,11 +43,6 @@ tasks:
                   backoffLimitCount: null # null indicates infinite requeuing
                   backoffBaseSeconds: 60
                   backoffMaxSeconds: 3600
-              #manageJobsWithoutQueueName: true
-              #internalCertManagement:
-              #  enable: false
-              #  webhookServiceName: ""
-              #  webhookSecretName: ""
               integrations:
                 frameworks:
                 - "batch/job"
@@ -83,20 +54,9 @@ tasks:
                 - "kubeflow.org/pytorchjob"
                 - "kubeflow.org/tfjob"
                 - "kubeflow.org/xgboostjob"
-              #  - "pod"
-              #  externalFrameworks:
-              #  - "Foo.v1.example.com"
-              #  podOptions:
-              #    namespaceSelector:
-              #      matchExpressions:
-              #        - key: kubernetes.io/metadata.name
-              #          operator: NotIn
-              #          values: [ kube-system, kueue-system ]
               fairSharing:
                enable: true
                preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
-              #resources:
-              #  excludeResourcePrefixes: []
       deploymentRestarts:
         - namespace: kueue-system
           name: kueue-controller-manager
@@ -107,23 +67,34 @@ tasks:
     params:
       timeout: 5s
 
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes: ...
+      timeout: 5m
+
   # Register Kueue-specific resources
   - id: register-cluster-queue
     type: RegisterObj
     params:
-      template: "resources/templates/kueue/cluster-queue.yaml"
+      template: "resources/benchmarks/fair-share/templates/kueue/cluster-queue.yaml"
   - id: register-local-queue
     type: RegisterObj
     params:
-      template: "resources/templates/kueue/local-queue.yaml"
+      template: "resources/benchmarks/fair-share/templates/kueue/local-queue.yaml"
   - id: register-resource-flavor
     type: RegisterObj
     params:
-      template: "resources/templates/kueue/resource-flavor.yaml"
+      template: "resources/benchmarks/fair-share/templates/kueue/resource-flavor.yaml"
+  - id: register-namespace
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/namespace.yaml"
   - id: register-job
     type: RegisterObj
     params:
-      template: "resources/benchmarks/performance/templates/kueue/job.yaml"
-      nameFormat: "perftest-v1-job{{._ENUM_}}"
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v1-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"

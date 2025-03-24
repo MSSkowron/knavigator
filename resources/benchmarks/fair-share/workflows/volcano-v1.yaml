@@ -1,0 +1,51 @@
+name: volcano-fair-share-benchmark-v1
+description: |
+  TODO
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+              - plugins:
+                - name: priority
+                - name: gang
+                - name: conformance
+              - plugins:
+                - name: drf
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes: ...
+      timeout: 5m
+
+  # Register job template
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      nameFormat: "fairshare-v1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
