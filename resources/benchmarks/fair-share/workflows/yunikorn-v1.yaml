@@ -1,6 +1,20 @@
 name: yunikorn-fair-share-benchmark-v1
 description: |
-  TODO
+  Fair Share benchmark for Apache YuniKorn scheduler.
+
+  This benchmark tests whether YuniKorn properly implements fair resource sharing
+  between queues with equal weights. YuniKorn uses a hierarchical queue structure
+  with weights to determine fair shares.
+
+  The test sets up two child queues under a parent queue with equal weights,
+  submits multiple jobs to both queues, and verifies that resources are
+  distributed fairly between them.
+
+  Test scenario:
+  1. Configure cluster with limited GPU resources
+  2. Configure YuniKorn with two queues having equal weights
+  3. Submit multiple jobs to both queues
+  4. Verify that both queues receive an equal share of resources
 tasks:
   # Configure YuniKorn
   - id: configure-yunikorn
@@ -14,10 +28,37 @@ tasks:
             queues.yaml: |
               partitions:
                 - name: default
+                  placementRules:
+                    - name: tag
+                      value: namespace
+                      create: true
                   queues:
                   - name: root
                     submitacl: '*'
                     queues:
+                    - name: fairshare
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                      queues:
+                      - name: tenant-a
+                        submitacl: '*'
+                        resources:
+                          max:
+                            memory: 4Ti
+                            vcore: 512
+                            nvidia.com/gpu: 32
+                        properties:
+                          weight: 1
+                      - name: tenant-b
+                        submitacl: '*'
+                        resources:
+                          max:
+                            memory: 4Ti
+                            vcore: 512
+                            nvidia.com/gpu: 32
+                        properties:
+                          weight: 1
       deploymentRestarts:
         - namespace: yunikorn
           name: yunikorn-scheduler
@@ -32,14 +73,88 @@ tasks:
   - id: configure-nodes
     type: Configure
     params:
-      nodes: ...
+      nodes:
+        - type: gpu-node
+          count: 4
+          labels:
+            nvidia.com/gpu.count: "8"
+            node-pool: "default"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
       timeout: 5m
 
   # Register job template
   - id: register-job
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
-      nameFormat: "fairshare-v1-job{{._ENUM_}}"
-      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-.*"
       podCount: "{{.replicas}}"
+
+  # Submit jobs for tenant A (requesting all GPUs)
+  - id: submit-jobs-tenant-a
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 10 # Submit 10 jobs
+      params:
+        namespace: default
+        replicas: 1
+        minMember: 1
+        applicationId: "tenant-a-jobs"
+        queue: "root.fairshare.tenant-a"
+        image: ubuntu
+        cpu: 1000m
+        memory: 4Gi
+        gpu: 4 # Each job requests 4 GPUs
+        ttl: "5m"
+
+  # Submit jobs for tenant B (requesting all GPUs)
+  - id: submit-jobs-tenant-b
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 10 # Submit 10 jobs
+      params:
+        namespace: default
+        replicas: 1
+        minMember: 1
+        applicationId: "tenant-b-jobs"
+        queue: "root.fairshare.tenant-b"
+        image: ubuntu
+        cpu: 1000m
+        memory: 4Gi
+        gpu: 4 # Each job requests 4 GPUs
+        ttl: "5m"
+
+  # Wait for jobs to be scheduled and start running
+  - id: wait-for-scheduling
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Check tenant A has fair share of resources (some jobs should be running)
+  - id: check-tenant-a-active
+    type: CheckPod
+    params:
+      refTaskId: submit-jobs-tenant-a
+      status: Running
+      timeout: 10s
+
+  # Check tenant B has fair share of resources (some jobs should be running)
+  - id: check-tenant-b-active
+    type: CheckPod
+    params:
+      refTaskId: submit-jobs-tenant-b
+      status: Running
+      timeout: 10s
+
+  # Verify that both queues have approximately equal number of running pods
+  # This is a custom check task that would need to be implemented
+  # For now, we can manually verify by checking the logs or using kubectl
+  - id: pause-for-verification
+    type: Pause

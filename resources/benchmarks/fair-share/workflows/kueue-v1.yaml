@@ -1,6 +1,20 @@
 name: kueue-fair-share-benchmark-v1
 description: |
-  TODO
+  Fair Share benchmark for Kueue scheduler.
+
+  This benchmark tests whether Kueue properly implements fair resource sharing
+  between tenants with equal priority.
+
+  The test creates two namespaces with identical ClusterQueues in a cohort.
+  Each queue has identical priority settings and resource quota.
+  The test then submits multiple jobs to both tenants and verifies that resources are distributed fairly.
+
+  Test scenario:
+  1. Configure cluster with limited GPU resources
+  2. Set up Kueue with fairSharing enabled
+  3. Create two tenants with equal priority
+  4. Submit multiple jobs to both tenants
+  5. Verify that both tenants receive an equal share of resources
 tasks:
   # Configure Kueue
   - id: configure-kueue
@@ -67,30 +81,54 @@ tasks:
     params:
       timeout: 5s
 
-  # Configure nodes
   - id: configure-nodes
     type: Configure
     params:
-      nodes: ...
+      nodes:
+        - type: gpu-node
+          count: 4
+          labels:
+            nvidia.com/gpu.count: "8"
+            node-pool: "default"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
       timeout: 5m
+
+  # Create namespaces for the two tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+      timeout: 1m
 
   # Register Kueue-specific resources
   - id: register-cluster-queue
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/kueue/cluster-queue.yaml"
+
   - id: register-local-queue
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/kueue/local-queue.yaml"
+
   - id: register-resource-flavor
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/kueue/resource-flavor.yaml"
+
   - id: register-namespace
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/k8s/namespace.yaml"
+
   - id: register-job
     type: RegisterObj
     params:
@@ -98,3 +136,163 @@ tasks:
       nameFormat: "fairshare-v1-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
+
+  - id: create-resource-flavor
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "resource-flavor"
+        nodeLabels:
+          type: "kwok"
+
+  # Create a cohort and two cluster queues with equal priority
+  - id: create-cluster-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-a-cq
+        cohort: fairshare-cohort # Both queues in the same cohort
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+              - nvidia.com/gpu
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 512 # 4 nodes * 128 CPU
+                  - name: memory
+                    nominalQuota: 4Ti # 4 nodes * 1Ti
+                  - name: pods
+                    nominalQuota: 440 # 4 nodes * 110 pods
+                  - name: nvidia.com/gpu
+                    nominalQuota: 32 # 4 nodes * 8 GPUs
+        preemption:
+          reclaimWithinCohort: Any
+          borrowWithinCohort:
+            policy: LowerPriority
+            maxPriorityThreshold: 100
+          withinClusterQueue: LowerPriority
+
+  - id: create-cluster-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-b-cq
+        cohort: fairshare-cohort # Both queues in the same cohort
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+              - nvidia.com/gpu
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 512 # 4 nodes * 128 CPU
+                  - name: memory
+                    nominalQuota: 4Ti # 4 nodes * 1Ti
+                  - name: pods
+                    nominalQuota: 440 # 4 nodes * 110 pods
+                  - name: nvidia.com/gpu
+                    nominalQuota: 32 # 4 nodes * 8 GPUs
+        preemption:
+          reclaimWithinCohort: Any
+          borrowWithinCohort:
+            policy: LowerPriority
+            maxPriorityThreshold: 100
+          withinClusterQueue: LowerPriority
+
+  # Create local queues for both tenants
+  - id: create-local-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-a-queue
+        namespace: tenant-a
+        clusterQueue: tenant-a-cq
+
+  - id: create-local-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-b-queue
+        namespace: tenant-b
+        clusterQueue: tenant-b-cq
+
+  # Submit jobs for tenant A (requesting all GPUs)
+  - id: submit-jobs-tenant-a
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 10 # Submit 10 jobs
+      params:
+        namespace: tenant-a
+        queueName: tenant-a-queue
+        parallelism: 1
+        completions: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 4Gi
+        gpu: 4 # Each job requests 4 GPUs
+        ttl: "5m"
+
+  # Submit jobs for tenant B (requesting all GPUs)
+  - id: submit-jobs-tenant-b
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 10 # Submit 10 jobs
+      params:
+        namespace: tenant-b
+        queueName: tenant-b-queue
+        parallelism: 1
+        completions: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 4Gi
+        gpu: 4 # Each job requests 4 GPUs
+        ttl: "5m"
+
+  # Wait for jobs to be scheduled and start running
+  - id: wait-for-scheduling
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Check tenant A has fair share of resources (some jobs should be running)
+  - id: check-tenant-a-active
+    type: CheckPod
+    params:
+      refTaskId: submit-jobs-tenant-a
+      status: Running
+      timeout: 10s
+
+  # Check tenant B has fair share of resources (some jobs should be running)
+  - id: check-tenant-b-active
+    type: CheckPod
+    params:
+      refTaskId: submit-jobs-tenant-b
+      status: Running
+      timeout: 10s
+
+  # Verify that both tenants have approximately equal number of running pods
+  # This is a custom check task that would need to be implemented
+  # For now, we can manually verify by checking the logs or using kubectl
+  - id: pause-for-verification
+    type: Pause

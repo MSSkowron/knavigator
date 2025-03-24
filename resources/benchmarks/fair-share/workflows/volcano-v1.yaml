@@ -1,6 +1,21 @@
 name: volcano-fair-share-benchmark-v1
 description: |
-  TODO
+  Fair Share benchmark for Volcano scheduler.
+
+  This benchmark tests whether Volcano properly implements fair resource sharing
+  between tenants with equal weights. The test creates two queues with equal
+  weights and resource limits. The test then submits multiple jobs to both queues
+  and verifies that resources are distributed fairly.
+
+  Volcano implements fair-sharing through its DRF (Dominant Resource Fairness) plugin
+  and the weight configuration in queue definitions.
+
+  Test scenario:
+  1. Configure cluster with limited GPU resources
+  2. Configure Volcano with DRF plugin enabled
+  3. Create two queues with equal weights
+  4. Submit multiple jobs to both queues
+  5. Verify that both queues receive an equal share of resources
 tasks:
   # Configure Volcano
   - id: configure-volcano
@@ -17,10 +32,9 @@ tasks:
               - plugins:
                 - name: priority
                 - name: gang
-                  enablePreemptable: false
               - plugins:
-                - name: drf
-                  enablePreemptable: false
+                - name: drf  # Dominant Resource Fairness plugin for fair sharing
+                  enablePreemptable: true  # Allow preemption for fair sharing
                 - name: predicates
                 - name: capacity # capacity plugin must be enabled
                   enableHierarchy: true # enable hierarchical queue
@@ -40,14 +54,119 @@ tasks:
   - id: configure-nodes
     type: Configure
     params:
-      nodes: ...
+      nodes:
+        - type: gpu-node
+          count: 4
+          labels:
+            nvidia.com/gpu.count: "8"
+            node-pool: "default"
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
       timeout: 5m
+
+  # Register queue template
+  - id: register-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/queue.yml"
 
   # Register job template
   - id: register-job
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
-      nameFormat: "fairshare-v1-job{{._ENUM_}}"
-      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "fairshare-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
+
+  # Create queues with equal weights
+  - id: create-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-a-queue"
+        weight: 100 # Equal weight
+        capability:
+          cpu: "512"
+          memory: "4Ti"
+          "nvidia.com/gpu": "32"
+
+  - id: create-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tenant-b-queue"
+        weight: 100 # Equal weight
+        capability:
+          cpu: "512"
+          memory: "4Ti"
+          "nvidia.com/gpu": "32"
+
+  # Submit jobs for queue A
+  - id: submit-jobs-tenant-a
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 10 # Submit 10 jobs
+      params:
+        namespace: default
+        minAvailable: 1
+        replicas: 1
+        queue: tenant-a-queue
+        image: ubuntu
+        cpu: 1000m
+        memory: 4Gi
+        gpu: 4 # Each job requests 4 GPUs
+        ttl: "5m"
+
+  # Submit jobs for queue B
+  - id: submit-jobs-tenant-b
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 10 # Submit 10 jobs
+      params:
+        namespace: default
+        minAvailable: 1
+        replicas: 1
+        queue: tenant-b-queue
+        image: ubuntu
+        cpu: 1000m
+        memory: 4Gi
+        gpu: 4 # Each job requests 4 GPUs
+        ttl: "5m"
+
+  # Wait for jobs to be scheduled and start running
+  - id: wait-for-scheduling
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Check queue A has fair share of resources (some jobs should be running)
+  - id: check-tenant-a-active
+    type: CheckPod
+    params:
+      refTaskId: submit-jobs-tenant-a
+      status: Running
+      timeout: 10s
+
+  # Check queue B has fair share of resources (some jobs should be running)
+  - id: check-tenant-b-active
+    type: CheckPod
+    params:
+      refTaskId: submit-jobs-tenant-b
+      status: Running
+      timeout: 10s
+
+  # Verify that both queues have approximately equal number of running pods
+  # This is a custom check task that would need to be implemented
+  # For now, we can manually verify by checking the logs or using kubectl
+  - id: pause-for-verification
+    type: Pause

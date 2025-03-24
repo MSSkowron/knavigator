@@ -358,8 +358,23 @@ Na tym diagramie:
 
 Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobów między różnymi kolejkami i zadaniami. Testują, czy scheduler prawidłowo dostosowuje się do priorytetów zadań i zapobiega monopolizacji zasobów przez pojedyncze zadania lub grupy.
 
-### V1: TODO
+### V1: Równy podział zasobów między kolejkami o tej samej wadze
 
-### V2: TODO
+Cel: Sprawdź, czy kolejki z identycznymi wagami otrzymują równe udziały zasobów klastra, gdy konkurują o nie.
+Konfiguracja: Utwórz kilka kolejek z taką samą wagą. Prześlij zadania do każdej kolejki, które żądają zasobów, tak aby całkowite zapotrzebowanie przekraczało pojemność klastra.
+Wykonanie: Monitoruj alokację zasobów dla każdej kolejki w czasie.
+Oczekiwany wynik: Każda kolejka powinna otrzymać mniej więcej taką samą ilość zasobów.
 
-### V3: TODO
+### V2: Proporcjonalny podział zasobów na podstawie wag kolejek
+
+Cel: Potwierdź, że kolejki z różnymi wagami otrzymują zasoby proporcjonalnie do przypisanych wag.
+Konfiguracja: Utwórz trzy kolejki z różnymi wagami (np. kolejka A z wagą 3, kolejka B z wagą 2 i kolejka C z wagą 1). Prześlij zadania do każdej kolejki, które żądają zasobów, z całkowitym zapotrzebowaniem przekraczającym pojemność.
+Wykonanie: Obserwuj alokację zasobów dla każdej kolejki.
+Oczekiwany wynik: Kolejka A powinna otrzymać około trzy razy więcej zasobów niż kolejka B.
+
+### V3: Wykorzystanie nadmiarowych zasobów z zasadą fair share
+
+Cel: Sprawdź zdolność planisty do umożliwienia kolejkom wykorzystania nadmiarowych zasobów, gdy inne kolejki nie wykorzystują swoich udziałów, i powrotu do równych udziałów, gdy wszystkie kolejki żądają zasobów.
+Konfiguracja: Utwórz dwie kolejki z równymi wagami. Na początku prześlij zadania tylko do kolejki A. Później zacznij przesyłać zadania do kolejki B.
+Wykonanie: Faza pierwsza: Monitoruj użycie zasobów, gdy tylko kolejka A ma zadania. Kolejka A powinna móc wykorzystać więcej niż swój sprawiedliwy udział. Faza druga: Po przesłaniu zadań do kolejki B, monitoruj, jak planista dostosowuje alokację zasobów.
+Oczekiwany wynik: Na początku kolejka A wykorzystuje więcej niż 50% zasobów. Po rozpoczęciu zadań kolejki B, alokacja zasobów powinna się wyrównać do około 50% dla każdej kolejki.
