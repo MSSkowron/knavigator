@@ -8,7 +8,25 @@ spec:
   # Otherwise, it matches all namespaces.
   {{- if .namespaceSelector }}
   namespaceSelector:
-{{ toYaml .namespaceSelector | indent 4 }}
+    {{- if .namespaceSelector.matchLabels }}
+    matchLabels:
+      {{- range $key, $value := .namespaceSelector.matchLabels }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
+    {{- end }}
+    {{- if .namespaceSelector.matchExpressions }}
+    matchExpressions:
+      {{- range .namespaceSelector.matchExpressions }}
+      - key: {{ .key }}
+        operator: {{ .operator }}
+        {{- if .values }}
+        values:
+          {{- range .values }}
+          - {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
   {{- else }}
   namespaceSelector: {} # matches all namespaces
   {{- end }}
@@ -31,7 +49,9 @@ spec:
   # AdmissionChecks: list additional criteria that must be met before admitting a workload.
   {{- if .admissionChecks }}
   admissionChecks:
-{{ toYaml .admissionChecks | indent 4 }}
+    {{- range .admissionChecks }}
+    - {{ . }}
+    {{- end }}
   {{- end }}
 
   # Flavor fungibility: configures whether to try borrowing or preempting in the current flavor

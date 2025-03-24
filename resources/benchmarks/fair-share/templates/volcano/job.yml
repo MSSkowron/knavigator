@@ -38,9 +38,13 @@ spec:
             limits:
               cpu: {{.cpu}}
               memory: {{.memory}}
+              {{- if .gpu }}
               nvidia.com/gpu: {{.gpu}}
+              {{- end }}
             requests:
               cpu: {{.cpu}}
               memory: {{.memory}}
+              {{- if .gpu }}
               nvidia.com/gpu: {{.gpu}}
+              {{- end }}
       restartPolicy: "{{ .restartPolicy | default "OnFailure" }}"

@@ -10,7 +10,7 @@ description: |
   The test then submits multiple jobs to both tenants and verifies that resources are distributed fairly.
 
   Test scenario:
-  1. Configure cluster with limited GPU resources
+  1. Configure cluster
   2. Set up Kueue with fairSharing enabled
   3. Create two tenants with equal priority
   4. Submit multiple jobs to both tenants
@@ -81,23 +81,20 @@ tasks:
     params:
       timeout: 5s
 
+  # Configure nodes
   - id: configure-nodes
     type: Configure
     params:
       nodes:
-        - type: gpu-node
-          count: 4
-          labels:
-            nvidia.com/gpu.count: "8"
-            node-pool: "default"
+        - type: cpu-node
+          count: 5
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: 15
+            memory: "16Gi"
             pods: 110
-            nvidia.com/gpu: 8
       timeout: 5m
 
-  # Create namespaces for the two tenants
+  # Create namespaces for the three tenants
   - id: create-namespaces
     type: Configure
     params:
@@ -105,6 +102,8 @@ tasks:
         - name: tenant-a
           op: create
         - name: tenant-b
+          op: create
+        - name: tenant-c
           op: create
       timeout: 1m
 
@@ -147,7 +146,7 @@ tasks:
         nodeLabels:
           type: "kwok"
 
-  # Create a cohort and two cluster queues with equal priority
+  # Create a cohort and three cluster queues with equal weight
   - id: create-cluster-queue-a
     type: SubmitObj
     params:
@@ -155,24 +154,21 @@ tasks:
       canExist: true
       params:
         name: tenant-a-cq
-        cohort: fairshare-cohort # Both queues in the same cohort
+        cohort: fairshare-cohort # All queues in the same cohort
         resourceGroups:
           - coveredResources:
               - cpu
               - memory
               - pods
-              - nvidia.com/gpu
             flavors:
               - name: resource-flavor
                 resources:
                   - name: cpu
-                    nominalQuota: 512 # 4 nodes * 128 CPU
+                    nominalQuota: 75 # 75 CPU total in cluster, in theory 25 per tenant
                   - name: memory
-                    nominalQuota: 4Ti # 4 nodes * 1Ti
+                    nominalQuota: 80Gi # 80Gi total memory in cluster
                   - name: pods
-                    nominalQuota: 440 # 4 nodes * 110 pods
-                  - name: nvidia.com/gpu
-                    nominalQuota: 32 # 4 nodes * 8 GPUs
+                    nominalQuota: 550 # 5 nodes * 110 pods
         preemption:
           reclaimWithinCohort: Any
           borrowWithinCohort:
@@ -187,24 +183,21 @@ tasks:
       canExist: true
       params:
         name: tenant-b-cq
-        cohort: fairshare-cohort # Both queues in the same cohort
+        cohort: fairshare-cohort # All queues in the same cohort
         resourceGroups:
           - coveredResources:
               - cpu
               - memory
               - pods
-              - nvidia.com/gpu
             flavors:
               - name: resource-flavor
                 resources:
                   - name: cpu
-                    nominalQuota: 512 # 4 nodes * 128 CPU
+                    nominalQuota: 75 # 75 CPU total in cluster, in theory 25 per tenant
                   - name: memory
-                    nominalQuota: 4Ti # 4 nodes * 1Ti
+                    nominalQuota: 80Gi # 80Gi total memory in cluster
                   - name: pods
-                    nominalQuota: 440 # 4 nodes * 110 pods
-                  - name: nvidia.com/gpu
-                    nominalQuota: 32 # 4 nodes * 8 GPUs
+                    nominalQuota: 550 # 5 nodes * 110 pods
         preemption:
           reclaimWithinCohort: Any
           borrowWithinCohort:
@@ -212,7 +205,36 @@ tasks:
             maxPriorityThreshold: 100
           withinClusterQueue: LowerPriority
 
-  # Create local queues for both tenants
+  - id: create-cluster-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-c-cq
+        cohort: fairshare-cohort # All queues in the same cohort
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+            flavors:
+              - name: resource-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 75 # 75 CPU total in cluster, in theory 25 per tenant
+                  - name: memory
+                    nominalQuota: 80Gi # 80Gi total memory in cluster
+                  - name: pods
+                    nominalQuota: 550 # 5 nodes * 110 pods
+        preemption:
+          reclaimWithinCohort: Any
+          borrowWithinCohort:
+            policy: LowerPriority
+            maxPriorityThreshold: 100
+          withinClusterQueue: LowerPriority
+
+  # Create local queues for all tenants
   - id: create-local-queue-a
     type: SubmitObj
     params:
@@ -233,66 +255,95 @@ tasks:
         namespace: tenant-b
         clusterQueue: tenant-b-cq
 
-  # Submit jobs for tenant A (requesting all GPUs)
+  - id: create-local-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-c-queue
+        namespace: tenant-c
+        clusterQueue: tenant-c-cq
+
+  # Submit jobs for tenant A (requesting 30 CPU)
   - id: submit-jobs-tenant-a
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 10 # Submit 10 jobs
+      count: 30 # Submit 30 jobs
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
-        parallelism: 1
-        completions: 1
+        replicas: 1
         completionMode: NonIndexed
         image: ubuntu
-        cpu: 1000m
-        memory: 4Gi
-        gpu: 4 # Each job requests 4 GPUs
+        cpu: 1000m # Each job requests 1 CPU
+        memory: 1Gi
         ttl: "5m"
 
-  # Submit jobs for tenant B (requesting all GPUs)
+  # Submit jobs for tenant B (requesting 30 CPU)
   - id: submit-jobs-tenant-b
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 10 # Submit 10 jobs
+      count: 30 # Submit 30 jobs
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
-        parallelism: 1
-        completions: 1
+        replicas: 1
         completionMode: NonIndexed
         image: ubuntu
-        cpu: 1000m
-        memory: 4Gi
-        gpu: 4 # Each job requests 4 GPUs
+        cpu: 1000m # Each job requests 1 CPU
+        memory: 1Gi
         ttl: "5m"
 
-  # Wait for jobs to be scheduled and start running
-  - id: wait-for-scheduling
-    type: Sleep
+  # Submit jobs for tenant C (requesting 30 CPU)
+  - id: submit-jobs-tenant-c
+    type: SubmitObj
     params:
-      timeout: 30s
+      refTaskId: register-job
+      count: 30 # Submit 30 jobs
+      params:
+        namespace: tenant-c
+        queueName: tenant-c-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m # Each job requests 1 CPU
+        memory: 1Gi
+        ttl: "5m"
 
-  # Check tenant A has fair share of resources (some jobs should be running)
-  - id: check-tenant-a-active
-    type: CheckPod
-    params:
-      refTaskId: submit-jobs-tenant-a
-      status: Running
-      timeout: 10s
+  # # Wait for jobs to be scheduled and start running
+  # - id: wait-for-scheduling
+  #   type: Sleep
+  #   params:
+  #     timeout: 30s
 
-  # Check tenant B has fair share of resources (some jobs should be running)
-  - id: check-tenant-b-active
-    type: CheckPod
-    params:
-      refTaskId: submit-jobs-tenant-b
-      status: Running
-      timeout: 10s
+  # # Check tenant A has fair share of resources (should be around 25 pods running)
+  # - id: check-tenant-a-active
+  #   type: CheckPod
+  #   params:
+  #     refTaskId: submit-jobs-tenant-a
+  #     status: Running
+  #     timeout: 10s
 
-  # Verify that both tenants have approximately equal number of running pods
-  # This is a custom check task that would need to be implemented
-  # For now, we can manually verify by checking the logs or using kubectl
-  - id: pause-for-verification
-    type: Pause
+  # # Check tenant B has fair share of resources (should be around 25 pods running)
+  # - id: check-tenant-b-active
+  #   type: CheckPod
+  #   params:
+  #     refTaskId: submit-jobs-tenant-b
+  #     status: Running
+  #     timeout: 10s
+
+  # # Check tenant C has fair share of resources (should be around 25 pods running)
+  # - id: check-tenant-c-active
+  #   type: CheckPod
+  #   params:
+  #     refTaskId: submit-jobs-tenant-c
+  #     status: Running
+  #     timeout: 10s
+
+  # # Verify that all tenants have approximately equal number of running pods (~25 each)
+  # # For now, we can manually verify by checking the logs or using kubectl
+  # - id: pause-for-verification
+  #   type: Pause

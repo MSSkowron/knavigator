@@ -21,8 +21,8 @@ spec:
             "minMember": {{.minMember}},
             "minResource": {
               "cpu": {{.cpu}},
-              "memory": {{.memory}},
-              "nvidia.com/gpu": {{.gpu}}
+              "memory": {{.memory}}{{if .gpu}},
+              "nvidia.com/gpu": {{.gpu}}{{end}}
             },
             "nodeSelector": {},
             "tolerations": [],
@@ -40,9 +40,13 @@ spec:
           limits:
             cpu: {{.cpu}}
             memory: {{.memory}}
+            {{- if .gpu }}
             nvidia.com/gpu: {{.gpu}}
+            {{- end }}
           requests:
             cpu: {{.cpu}}
             memory: {{.memory}}
+            {{- if .gpu }}
             nvidia.com/gpu: {{.gpu}}
+            {{- end }}
       restartPolicy: Never
