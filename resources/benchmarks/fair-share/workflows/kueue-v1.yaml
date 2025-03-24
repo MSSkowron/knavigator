@@ -5,16 +5,16 @@ description: |
   This benchmark tests whether Kueue properly implements fair resource sharing
   between tenants with equal priority.
 
-  The test creates two namespaces with identical ClusterQueues in a cohort.
+  The test creates three namespaces with identical ClusterQueues in a cohort.
   Each queue has identical priority settings and resource quota.
-  The test then submits multiple jobs to both tenants and verifies that resources are distributed fairly.
+  The test then submits multiple jobs to all tenants and verifies that resources are distributed fairly.
 
   Test scenario:
-  1. Configure cluster
+  1. Configure cluster with limited CPU resources (75 CPU total)
   2. Set up Kueue with fairSharing enabled
-  3. Create two tenants with equal priority
-  4. Submit multiple jobs to both tenants
-  5. Verify that both tenants receive an equal share of resources
+  3. Create three tenants with equal priority
+  4. Submit multiple jobs to all tenants
+  5. Verify that all tenants receive an equal share of resources
 tasks:
   # Configure Kueue
   - id: configure-kueue
@@ -166,7 +166,7 @@ tasks:
                   - name: cpu
                     nominalQuota: 75 # 75 CPU total in cluster, in theory 25 per tenant
                   - name: memory
-                    nominalQuota: 80Gi # 80Gi total memory in cluster
+                    nominalQuota: 75Gi # 75Gi total memory in cluster
                   - name: pods
                     nominalQuota: 550 # 5 nodes * 110 pods
         preemption:
@@ -195,7 +195,7 @@ tasks:
                   - name: cpu
                     nominalQuota: 75 # 75 CPU total in cluster, in theory 25 per tenant
                   - name: memory
-                    nominalQuota: 80Gi # 80Gi total memory in cluster
+                    nominalQuota: 75Gi # 75Gi total memory in cluster
                   - name: pods
                     nominalQuota: 550 # 5 nodes * 110 pods
         preemption:
@@ -224,7 +224,7 @@ tasks:
                   - name: cpu
                     nominalQuota: 75 # 75 CPU total in cluster, in theory 25 per tenant
                   - name: memory
-                    nominalQuota: 80Gi # 80Gi total memory in cluster
+                    nominalQuota: 75Gi # 75Gi total memory in cluster
                   - name: pods
                     nominalQuota: 550 # 5 nodes * 110 pods
         preemption:

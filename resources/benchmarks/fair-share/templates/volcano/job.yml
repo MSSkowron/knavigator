@@ -17,7 +17,7 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: "{{ .queue | default "default" }}"
+  queue: "{{ if .queue }}{{ .queue }}{{ else }}default{{ end }}"
   tasks:
   - replicas: {{.replicas}}
     name: test
@@ -47,4 +47,3 @@ spec:
               {{- if .gpu }}
               nvidia.com/gpu: {{.gpu}}
               {{- end }}
-      restartPolicy: "{{ .restartPolicy | default "OnFailure" }}"

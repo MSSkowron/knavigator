@@ -6,15 +6,15 @@ description: |
   between queues with equal weights. YuniKorn uses a hierarchical queue structure
   with weights to determine fair shares.
 
-  The test sets up two child queues under a parent queue with equal weights,
-  submits multiple jobs to both queues, and verifies that resources are
+  The test sets up three child queues under a parent queue with equal weights,
+  submits multiple jobs to all queues, and verifies that resources are
   distributed fairly between them.
 
   Test scenario:
-  1. Configure cluster with limited GPU resources
-  2. Configure YuniKorn with two queues having equal weights
-  3. Submit multiple jobs to both queues
-  4. Verify that both queues receive an equal share of resources
+  1. Configure cluster with limited CPU resources (75 CPU total)
+  2. Configure YuniKorn with three queues having equal weights
+  3. Submit multiple jobs to all queues (each queue requesting 30 CPU)
+  4. Verify that all queues receive an equal share of resources (~25 CPU each)
 tasks:
   # Configure YuniKorn
   - id: configure-yunikorn
@@ -48,7 +48,7 @@ tasks:
                             memory: 5Gi
                             vcore: 5000m
                           max:
-                            memory: 80Gi
+                            memory: 75Gi
                             vcore: 75000m  # 75 CPU total
                         properties:
                           weight: 1        # Equal weight
@@ -60,7 +60,7 @@ tasks:
                             memory: 5Gi
                             vcore: 5000m
                           max:
-                            memory: 80Gi
+                            memory: 75Gi
                             vcore: 75000m  # 75 CPU total
                         properties:
                           weight: 1        # Equal weight
@@ -72,7 +72,7 @@ tasks:
                             memory: 5Gi
                             vcore: 5000m
                           max:
-                            memory: 80Gi
+                            memory: 75Gi
                             vcore: 75000m  # 75 CPU total
                         properties:
                           weight: 1        # Equal weight
@@ -96,7 +96,7 @@ tasks:
           count: 5
           resources:
             cpu: 15
-            memory: "16Gi"
+            memory: "15Gi"
             pods: 110
       timeout: 5m
 

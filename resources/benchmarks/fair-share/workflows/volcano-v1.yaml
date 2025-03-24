@@ -59,7 +59,7 @@ tasks:
           count: 5
           resources:
             cpu: 15
-            memory: "16Gi"
+            memory: "15Gi"
             pods: 110
       timeout: 5m
 
@@ -70,11 +70,29 @@ tasks:
       template: "resources/benchmarks/fair-share/templates/volcano/queue.yml"
 
   # Register job template
-  - id: register-job
+  - id: register-job-a
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
-      nameFormat: "fairshare-v1-job{{._ENUM_}}"
+      nameFormat: "a-fairshare-v1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Register job template
+  - id: register-job-b
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "b-fairshare-v1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Register job template
+  - id: register-job-c
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      nameFormat: "c-fairshare-v1-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
@@ -86,10 +104,11 @@ tasks:
       canExist: true
       params:
         name: "tenant-a-queue"
+        reclaimable: true
         weight: 100 # Equal weight
         capability:
-          cpu: "75"    # 75 CPU total
-          memory: "80Gi" # 80Gi total
+          cpu: "75" # 75 CPU total
+          memory: "75Gi" # 75Gi total
 
   - id: create-queue-b
     type: SubmitObj
@@ -98,10 +117,11 @@ tasks:
       canExist: true
       params:
         name: "tenant-b-queue"
+        reclaimable: true
         weight: 100 # Equal weight
         capability:
-          cpu: "75"    # 75 CPU total
-          memory: "80Gi" # 80Gi total
+          cpu: "75" # 75 CPU total
+          memory: "75Gi" # 75Gi total
 
   - id: create-queue-c
     type: SubmitObj
@@ -110,16 +130,17 @@ tasks:
       canExist: true
       params:
         name: "tenant-c-queue"
+        reclaimable: true
         weight: 100 # Equal weight
         capability:
-          cpu: "75"    # 75 CPU total
-          memory: "80Gi" # 80Gi total
+          cpu: "75" # 75 CPU total
+          memory: "75Gi" # 75Gi total
 
   # Submit jobs for queue A
   - id: submit-jobs-tenant-a
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register-job-a
       count: 30 # Submit 30 jobs
       params:
         namespace: default
@@ -135,7 +156,7 @@ tasks:
   - id: submit-jobs-tenant-b
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register-job-b
       count: 30 # Submit 30 jobs
       params:
         namespace: default
@@ -151,7 +172,7 @@ tasks:
   - id: submit-jobs-tenant-c
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register-job-c
       count: 30 # Submit 30 jobs
       params:
         namespace: default
