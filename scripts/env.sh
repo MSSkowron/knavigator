@@ -230,7 +230,7 @@ deploy_kueue() {
     # Validate configuration to ensure webhook is properly setup
     log_info "Waiting for Kueue controller manager to be ready..."
     wait_for_pods "kueue-system" 2
-    kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=300s
+    kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=3000s
 
     # Verify the installation by checking if controller manager is running
     if kubectl -n kueue-system get pods -l control-plane=controller-manager | grep -q Running; then

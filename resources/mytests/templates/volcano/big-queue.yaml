@@ -1,0 +1,9 @@
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: big-queue
+spec:
+  reclaimable: false
+  capability:
+    cpu: 10000
+    memory: 10000Gi

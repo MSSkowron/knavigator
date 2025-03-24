@@ -15,6 +15,18 @@
 name: test-backfill-2
 description: test greedy backfill for kueue
 tasks:
+  - id: register-priority-high
+    type: RegisterObj
+    params:
+      template: "resources/mytests/templates/kueue/workload-priority-class-high.yaml"
+  - id: register-priority-medium
+    type: RegisterObj
+    params:
+      template: "resources/mytests/templates/kueue/workload-priority-class-medium.yaml"
+  - id: register-priority-low
+    type: RegisterObj
+    params:
+      template: "resources/mytests/templates/kueue/workload-priority-class-low.yaml"
   - id: register-cluster-queue
     type: RegisterObj
     params:
@@ -35,6 +47,21 @@ tasks:
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.parallelism}}"
       timeout: 1m
+#  - id: create-priority-high
+#    type: SubmitObj
+#    params:
+#      refTaskId: register-priority-high
+#      canExist: false
+#  - id: create-priority-medium
+#    type: SubmitObj
+#    params:
+#      refTaskId: register-priority-medium
+#      canExist: false
+#  - id: create-priority-low
+#    type: SubmitObj
+#    params:
+#      refTaskId: register-priority-low
+#      canExist: false
   - id: create-resource-flavor
     type: SubmitObj
     params:
@@ -50,8 +77,8 @@ tasks:
       params:
         name: default-cluster-queue
         flavor: default-flavor
-        cpu: 10010
-        memory: 10005Gi
+        cpu: 1000
+        memory: 1000Gi
   - id: create-local-queue
     type: SubmitObj
     params:
@@ -65,7 +92,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 200 #(2 per node, 100 nodes)
+      count: 20 #(2 per node, 10 nodes)
       params:
         jobName: job-a
         queueName: default-local-queue
@@ -73,15 +100,16 @@ tasks:
         parallelism: 1
         completions: 1
         completionMode: Indexed
+#        priority: high-priority
         image: ubuntu
         cpu: 60
         memory: 60Gi
-        ttl: 1m
+        ttl: 4m
   - id: jobB1
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 800 #(8 per node, 100 nodes)
+      count: 80 #(8 per node, 10 nodes)
       params:
         jobName: job-b
         queueName: default-local-queue
@@ -89,15 +117,16 @@ tasks:
         parallelism: 1
         completions: 1
         completionMode: Indexed
+#        priority: medium-priority
         image: ubuntu
         cpu: 30
         memory: 30Gi
-        ttl: 15s
+        ttl: 60s
   - id: jobC1
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 2400 #(24 per node, 100 nodes)
+      count: 240 #(24 per node, 10 nodes)
       params:
         jobName: job-c
         queueName: default-local-queue
@@ -105,7 +134,8 @@ tasks:
         parallelism: 1
         completions: 1
         completionMode: Indexed
+#        priority: low-priority
         image: ubuntu
         cpu: 10
         memory: 10Gi
-        ttl: 5s
+        ttl: 20s

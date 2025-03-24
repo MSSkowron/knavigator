@@ -2,5 +2,5 @@ apiVersion: kueue.x-k8s.io/v1beta1
 kind: WorkloadPriorityClass
 metadata:
   name: high-priority
-value: 10000
+value: 600
 description: "High priority"
