@@ -358,23 +358,88 @@ Na tym diagramie:
 
 Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobów między różnymi kolejkami i zadaniami. Testują, czy scheduler prawidłowo dostosowuje się do priorytetów zadań i zapobiega monopolizacji zasobów przez pojedyncze zadania lub grupy.
 
-### V1: Równy podział zasobów między kolejkami o tej samej wadze
+### V1: Równy podział przy identycznych wagach
 
-Cel: Sprawdź, czy kolejki z identycznymi wagami otrzymują równe udziały zasobów klastra, gdy konkurują o nie.
-Konfiguracja: Utwórz kilka kolejek z taką samą wagą. Prześlij zadania do każdej kolejki, które żądają zasobów, tak aby całkowite zapotrzebowanie przekraczało pojemność klastra.
-Wykonanie: Monitoruj alokację zasobów dla każdej kolejki w czasie.
-Oczekiwany wynik: Każda kolejka powinna otrzymać mniej więcej taką samą ilość zasobów.
+**Opis**: Ten scenariusz sprawdza, czy kolejki lub najemcy o identycznych wagach otrzymują równe udziały zasobów klastra, gdy konkurują o nie.
 
-### V2: Proporcjonalny podział zasobów na podstawie wag kolejek
+**Konfiguracja**:
 
-Cel: Potwierdź, że kolejki z różnymi wagami otrzymują zasoby proporcjonalnie do przypisanych wag.
-Konfiguracja: Utwórz trzy kolejki z różnymi wagami (np. kolejka A z wagą 3, kolejka B z wagą 2 i kolejka C z wagą 1). Prześlij zadania do każdej kolejki, które żądają zasobów, z całkowitym zapotrzebowaniem przekraczającym pojemność.
-Wykonanie: Obserwuj alokację zasobów dla każdej kolejki.
-Oczekiwany wynik: Kolejka A powinna otrzymać około trzy razy więcej zasobów niż kolejka B.
+- Utwórz 3 kolejki (A, B, C) z wagą 1.
 
-### V3: Wykorzystanie nadmiarowych zasobów z zasadą fair share
+- Zasób klastra: 75 CPU (np. 25 CPU na kolejkę w idealnym podziale).
 
-Cel: Sprawdź zdolność planisty do umożliwienia kolejkom wykorzystania nadmiarowych zasobów, gdy inne kolejki nie wykorzystują swoich udziałów, i powrotu do równych udziałów, gdy wszystkie kolejki żądają zasobów.
-Konfiguracja: Utwórz dwie kolejki z równymi wagami. Na początku prześlij zadania tylko do kolejki A. Później zacznij przesyłać zadania do kolejki B.
-Wykonanie: Faza pierwsza: Monitoruj użycie zasobów, gdy tylko kolejka A ma zadania. Kolejka A powinna móc wykorzystać więcej niż swój sprawiedliwy udział. Faza druga: Po przesłaniu zadań do kolejki B, monitoruj, jak planista dostosowuje alokację zasobów.
-Oczekiwany wynik: Na początku kolejka A wykorzystuje więcej niż 50% zasobów. Po rozpoczęciu zadań kolejki B, alokacja zasobów powinna się wyrównać do około 50% dla każdej kolejki.
+**Działanie**:
+
+- Równolegle prześlij do każdej kolejki zadania wymagające łącznie >75 CPU (np. po 30 CPU na kolejkę).
+
+**Oczekiwany wynik**:
+
+- Każda kolejka otrzymuje ~33.3% zasobów (±X% tolerancji).
+
+- Żadna kolejka nie jest trwale blokowana
+
+### V2: Proporcjonalny podział przy różnych wagach
+
+**Opis**: Ten scenariusz weryfikuje, czy kolejki lub najemcy o różnych wagach otrzymują zasoby proporcjonalnie do swoich wag.
+
+**Konfiguracja**:
+
+- Kolejki: X (waga 3), Y (waga 2), Z (waga 1).
+
+- Zasób klastra: 60 CPU (przykład: 3+2+1=6 jednostek wagi → 10 CPU na jednostkę).
+
+**Działanie**:
+
+- Prześlij zadania wymagające łącznie >60 CPU (np. X: 40 CPU, Y: 30 CPU, Z: 20 CPU).
+
+**Oczekiwany wynik**:
+
+- Kolejka X: 30 CPU (3/6 zasobów), Y: 20 CPU (2/6), Z: 10 CPU (1/6).
+
+### V3: Dynamiczne zarządzanie nadmiarowymi zasobami
+
+**Cel**: Sprawdź zdolność planisty do umożliwienia kolejkom wykorzystania nadmiarowych zasobów, gdy inne kolejki nie wykorzystują swoich udziałów, i powrotu do równych udziałów, gdy wszystkie kolejki żądają zasobów.
+
+**Konfiguracja**:
+
+- Dwie kolejki (P, Q) z wagą 1.
+
+- Zasób klastera: 100 CPU.
+
+**Działanie**:
+
+- Faza 1: Prześlij zadania tylko do kolejki P (np. wymagające 100 CPU).
+
+- Faza 2: Po 5 minutach dodaj zadania do kolejki Q (również 100 CPU).
+
+**Oczekiwany wynik**:
+
+- Faza 1: Kolejka P wykorzystuje >90% CPU przez pierwsze 5 minut.
+
+- Faza 2: W ciągu 2–3 minut od dodania zadań do Q, alokacja stabilizuje się na poziomie ~50% dla każdej kolejki.
+
+### V4: Hierarchia kolejek z wagami na wielu poziomach
+
+**Opis**: Ten scenariusz testuje mechanizm sprawiedliwego podziału w strukturze hierarchicznych kolejek, upewniając się, że alokacja zasobów respektuje hierarchię i wagi na różnych poziomach.
+
+**Konfiguracja**:
+
+- Kolejka główna G (waga 2) z pod-kolejkami:
+
+  - G1 (waga 3)
+
+  - G2 (waga 1)
+
+- Kolejka równoległa H (waga 1).
+
+- Zasób klastra: 120 CPU.
+
+**Działanie**:
+
+- Prześlij zadania do G1, G2 i H, każda wymagająca 80 CPU.
+
+**Oczekiwany wynik**:
+
+- Kolejka główna G otrzymuje 2/3 zasobów (80 CPU), a H 1/3 (40 CPU) – zgodnie z wagami G:H = 2:1.
+
+- W ramach G: G1 otrzymuje 3/4 z 80 CPU (60 CPU), G2 1/4 (20 CPU) – zgodnie z wagami G1:G2 = 3:1.
