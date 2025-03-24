@@ -6,7 +6,9 @@ metadata:
 spec:
   minAvailable: {{.minAvailable}}
   schedulerName: volcano
-  priorityClassName: {{.priorityClassName}}
+  {{- if .priorityClassName }}
+  priorityClassName: "{{ .priorityClassName }}"
+  {{- end }}
   policies:
   - event: PodEvicted
     action: RestartJob
@@ -15,7 +17,7 @@ spec:
     env: []
     svc: []
   maxRetry: 5
-  queue: default
+  queue: "{{ .queue | default "default" }}"
   tasks:
   - replicas: {{.replicas}}
     name: test
@@ -34,10 +36,11 @@ spec:
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              cpu: "{{.cpu}}"
+              cpu: {{.cpu}}
               memory: {{.memory}}
-              nvidia.com/gpu: "{{.gpu}}"
+              nvidia.com/gpu: {{.gpu}}
             requests:
-              cpu: "{{.cpu}}"
+              cpu: {{.cpu}}
               memory: {{.memory}}
-      restartPolicy: OnFailure
+              nvidia.com/gpu: {{.gpu}}
+      restartPolicy: "{{ .restartPolicy | default "OnFailure" }}"

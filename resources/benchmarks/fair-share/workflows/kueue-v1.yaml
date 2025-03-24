@@ -90,7 +90,7 @@ tasks:
   - id: register-namespace
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/kueue/namespace.yaml"
+      template: "resources/benchmarks/fair-share/templates/k8s/namespace.yaml"
   - id: register-job
     type: RegisterObj
     params:

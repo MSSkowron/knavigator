@@ -13,6 +13,11 @@ tasks:
           data:
             queues.yaml: |
               partitions:
+                - name: default
+                  queues:
+                  - name: root
+                    submitacl: '*'
+                    queues:
       deploymentRestarts:
         - namespace: yunikorn
           name: yunikorn-scheduler
