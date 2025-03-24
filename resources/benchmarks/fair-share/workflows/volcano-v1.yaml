@@ -105,10 +105,18 @@ tasks:
       params:
         name: "tenant-a-queue"
         reclaimable: true
-        weight: 100 # Equal weight
+        weight: 100 # Równa waga
+        priority: 100
+        guarantee:
+          resource:
+            cpu: "25" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            memory: "25Gi"
+        deserved:
+          cpu: "25" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
+          memory: "25Gi"
         capability:
-          cpu: "75" # 75 CPU total
-          memory: "75Gi" # 75Gi total
+          cpu: "75" # Maksymalne 75 CPU - twardy limit
+          memory: "75Gi"
 
   - id: create-queue-b
     type: SubmitObj
@@ -118,10 +126,18 @@ tasks:
       params:
         name: "tenant-b-queue"
         reclaimable: true
-        weight: 100 # Equal weight
+        weight: 100 # Równa waga
+        priority: 100
+        guarantee:
+          resource:
+            cpu: "25" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            memory: "25Gi"
+        deserved:
+          cpu: "25" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
+          memory: "25Gi"
         capability:
-          cpu: "75" # 75 CPU total
-          memory: "75Gi" # 75Gi total
+          cpu: "75" # Maksymalne 75 CPU - twardy limit
+          memory: "75Gi"
 
   - id: create-queue-c
     type: SubmitObj
@@ -131,10 +147,18 @@ tasks:
       params:
         name: "tenant-c-queue"
         reclaimable: true
-        weight: 100 # Equal weight
+        weight: 100 # Równa waga
+        priority: 100
+        guarantee:
+          resource:
+            cpu: "25" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            memory: "25Gi"
+        deserved:
+          cpu: "25" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
+          memory: "25Gi"
         capability:
-          cpu: "75" # 75 CPU total
-          memory: "75Gi" # 75Gi total
+          cpu: "75" # Maksymalne 75 CPU - twardy limit
+          memory: "75Gi"
 
   # Submit jobs for queue A
   - id: submit-jobs-tenant-a

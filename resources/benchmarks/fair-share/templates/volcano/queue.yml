@@ -11,8 +11,20 @@ spec:
   reclaimable: {{ .reclaimable }}
   {{- end }}
 
+  {{- if .priority }}
+  priority: {{ .priority }}
+  {{- end }}
+
   {{- if .weight }}
   weight: {{ .weight }}
+  {{- end }}
+
+  {{- if .guarantee }}
+  guarantee:
+    resource:
+      {{- range $key, $value := .guarantee }}
+      {{ $key }}: "{{ $value }}"
+      {{- end }}
   {{- end }}
 
   {{- if .deserved }}
