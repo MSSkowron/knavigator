@@ -34,6 +34,7 @@ tasks:
             actions: "enqueue, allocate, backfill"
             tiers:
             - plugins:
+              - name: binpack
               - name: priority
               - name: gang
                 enablePreemptable: false
@@ -45,7 +46,6 @@ tasks:
               - name: predicates
               - name: proportion
               - name: nodeorder
-              - name: binpack
     timeout: 1m
 - id: job-a
   type: SubmitObj
