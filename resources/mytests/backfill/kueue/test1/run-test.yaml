@@ -18,11 +18,11 @@ tasks:
   - id: register-cluster-queue
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/kueue/cluster-queue.yaml"
+      template: "resources/mytests/templates/kueue/cluster-big-queue.yaml"
   - id: register-local-queue
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/kueue/local-queue.yaml"
+      template: "resources/mytests/templates/kueue/local-big-queue.yaml"
   - id: register-resource-flavor
     type: RegisterObj
     params:
