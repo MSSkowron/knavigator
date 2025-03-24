@@ -12,9 +12,9 @@
   ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fifo.yaml
   ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fifo-gang.yaml
   ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fair.yaml
-  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-big-queue.yaml
-  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fifo-big-queue.yaml
-  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fair-big-queue.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-big-big-queue.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fifo-big-big-queue.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fair-big-big-queue.yaml
   ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fifo-separate-queues.yaml
   ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fair-separate-queues.yaml
   ./bin/knavigator -workflow resources/mytests/backfill/yunikorn/test2/run-test-10x100-fifo-reversed.yaml

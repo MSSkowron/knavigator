@@ -28,7 +28,7 @@ spec:
     env: []
     svc: []
   maxRetry: 0
-  queue: default
+  queue: {{.queue}}
   tasks:
   - replicas: {{.replicas}}
     name: test
@@ -52,4 +52,4 @@ spec:
             requests:
               cpu: "{{.cpu}}"
               memory: {{.memory}}
-      restartPolicy: Never
+        restartPolicy: Never

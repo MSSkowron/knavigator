@@ -15,18 +15,6 @@
 name: test-backfill-2
 description: test greedy backfill for kueue
 tasks:
-  - id: register-priority-high
-    type: RegisterObj
-    params:
-      template: "resources/mytests/templates/kueue/workload-priority-class-high.yaml"
-  - id: register-priority-medium
-    type: RegisterObj
-    params:
-      template: "resources/mytests/templates/kueue/workload-priority-class-medium.yaml"
-  - id: register-priority-low
-    type: RegisterObj
-    params:
-      template: "resources/mytests/templates/kueue/workload-priority-class-low.yaml"
   - id: register-cluster-queue
     type: RegisterObj
     params:
@@ -47,21 +35,6 @@ tasks:
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.parallelism}}"
       timeout: 1m
-#  - id: create-priority-high
-#    type: SubmitObj
-#    params:
-#      refTaskId: register-priority-high
-#      canExist: false
-#  - id: create-priority-medium
-#    type: SubmitObj
-#    params:
-#      refTaskId: register-priority-medium
-#      canExist: false
-#  - id: create-priority-low
-#    type: SubmitObj
-#    params:
-#      refTaskId: register-priority-low
-#      canExist: false
   - id: create-resource-flavor
     type: SubmitObj
     params:
@@ -100,11 +73,10 @@ tasks:
         parallelism: 1
         completions: 1
         completionMode: Indexed
-#        priority: high-priority
         image: ubuntu
         cpu: 60
         memory: 60Gi
-        ttl: 1m
+        ttl: 4m
   - id: jobB1
     type: SubmitObj
     params:
@@ -117,11 +89,10 @@ tasks:
         parallelism: 1
         completions: 1
         completionMode: Indexed
-#        priority: medium-priority
         image: ubuntu
         cpu: 30
         memory: 30Gi
-        ttl: 15s
+        ttl: 60s
   - id: jobC1
     type: SubmitObj
     params:
@@ -134,8 +105,7 @@ tasks:
         parallelism: 1
         completions: 1
         completionMode: Indexed
-#        priority: low-priority
         image: ubuntu
         cpu: 10
         memory: 10Gi
-        ttl: 5s
+        ttl: 20s

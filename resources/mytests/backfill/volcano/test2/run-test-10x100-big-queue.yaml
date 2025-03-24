@@ -58,7 +58,7 @@ tasks:
       ttl: 4m
       cpu: 60
       memory: "60Gi"
-      queue: default
+      queue: big-queue
 - id: job-b
   type: SubmitObj
   params:
@@ -70,7 +70,7 @@ tasks:
       ttl: 60s
       cpu: 30
       memory: "30Gi"
-      queue: default
+      queue: big-queue
 - id: job-c
   type: SubmitObj
   params:
@@ -82,4 +82,4 @@ tasks:
       ttl: 20s
       cpu: 10
       memory: "10Gi"
-      queue: default
+      queue: big-queue
