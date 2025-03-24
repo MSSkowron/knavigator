@@ -1,0 +1,77 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: {{.name}}
+spec:
+  # Configure which namespaces can submit workloads.
+  # If a namespaceSelector is provided (e.g. matchLabels or matchExpressions), it will be used.
+  # Otherwise, it matches all namespaces.
+  {{- if .namespaceSelector }}
+  namespaceSelector:
+{{ toYaml .namespaceSelector | indent 4 }}
+  {{- else }}
+  namespaceSelector: {} # matches all namespaces
+  {{- end }}
+
+  # Cohort: if provided, enables quota borrowing between ClusterQueues in the same cohort.
+  {{- if .cohort }}
+  cohort: {{ .cohort }}
+  {{- end }}
+
+  # Queueing strategy: options include StrictFIFO and BestEffortFIFO (default).
+  {{- if .queueingStrategy }}
+  queueingStrategy: {{ .queueingStrategy }}
+  {{- end }}
+
+  # Stop policy: use to temporarily pause new admissions.
+  {{- if .stopPolicy }}
+  stopPolicy: {{ .stopPolicy }}
+  {{- end }}
+
+  # AdmissionChecks: list additional criteria that must be met before admitting a workload.
+  {{- if .admissionChecks }}
+  admissionChecks:
+{{ toYaml .admissionChecks | indent 4 }}
+  {{- end }}
+
+  # Flavor fungibility: configures whether to try borrowing or preempting in the current flavor
+  # before considering the next flavor.
+  {{- if .flavorFungibility }}
+  flavorFungibility:
+    whenCanBorrow: {{ .flavorFungibility.whenCanBorrow }}
+    whenCanPreempt: {{ .flavorFungibility.whenCanPreempt }}
+  {{- end }}
+
+  # Resource groups: list one or more groups of resources with associated flavors.
+  # Each group defines the covered resources and then one or more flavors.
+  resourceGroups:
+  {{- range .resourceGroups }}
+  - coveredResources:
+    {{- range .coveredResources }}
+      - {{ . }}
+    {{- end }}
+    flavors:
+    {{- range .flavors }}
+      - name: {{ .name }}
+        resources:
+        {{- range .resources }}
+          - name: {{ .name }}
+            nominalQuota: {{ .nominalQuota }}
+            {{- if .borrowingLimit }}
+            borrowingLimit: {{ .borrowingLimit }}
+            {{- end }}
+            {{- if .lendingLimit }}
+            lendingLimit: {{ .lendingLimit }}
+            {{- end }}
+        {{- end }}
+    {{- end }}
+  {{- end }}
+  # Preemption settings: control how workloads may preempt others when resources are insufficient.
+  {{- if .preemption }}
+  preemption:
+    reclaimWithinCohort: {{ .preemption.reclaimWithinCohort }}
+    borrowWithinCohort:
+      policy: {{ .preemption.borrowWithinCohort.policy }}
+      maxPriorityThreshold: {{ .preemption.borrowWithinCohort.maxPriorityThreshold }}
+    withinClusterQueue: {{ .preemption.withinClusterQueue }}
+  {{- end }}

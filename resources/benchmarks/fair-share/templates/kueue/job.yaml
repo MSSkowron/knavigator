@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{._NAME_}}"
+  namespace: {{.namespace}}
+  labels:
+    kueue.x-k8s.io/queue-name: {{.queueName}}
+    {{- if .priority }}
+    kueue.x-k8s.io/priority-class: {{.priority}}
+    {{- end }}
+spec:
+  completions: {{.completions}}
+  parallelism: {{.parallelism}}
+  completionMode: {{.completionMode}}
+  template:
+    metadata:
+      annotations:
+        {{- if .ttl }}
+        pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
+        pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
+        {{- end }}
+    spec:
+      containers:
+      - name: test
+        image: {{.image}}
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: "{{.cpu}}"
+            memory: {{.memory}}
+            nvidia.com/gpu: "{{.gpu}}"
+          requests:
+            cpu: "{{.cpu}}"
+            memory: {{.memory}}
+            nvidia.com/gpu: "{{.gpu}}"
+      restartPolicy: Never

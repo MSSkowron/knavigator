@@ -1,0 +1,129 @@
+name: kueue-performance-benchmark
+description: |
+  TODO
+tasks:
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: hpc.gpu
+          count: 6
+          labels:
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              # enableClusterQueueResources: true
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
+              clientConnection:
+                qps: 50
+                burst: 100
+              #pprofBindAddress: :8083
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null # null indicates infinite requeuing
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              #manageJobsWithoutQueueName: true
+              #internalCertManagement:
+              #  enable: false
+              #  webhookServiceName: ""
+              #  webhookSecretName: ""
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+              #  - "pod"
+              #  externalFrameworks:
+              #  - "Foo.v1.example.com"
+              #  podOptions:
+              #    namespaceSelector:
+              #      matchExpressions:
+              #        - key: kubernetes.io/metadata.name
+              #          operator: NotIn
+              #          values: [ kube-system, kueue-system ]
+              fairSharing:
+               enable: true
+               preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+              #resources:
+              #  excludeResourcePrefixes: []
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Register Kueue-specific resources
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/cluster-queue.yaml"
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/local-queue.yaml"
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/resource-flavor.yaml"
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/kueue/job.yaml"
+      nameFormat: "perftest-v1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"

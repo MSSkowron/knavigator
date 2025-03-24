@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{._NAME_}}"
+  namespace: {{.namespace}}
+spec:
+  completions: {{.replicas}}
+  parallelism: {{.replicas}}
+  template:
+    metadata:
+      labels:
+        applicationId: "{{.applicationId}}"
+        queue: {{.queue}}
+        app: {{._NAME_}}
+      annotations:
+        yunikorn.apache.org/task-group-name: group-{{._NAME_}}
+        yunikorn.apache.org/schedulingPolicyParameters: "gangSchedulingStyle=Hard"
+        yunikorn.apache.org/task-groups: |-
+          [{
+            "name": "group-{{._NAME_}}",
+            "minMember": {{.minMember}},
+            "minResource": {
+              "cpu": {{.cpu}},
+              "memory": {{.memory}},
+              "nvidia.com/gpu": {{.gpu}}
+            },
+            "nodeSelector": {},
+            "tolerations": [],
+            "affinity": {}
+          }]
+        pod-complete.stage.kwok.x-k8s.io/delay: {{.ttl}}
+        pod-complete.stage.kwok.x-k8s.io/jitter-delay: {{.ttl}}
+    spec:
+      schedulerName: yunikorn
+      containers:
+      - name: test
+        image: {{.image}}
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: {{.cpu}}
+            memory: {{.memory}}
+            nvidia.com/gpu: {{.gpu}}
+          requests:
+            cpu: {{.cpu}}
+            memory: {{.memory}}
+            nvidia.com/gpu: {{.gpu}}
+      restartPolicy: Never

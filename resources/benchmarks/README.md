@@ -357,3 +357,9 @@ Na tym diagramie:
 ## Sprawiedliwy przydział zasobów (Fair Share)
 
 Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobów między różnymi kolejkami i zadaniami. Testują, czy scheduler prawidłowo dostosowuje się do priorytetów zadań i zapobiega monopolizacji zasobów przez pojedyncze zadania lub grupy.
+
+### V1: TODO
+
+### V2: TODO
+
+### V3: TODO

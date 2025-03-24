@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .name }}
+  # Add labels if provided. For example, you might include:
+  # kubernetes.io/metadata.name: {{ .name }} to help with namespace selectors.
+  {{- if .labels }}
+  labels:
+    {{- range $key, $value := .labels }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+  {{- end }}
+  # Optionally add annotations if provided.
+  {{- if .annotations }}
+  annotations:
+    {{- range $key, $value := .annotations }}
+    {{ $key }}: "{{ $value }}"
+    {{- end }}
+  {{- end }}
