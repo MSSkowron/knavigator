@@ -360,11 +360,11 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 
 ### V1: Równy podział przy identycznych wagach
 
-**Opis**: Ten scenariusz sprawdza, czy kolejki lub najemcy o identycznych wagach otrzymują równe udziały zasobów klastra, gdy konkurują o nie.
+**Opis**: Sprawdza, czy kolejki o identycznych wagach otrzymują równe udziały.
 
 **Konfiguracja**:
 
-- Utwórz 3 kolejki (A, B, C) z wagą 1.
+- Trzy kolejki/najemcy (A, B, C) z taką samą wagą na przykład równą 1.
 
 - Zasób klastra: 75 CPU (np. 25 CPU na kolejkę w idealnym podziale).
 
@@ -374,13 +374,11 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 
 **Oczekiwany wynik**:
 
-- Każda kolejka otrzymuje ~33.3% zasobów (±X% tolerancji).
-
-- Żadna kolejka nie jest trwale blokowana
+- Zasoby powinny być rozdzielone równo, np. przy 75 CPU każda kolejka dostaje ~25.
 
 ### V2: Proporcjonalny podział przy różnych wagach
 
-**Opis**: Ten scenariusz weryfikuje, czy kolejki lub najemcy o różnych wagach otrzymują zasoby proporcjonalnie do swoich wag.
+**Opis**: Weryfikuje proporcjonalny podział na podstawie wag.
 
 **Konfiguracja**:
 
