@@ -155,6 +155,8 @@ tasks:
       params:
         name: tenant-a-cq
         cohort: fairshare-cohort # All queues in the same cohort
+        fairSharing:
+          weight: 1
         resourceGroups:
           - coveredResources:
               - cpu
@@ -177,10 +179,6 @@ tasks:
                     lendingLimit: 183 # Maksymalnie może udostępnić swój przydział
         preemption:
           reclaimWithinCohort: Any
-          borrowWithinCohort:
-            policy: LowerPriority
-            maxPriorityThreshold: 100
-          withinClusterQueue: LowerPriority
 
   - id: create-cluster-queue-b
     type: SubmitObj
@@ -190,6 +188,8 @@ tasks:
       params:
         name: tenant-b-cq
         cohort: fairshare-cohort # All queues in the same cohort
+        fairSharing:
+          weight: 1
         resourceGroups:
           - coveredResources:
               - cpu
@@ -212,10 +212,6 @@ tasks:
                     lendingLimit: 183 # Maksymalnie może udostępnić swój przydział
         preemption:
           reclaimWithinCohort: Any
-          borrowWithinCohort:
-            policy: LowerPriority
-            maxPriorityThreshold: 100
-          withinClusterQueue: LowerPriority
 
   - id: create-cluster-queue-c
     type: SubmitObj
@@ -225,6 +221,8 @@ tasks:
       params:
         name: tenant-c-cq
         cohort: fairshare-cohort # All queues in the same cohort
+        fairSharing:
+          weight: 1
         resourceGroups:
           - coveredResources:
               - cpu
@@ -247,10 +245,6 @@ tasks:
                     lendingLimit: 183 # Maksymalnie może udostępnić swój przydział
         preemption:
           reclaimWithinCohort: Any
-          borrowWithinCohort:
-            policy: LowerPriority
-            maxPriorityThreshold: 100
-          withinClusterQueue: LowerPriority
 
   # Create local queues for all tenants
   - id: create-local-queue-a

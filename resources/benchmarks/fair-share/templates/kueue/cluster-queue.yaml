@@ -62,6 +62,11 @@ spec:
     whenCanPreempt: {{ .flavorFungibility.whenCanPreempt }}
   {{- end }}
 
+  {{- if .fairSharing }}
+  fairSharing:
+    weight: {{ .fairSharing.weight }}
+  {{- end }}
+
   # Resource groups: list one or more groups of resources with associated flavors.
   # Each group defines the covered resources and then one or more flavors.
   resourceGroups:
@@ -89,9 +94,15 @@ spec:
   # Preemption settings: control how workloads may preempt others when resources are insufficient.
   {{- if .preemption }}
   preemption:
+    {{- if .preemption.reclaimWithinCohort }}
     reclaimWithinCohort: {{ .preemption.reclaimWithinCohort }}
+    {{- end }}
+    {{- if .preemption.borrowWithinCohort }}
     borrowWithinCohort:
       policy: {{ .preemption.borrowWithinCohort.policy }}
       maxPriorityThreshold: {{ .preemption.borrowWithinCohort.maxPriorityThreshold }}
+    {{- end }}
+    {{- if .preemption.withinClusterQueue }}
     withinClusterQueue: {{ .preemption.withinClusterQueue }}
+    {{- end }}
   {{- end }}
