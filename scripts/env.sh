@@ -98,7 +98,7 @@ deploy_kwok() {
 
     # Wait for KWOK to be ready
     log_info "Waiting for KWOK controller to be ready..."
-    kubectl -n kube-system wait --for=condition=available deployment/kwok-controller --timeout=60s || {
+    kubectl -n kube-system wait --for=condition=available deployment/kwok-controller --timeout=180s || {
         log_error "KWOK controller not ready after 60s"
         return 1  # Exit function with error if controller isn't ready
     }

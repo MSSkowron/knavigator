@@ -99,8 +99,12 @@ spec:
     {{- end }}
     {{- if .preemption.borrowWithinCohort }}
     borrowWithinCohort:
+      {{- if .preemption.borrowWithinCohort.policy }}
       policy: {{ .preemption.borrowWithinCohort.policy }}
+      {{- end }}
+      {{- if .preemption.borrowWithinCohort.maxPriorityThreshold}}
       maxPriorityThreshold: {{ .preemption.borrowWithinCohort.maxPriorityThreshold }}
+      {{- end }}
     {{- end }}
     {{- if .preemption.withinClusterQueue }}
     withinClusterQueue: {{ .preemption.withinClusterQueue }}

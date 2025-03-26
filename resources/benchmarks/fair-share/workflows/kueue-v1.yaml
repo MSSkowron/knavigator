@@ -89,8 +89,8 @@ tasks:
         - type: cpu-node
           count: 5
           resources:
-            cpu: 15
-            memory: "16Gi"
+            cpu: 15100m
+            memory: "15050Mi"
             pods: 110
       timeout: 5m
 
@@ -154,9 +154,17 @@ tasks:
       canExist: true
       params:
         name: tenant-a-cq
-        cohort: fairshare-cohort # All queues in the same cohort
+        cohort: fairshare-cohort
         fairSharing:
           weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
         resourceGroups:
           - coveredResources:
               - cpu
@@ -177,8 +185,6 @@ tasks:
                     nominalQuota: 183 # 1/3 z łącznej liczby 550 podów
                     borrowingLimit: 367 # 2/3 z łącznej liczby 550 podów
                     lendingLimit: 183 # Maksymalnie może udostępnić swój przydział
-        preemption:
-          reclaimWithinCohort: Any
 
   - id: create-cluster-queue-b
     type: SubmitObj
@@ -187,9 +193,17 @@ tasks:
       canExist: true
       params:
         name: tenant-b-cq
-        cohort: fairshare-cohort # All queues in the same cohort
+        cohort: fairshare-cohort
         fairSharing:
           weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
         resourceGroups:
           - coveredResources:
               - cpu
@@ -210,8 +224,6 @@ tasks:
                     nominalQuota: 183 # 1/3 z łącznej liczby 550 podów
                     borrowingLimit: 367 # 2/3 z łącznej liczby 550 podów
                     lendingLimit: 183 # Maksymalnie może udostępnić swój przydział
-        preemption:
-          reclaimWithinCohort: Any
 
   - id: create-cluster-queue-c
     type: SubmitObj
@@ -220,9 +232,17 @@ tasks:
       canExist: true
       params:
         name: tenant-c-cq
-        cohort: fairshare-cohort # All queues in the same cohort
+        cohort: fairshare-cohort
         fairSharing:
           weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
         resourceGroups:
           - coveredResources:
               - cpu
@@ -243,8 +263,6 @@ tasks:
                     nominalQuota: 183 # 1/3 z łącznej liczby 550 podów
                     borrowingLimit: 367 # 2/3 z łącznej liczby 550 podów
                     lendingLimit: 183 # Maksymalnie może udostępnić swój przydział
-        preemption:
-          reclaimWithinCohort: Any
 
   # Create local queues for all tenants
   - id: create-local-queue-a
@@ -277,52 +295,66 @@ tasks:
         namespace: tenant-c
         clusterQueue: tenant-c-cq
 
-  # Submit jobs for tenant A (requesting 30 CPU)
+  - id: pause-for-verification
+    type: Pause
+
+  # Submit jobs for tenant A (requesting 30 CPU & 30 Gi memroy)
   - id: submit-jobs-tenant-a
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 30 # Submit 30 jobs
+      count: 60 # Submit 30 jobs
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
         replicas: 1
         completionMode: NonIndexed
         image: ubuntu
-        cpu: 1000m # Each job requests 1 CPU
-        memory: 1Gi
+        cpu: 1000m
+        memory: 1000Mi
         ttl: "5m"
 
-  # Submit jobs for tenant B (requesting 30 CPU)
+  # Wait for jobs to be scheduled and start running
+  - id: wait-a
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Submit jobs for tenant B (requesting 30 CPU & 30 Gi memroy)
   - id: submit-jobs-tenant-b
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 30 # Submit 30 jobs
+      count: 60 # Submit 30 jobs
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
         replicas: 1
         completionMode: NonIndexed
         image: ubuntu
-        cpu: 1000m # Each job requests 1 CPU
-        memory: 1Gi
+        cpu: 1000m
+        memory: 1000Mi
         ttl: "5m"
 
-  # Submit jobs for tenant C (requesting 30 CPU)
+  - id: wait-b
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Submit jobs for tenant C (requesting 30 CPU & 30 Gi memroy)
   - id: submit-jobs-tenant-c
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 30 # Submit 30 jobs
+      count: 60 # Submit 30 jobs
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
         replicas: 1
         completionMode: NonIndexed
         image: ubuntu
-        cpu: 1000m # Each job requests 1 CPU
-        memory: 1Gi
+        cpu: 1000m
+        memory: 1000Mi
         ttl: "5m"
 
   # # Wait for jobs to be scheduled and start running
