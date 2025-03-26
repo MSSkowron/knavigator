@@ -10,7 +10,7 @@ description: |
   The test then submits multiple jobs to all tenants and verifies that resources are distributed fairly.
 
   Test scenario:
-  1. Configure cluster with limited CPU resources (75 CPU total)
+  1. Configure cluster with limited CPU and memory resources (75 CPU & 75GB memory in total)
   2. Set up Kueue with fairSharing enabled
   3. Create three tenants with equal priority
   4. Submit multiple jobs to all tenants

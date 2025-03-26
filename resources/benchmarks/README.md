@@ -360,21 +360,38 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 
 ### V1: Równy podział przy identycznych wagach
 
-**Opis**: Sprawdza, czy kolejki o identycznych wagach otrzymują równe udziały.
+**Opis**: Sprawdza, czy scheduler prawidłowo implementuje sprawiedliwy podział zasobów między najemcami (tenants) o identycznych wagach.
 
 **Konfiguracja**:
 
-- Trzy kolejki/najemcy (A, B, C) z taką samą wagą na przykład równą 1.
+- Klaster z 5 węzłami, każdy z 15100m CPU (efektywnie 15000m CPU do dyspozycji na węzeł, ponieważ 100m jest zarezerwowane dla KWOK) oraz 15050Mi pamięci (efektywnie 15050Mi pamięci do dyspozycji na węzeł, ponieważ 50Mi jest zarezerwowane dla KWOK)
 
-- Zasób klastra: 75 CPU (np. 25 CPU na kolejkę w idealnym podziale).
+- Trzej najemcy (tenant-a, tenant-b, tenant-c) ze swoimi dedykowanymi przestrzeniami nazw
+
+- Trzy ClusterQueue w kohorcie "fairshare-cohort", każda z identyczną wagą fair-sharing równą 1
+
+- Każda kolejka ma gwarantowane 25000m CPU z możliwością:
+
+  - Pożyczenia do 50000m CPU (50000Mi pamięci) od innych kolejek (borrowingLimit)
+  - Udostępnienia do 25000m CPU (25000Mi pamięci) innym kolejkom (lendingLimit)
+
+- Parametry preemption skonfigurowane tak, by umożliwić współdzielenie zasobów w kohorcie
 
 **Działanie**:
 
-- Równolegle prześlij do każdej kolejki zadania wymagające łącznie >75 CPU (np. po 30 CPU na kolejkę).
+- Sekwencyjnie przesyłane są zadania (30s pomiędzy tenantami) do każdej kolejki:
+
+  - 75 identycznych zadań do tenant-a (każde żądające 1000m CPU i 1000Mi pamięci)
+  - 75 identycznych zadań do tenant-b (każde żądające 1000m CPU i 1000Mi pamięci)
+  - 75 identycznych zadań do tenant-c (każde żądające 1000m CPU i 1000Mi pamięci)
+
+- Łącznie żądania przewyższają dostępne zasoby: 225000m CPU żądane vs. 75000m CPU dostępnych w klastrze
 
 **Oczekiwany wynik**:
 
-- Zasoby powinny być rozdzielone równo, np. przy 75 CPU każda kolejka dostaje ~25.
+- Mechanizm fair-sharing powinien zapewnić równy podział dostępnych zasobów
+- Każda kolejka powinna otrzymać około 25000m CPU (1/3 dostępnych zasobów)
+- Dla każdej kolejki powinno zostać uruchomionych około 25 zadań, a pozostałe powinny oczekiwać w kolejce
 
 ### V2: Proporcjonalny podział przy różnych wagach
 
