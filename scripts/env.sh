@@ -62,7 +62,7 @@ check_command() {
 wait_for_pods() {
     local namespace=$1
     local expected_count=$2
-    local timeout=${3:-60}
+    local timeout=${3:-300}
     local interval=${4:-5}
     local elapsed=0
 

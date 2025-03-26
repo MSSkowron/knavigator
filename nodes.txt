@@ -1,0 +1,105 @@
+Node: node/virtual-cpu-node-2ywozp
+Capacity:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+
+Allocatable:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+System Info:
+  Machine ID:                 
+
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                100m (0%)  100m (0%)
+  memory             50Mi (0%)  50Mi (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+------------------------
+Node: node/virtual-cpu-node-3shar9
+Capacity:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+
+Allocatable:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+System Info:
+  Machine ID:                 
+
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                100m (0%)  100m (0%)
+  memory             50Mi (0%)  50Mi (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+------------------------
+Node: node/virtual-cpu-node-4f27kz
+Capacity:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+
+Allocatable:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+System Info:
+  Machine ID:                 
+
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                100m (0%)  100m (0%)
+  memory             50Mi (0%)  50Mi (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+------------------------
+Node: node/virtual-cpu-node-formhr
+Capacity:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+
+Allocatable:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+System Info:
+  Machine ID:                 
+
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                100m (0%)  100m (0%)
+  memory             50Mi (0%)  50Mi (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+------------------------
+Node: node/virtual-cpu-node-ggeuvm
+Capacity:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+
+Allocatable:
+  cpu:     15100m
+  memory:  15050Mi
+  pods:    110
+System Info:
+  Machine ID:                 
+
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                100m (0%)  100m (0%)
+  memory             50Mi (0%)  50Mi (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+------------------------
