@@ -101,26 +101,85 @@ Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
 
 Benchmark testuje efektywność schedulera w obsłudze zadań składających się z wielu podów. Ocenia, jak dobrze scheduler radzi sobie z dużym, spójnym obciążeniem.
 
-**Konfiguracja testu**:
+#### Konfiguracje
 
-- 300 wirtualnych węzłów, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
-- Jeden job z 300 podami, gdzie każdy ma wymagania:
+Benchmark zawiera wiele konfiguracji z różnymi kombinacjami liczby węzłów i podów w zadaniu:
 
+##### Liczba replik: 300
+
+- **300 węzłów**: Test 1 joba z 300 replikami na 300 węzłach
+- **400 węzłów**: Test 1 joba z 300 replikami na 400 węzłach
+- **500 węzłów**: Test 1 joba z 300 replikami na 500 węzłach
+
+##### Liczba replik: 400
+
+- **300 węzłów**: Test 1 joba z 400 replikami na 300 węzłach
+- **400 węzłów**: Test 1 joba z 400 replikami na 400 węzłach
+- **500 węzłów**: Test 1 joba z 400 replikami na 500 węzłach
+
+##### Liczba replik: 500
+
+- **300 węzłów**: Test 1 joba z 500 replikami na 300 węzłach
+- **400 węzłów**: Test 1 joba z 500 replikami na 400 węzłach
+- **500 węzłów**: Test 1 joba z 500 replikami na 500 węzłach
+
+Każda konfiguracja testu wykorzystuje:
+
+- Wirtualne węzły, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
+- Jeden wielopodowy job, gdzie każdy pod ma wymagania:
   - 16 rdzeni CPU (12,5% węzła)
   - 256Gi pamięci (25% węzła)
   - 4 GPU (50% węzła)
+
+Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
+
+| Konfiguracja | Wykorzystanie CPU | Wykorzystanie pamięci | Wykorzystanie GPU |
+|---------------|-----------|-------------|-----------|
+| 300 replik, 300 węzłów | 12,5% | 25% | 50% |
+| 300 replik, 400 węzłów | 9,38% | 18,75% | 37,5% |
+| 300 replik, 500 węzłów | 7,5% | 15% | 30% |
+| 400 replik, 300 węzłów | 16,67% | 33,33% | 66,67% |
+| 400 replik, 400 węzłów | 12,5% | 25% | 50% |
+| 400 replik, 500 węzłów | 10% | 20% | 40% |
+| 500 replik, 300 węzłów | 20,83% | 41,67% | 83,33% |
+| 500 replik, 400 węzłów | 15,63% | 31,25% | 62,5% |
+| 500 replik, 500 węzłów | 12,5% | 25% | 50% |
 
 **Skrypty do uruchomienia**:
 
 ```bash
 # Dla Kueue
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v2.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-300-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-300-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-400-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-400-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-500-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-500-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-500-500.yaml"
 
 # Dla Volcano
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v2.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-300-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-300-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-400-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-400-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-500-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-500-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-500-500.yaml"
 
 # Dla YuniKorn
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v2.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-300-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-300-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-400-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-400-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-500-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-500-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-500-500.yaml"
 ```
 
 ### V3: Mieszane stopniowe obciążenie

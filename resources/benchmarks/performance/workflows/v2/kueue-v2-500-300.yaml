@@ -1,0 +1,182 @@
+name: kueue-performance-benchmark-v2-500-300
+description: |
+  Performance benchmark for Kueue with 300 nodes and one large job with 500 replicas.
+  This tests the scheduler's efficiency when handling a single large workload.
+tasks:
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: hpc.gpu
+          count: 300
+          labels:
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              # enableClusterQueueResources: true
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
+              clientConnection:
+                qps: 50
+                burst: 100
+              #pprofBindAddress: :8083
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null # null indicates infinite requeuing
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              #manageJobsWithoutQueueName: true
+              #internalCertManagement:
+              #  enable: false
+              #  webhookServiceName: ""
+              #  webhookSecretName: ""
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+              #  - "pod"
+              #  externalFrameworks:
+              #  - "Foo.v1.example.com"
+              #  podOptions:
+              #    namespaceSelector:
+              #      matchExpressions:
+              #        - key: kubernetes.io/metadata.name
+              #          operator: NotIn
+              #          values: [ kube-system, kueue-system ]
+              #fairSharing:
+              #  enable: true
+              #  preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+              #resources:
+              #  excludeResourcePrefixes: []
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Register Kueue-specific resources
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/cluster-queue.yaml"
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/local-queue.yaml"
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/templates/kueue/resource-flavor.yaml"
+  - id: register-job
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/kueue/job.yaml"
+      nameFormat: "perftest-v2-500-300-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # Submit Kueue-specific resources
+  - id: create-resource-flavor
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "gpu-node"
+        nodeLabels:
+          nvidia.com/gpu.count: "8"
+  - id: create-cluster-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: team
+        flavor: gpu-node
+        cpu: 38400    # 300 nodes × 128 CPU each
+        memory: 300Ti # 300 nodes × 1Ti each
+        pods: 33000   # 300 nodes × 110 pods each
+        gpu: 2400     # 300 nodes × 8 GPU each
+  - id: create-local-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: team-queue
+        namespace: default
+        clusterQueue: team
+
+  # Submit 1 job with 500 replicas
+  # CPU = 500 pods × 16 cores (16000m) = 8,000 cores total (20.83% of 38,400)
+  # Memory = 500 pods × 256Gi = 128,000Gi = ~125Ti total (41.67% of 300Ti)
+  # GPU = 500 pods × 4 GPU = 2,000 GPUs total (83.33% of 2,400)
+  - id: job
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        namespace: default
+        replicas: 500
+        completionMode: NonIndexed
+        queueName: team-queue
+        image: ubuntu
+        cpu: 16000m # 16 cores (12.5% node CPU)
+        memory: 256Gi # 256GB (25% node)
+        gpu: 4 # 4 GPU (50% node GPU)
+        ttl: 5m
