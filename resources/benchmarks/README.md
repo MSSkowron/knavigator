@@ -8,34 +8,93 @@ Ten katalog zawiera benchmarki dla porównania i oceny wydajności następujący
 
 Benchmarki te służą do oceny różnych aspektów wydajności schedulerów pod kątem przepustowości, skalowalności, świadomości topologii sieci oraz sprawiedliwego podziału zasobów.
 
-## Wydajność (Performance)
+## Wydajność i Skalowalność (Performance & Scalability)
 
 Benchmarki wydajności dostarczają kompleksowej oceny framework'ów schedulerów w różnych wzorcach obciążeń, mierząc przepustowość, skalowalność i efektywność wykorzystania zasobów. Testy te symulują różne scenariusze, które mogą wystąpić w rzeczywistych środowiskach produkcyjnych.
 
 ### V1: Duża liczba identycznych, niezależnych jobów
 
-Benchmark testuje zdolność schedulera do obsługi dużej liczby identycznych, niezależnych zadań. Mierzy przepustowość schedulera i efektywność w obsłudze wielu małych zadań.
+Benchmark testuje zdolność schedulera do obsługi dużej liczby identycznych, niezależnych zadań. Mierzy wydajność i skalowalność schedulera i efektywność w obsłudze wielu małych zadań.
 
-**Konfiguracja testu**:
+#### Konfiguracje
 
-- 300 wirtualnych węzłów, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
-- 300 niezależnych jobów, gdzie każdy składa się z pojedynczego poda o wymaganiach:
+Benchmark zawiera wiele konfiguracji z różnymi kombinacjami liczby węzłów i zadań:
 
+##### Liczba jobów: 300
+
+- **300 węzłów**: Test 300 jobów na 300 węzłach
+- **400 węzłów**: Test 300 jobów na 400 węzłach
+- **500 węzłów**: Test 300 jobów na 500 węzłach
+
+##### Liczba jobów: 400
+
+- **300 węzłów**: Test 400 jobów na 300 węzłach
+- **400 węzłów**: Test 400 jobów na 400 węzłach
+- **500 węzłów**: Test 400 jobów na 500 węzłach
+
+##### Liczba jobów: 500
+
+- **300 węzłów**: Test 500 jobów na 300 węzłach
+- **400 węzłów**: Test 500 jobów na 400 węzłach
+- **500 węzłów**: Test 500 jobów na 500 węzłach
+
+Każda konfiguracja testu wykorzystuje:
+
+- Wirtualne węzły, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
+- Niezależne joby, gdzie każdy składa się z pojedynczego poda o wymaganiach:
   - 16 rdzeni CPU (12,5% węzła)
   - 256Gi pamięci (25% węzła)
   - 4 GPU (50% węzła)
+
+Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
+
+| Konfiguracja | Wykorzystanie CPU | Wykorzystanie pamięci | Wykorzystanie GPU |
+|---------------|-----------|-------------|-----------|
+| 300 jobów, 300 węzłów | 12,5% | 25% | 50% |
+| 300 jobów, 400 węzłów | 9,38% | 18,75% | 37,5% |
+| 300 jobów, 500 węzłów | 7,5% | 15% | 30% |
+| 400 jobów, 300 węzłów | 16,67% | 33,33% | 66,67% |
+| 400 jobów, 400 węzłów | 12,5% | 25% | 50% |
+| 400 jobów, 500 węzłów | 10% | 20% | 40% |
+| 500 jobów, 300 węzłów | 20,83% | 41,67% | 83,33% |
+| 500 jobów, 400 węzłów | 15,63% | 31,25% | 62,5% |
+| 500 jobów, 500 węzłów | 12,5% | 25% | 50% |
 
 **Skrypty do uruchomienia**:
 
 ```bash
 # Dla Kueue
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-300-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-300-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-400-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-400-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-500-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-500-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-500-500.yaml"
 
 # Dla Volcano
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-300-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-300-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-400-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-400-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-500.yaml"
 
 # Dla YuniKorn
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-300-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-300-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-400-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-400-500.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-500-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-500-400.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-500-500.yaml"
 ```
 
 ### V2: Jeden duży wielopodowy job
@@ -55,13 +114,13 @@ Benchmark testuje efektywność schedulera w obsłudze zadań składających si�
 
 ```bash
 # Dla Kueue
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v2.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v2.yaml"
 
 # Dla Volcano
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v2.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v2.yaml"
 
 # Dla YuniKorn
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v2.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v2.yaml"
 ```
 
 ### V3: Mieszane stopniowe obciążenie
@@ -95,13 +154,13 @@ Benchmark testuje wydajność schedulera z różnorodnymi obciążeniami, które
 
 ```bash
 # Dla Kueue
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v3.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v3.yaml"
 
 # Dla Volcano
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v3.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v3.yaml"
 
 # Dla YuniKorn
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v3.yaml" -v 4
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v3.yaml"
 ```
 
 ## Świadomość topologii klastra (Topology Awareness)

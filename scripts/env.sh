@@ -62,7 +62,7 @@ check_command() {
 wait_for_pods() {
     local namespace=$1
     local expected_count=$2
-    local timeout=${3:-300}
+    local timeout=${3:-600}
     local interval=${4:-5}
     local elapsed=0
 
@@ -98,7 +98,7 @@ deploy_kwok() {
 
     # Wait for KWOK to be ready
     log_info "Waiting for KWOK controller to be ready..."
-    kubectl -n kube-system wait --for=condition=available deployment/kwok-controller --timeout=180s || {
+    kubectl -n kube-system wait --for=condition=available deployment/kwok-controller --timeout=600s || {
         log_error "KWOK controller not ready after 60s"
         return 1  # Exit function with error if controller isn't ready
     }
@@ -210,7 +210,7 @@ deploy_kueue() {
     # Validate configuration to ensure webhook is properly setup
     log_info "Waiting for Kueue controller manager to be ready..."
     wait_for_pods "kueue-system" 1
-    kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=300s
+    kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=600s
 
     # If user selected Topology Aware Scheduling, apply the patch
     if [ "$kueue_type" = "2" ]; then
@@ -221,7 +221,7 @@ deploy_kueue() {
 
         # Wait for the patched deployment to become available
         log_info "Waiting for the patched controller manager to be ready..."
-        kubectl -n kueue-system rollout status deployment/kueue-controller-manager --timeout=300s
+        kubectl -n kueue-system rollout status deployment/kueue-controller-manager --timeout=600s
     fi
 
     # Verify the installation by checking if controller manager is running
