@@ -50,8 +50,8 @@ tasks:
       params:
         name: default-cluster-queue-a
         flavor: default-flavor
-        cpu: 600
-        memory: 600Gi
+        cpu: 6000
+        memory: 6000Gi
   - id: create-cluster-queue-b
     type: SubmitObj
     params:
@@ -60,8 +60,8 @@ tasks:
       params:
         name: default-cluster-queue-b
         flavor: default-flavor
-        cpu: 300
-        memory: 300Gi
+        cpu: 3000
+        memory: 3000Gi
   - id: create-cluster-queue-c
     type: SubmitObj
     params:
@@ -70,8 +70,8 @@ tasks:
       params:
         name: default-cluster-queue-c
         flavor: default-flavor
-        cpu: 100
-        memory: 100Gi
+        cpu: 1000
+        memory: 1000Gi
   - id: create-local-queue-a
     type: SubmitObj
     params:
@@ -103,7 +103,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 20 #(2 per node, 10 nodes)
+      count: 200 #(2 per node, 100 nodes)
       params:
         jobName: job-a
         queueName: default-local-queue-a
@@ -120,7 +120,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 80 #(8 per node, 10 nodes)
+      count: 800 #(8 per node, 100 nodes)
       params:
         jobName: job-b
         queueName: default-local-queue-b
@@ -137,7 +137,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job
-      count: 240 #(24 per node, 10 nodes)
+      count: 2400 #(24 per node, 100 nodes)
       params:
         jobName: job-c
         queueName: default-local-queue-c

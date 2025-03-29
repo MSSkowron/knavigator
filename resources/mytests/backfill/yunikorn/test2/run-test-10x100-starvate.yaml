@@ -12,102 +12,99 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: test-backfill-2
-description: test greedy backfill for kueue
+name: test-backfill-1
+description: test backfill for yunikorn
 tasks:
-  - id: register-cluster-queue
+  - id: register
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/kueue/cluster-queue.yaml"
-  - id: register-local-queue
-    type: RegisterObj
-    params:
-      template: "resources/mytests/templates/kueue/local-queue.yaml"
-  - id: register-resource-flavor
-    type: RegisterObj
-    params:
-      template: "resources/mytests/templates/kueue/resource-flavor.yaml"
-  - id: register-job
-    type: RegisterObj
-    params:
-      template: "resources/mytests/templates/kueue/job.yaml"
+      template: "resources/mytests/templates/yunikorn/job.yml"
       nameFormat: "{{.jobName}}-{{._ENUM_}}"
-      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podNameFormat: "{{._NAME_}}-.*"
       podCount: "{{.parallelism}}"
+  - id: configure
+    type: Configure
+    description: set up yunikorn config
+    params:
+      configmaps:
+        - name: yunikorn-configs
+          namespace: yunikorn
+          op: create
+          data:
+            queues.yaml: |
+              partitions:
+                - name: default
+                  queues:
+                  - name: root
+                    queues:
+                    - name: sandbox
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: disabled
+                      resources:
+                        max:
+                          {memory: 1000Gi, vcore: 1000}
       timeout: 1m
-  - id: create-resource-flavor
+  - id: job-blocking
     type: SubmitObj
     params:
-      refTaskId: register-resource-flavor
-      canExist: true
+      refTaskId: register
+      count: 1
       params:
-        name: default-flavor
-  - id: create-cluster-queue
-    type: SubmitObj
-    params:
-      refTaskId: register-cluster-queue
-      canExist: true
-      params:
-        name: default-cluster-queue
-        flavor: default-flavor
-        cpu: 1000
-        memory: 1000Gi
-  - id: create-local-queue
-    type: SubmitObj
-    params:
-      refTaskId: register-local-queue
-      canExist: true
-      params:
-        name: default-local-queue
-        namespace: default
-        clusterQueue: default-cluster-queue
-  - id: jobA1
-    type: SubmitObj
-    params:
-      refTaskId: register-job
-      count: 20 #(2 per node, 10 nodes)
-      params:
-        jobName: job-a
-        queueName: default-local-queue
+        jobName: job-blocking
         namespace: default
         parallelism: 1
         completions: 1
-        backoffLimit: 0
-        completionMode: Indexed
+        applicationId: job-blocking
+        queue: root.sandbox
+        image: ubuntu
+        cpu: 110
+        memory: 110Gi
+        ttl: 4m
+  - id: job-a
+    type: SubmitObj
+    params:
+      refTaskId: register
+      count: 20 #(2 per node, 10 nodes)
+      params:
+        jobName: job-a
+        namespace: default
+        parallelism: 1
+        completions: 1
+        applicationId: job-a
+        queue: root.sandbox
         image: ubuntu
         cpu: 60
         memory: 60Gi
         ttl: 4m
-  - id: jobB1
+  - id: job-b
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register
       count: 80 #(8 per node, 10 nodes)
       params:
         jobName: job-b
-        queueName: default-local-queue
         namespace: default
         parallelism: 1
         completions: 1
-        backoffLimit: 0
-        completionMode: Indexed
+        applicationId: job-b
+        queue: root.sandbox
         image: ubuntu
         cpu: 30
         memory: 30Gi
         ttl: 60s
-  - id: jobC1
+  - id: job-c
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register
       count: 240 #(24 per node, 10 nodes)
       params:
         jobName: job-c
-        queueName: default-local-queue
         namespace: default
         parallelism: 1
         completions: 1
-        backoffLimit: 0
-        completionMode: Indexed
+        applicationId: job-c
+        queue: root.sandbox
         image: ubuntu
         cpu: 10
         memory: 10Gi
