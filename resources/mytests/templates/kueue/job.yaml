@@ -23,6 +23,7 @@ metadata:
     kueue.x-k8s.io/priority-class: {{.priority}}
     {{- end }}
 spec:
+  backoffLimit: {{.backoffLimit}}
   completions: {{.completions}}
   parallelism: {{.parallelism}}
   completionMode: {{.completionMode}}

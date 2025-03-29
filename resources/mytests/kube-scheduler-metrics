@@ -1,0 +1,9 @@
+vi /etc/kubernetes/manifests/kube-scheduler.yaml
+
+spec:
+  containers:
+  - command:
+    - kube-scheduler
+    - --bind-address=0.0.0.0  # Allow listening on all interfaces
+
+wchodzisz przez docker do control planea i tam pod tą ścieżką poprawiasz bind address
