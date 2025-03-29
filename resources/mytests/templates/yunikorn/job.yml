@@ -19,6 +19,7 @@ metadata:
   name: "{{._NAME_}}"
   namespace: "{{.namespace}}"
 spec:
+  backoffLimit: 0
   completions: {{.completions}}
   parallelism: {{.parallelism}}
   {{- if .deadlineSeconds}}

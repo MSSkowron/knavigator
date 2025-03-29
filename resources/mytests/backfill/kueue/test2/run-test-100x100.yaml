@@ -18,11 +18,11 @@ tasks:
   - id: register-cluster-queue
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/kueue/cluster-big-queue.yaml"
+      template: "resources/mytests/templates/kueue/cluster-queue.yaml"
   - id: register-local-queue
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/kueue/local-big-queue.yaml"
+      template: "resources/mytests/templates/kueue/local-queue.yaml"
   - id: register-resource-flavor
     type: RegisterObj
     params:
@@ -50,8 +50,8 @@ tasks:
       params:
         name: default-cluster-queue
         flavor: default-flavor
-        cpu: 10010
-        memory: 10005Gi
+        cpu: 10000
+        memory: 10000Gi
   - id: create-local-queue
     type: SubmitObj
     params:
@@ -72,11 +72,12 @@ tasks:
         namespace: default
         parallelism: 1
         completions: 1
+        backoffLimit: 0
         completionMode: Indexed
         image: ubuntu
         cpu: 60
         memory: 60Gi
-        ttl: 1m
+        ttl: 4m
   - id: jobB1
     type: SubmitObj
     params:
@@ -88,11 +89,12 @@ tasks:
         namespace: default
         parallelism: 1
         completions: 1
+        backoffLimit: 0
         completionMode: Indexed
         image: ubuntu
         cpu: 30
         memory: 30Gi
-        ttl: 15s
+        ttl: 60s
   - id: jobC1
     type: SubmitObj
     params:
@@ -104,8 +106,9 @@ tasks:
         namespace: default
         parallelism: 1
         completions: 1
+        backoffLimit: 0
         completionMode: Indexed
         image: ubuntu
         cpu: 10
         memory: 10Gi
-        ttl: 5s
+        ttl: 20s

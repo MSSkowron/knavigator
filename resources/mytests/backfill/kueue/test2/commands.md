@@ -11,7 +11,8 @@
   kubectl -n default delete resourceflavor --all
 ```
 ```bash
-  ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-100x100.yaml
   ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-10x100.yaml
   ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-10x100-multiple-queues.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-100x100.yaml
+  ./bin/knavigator -workflow resources/mytests/backfill/kueue/test2/run-test-100x100-multiple-queues.yaml
 ```
