@@ -73,7 +73,8 @@ select_and_deploy_workload_manager() {
             break
             ;;
         *)
-            log_error "Invalid selection"
+            log_error "Invalid selection. Keeping vanilla k8s"
+            break
             ;;
         esac
     done
