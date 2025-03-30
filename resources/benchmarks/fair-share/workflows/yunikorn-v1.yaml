@@ -97,7 +97,7 @@ tasks:
           resources:
             cpu: 15100m  # KWOK potrzebuje 100m → 15000m dostępne
             memory: "15050Mi"  # KWOK potrzebuje 50Mi → 15000Mi dostępne
-            pods: 500
+            pods: 110
       timeout: 5m
 
   # Register job template

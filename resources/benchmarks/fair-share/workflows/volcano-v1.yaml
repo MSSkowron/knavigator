@@ -1,21 +1,21 @@
 name: volcano-fair-share-benchmark-v1
 description: |
-  Fair Share benchmark for Volcano scheduler.
+  Fair Share benchmark dla schedulera Volcano.
 
-  This benchmark tests whether Volcano properly implements fair resource sharing
-  between queues with equal weights. The test creates three queues with equal
-  weights and resource limits. The test then submits multiple jobs to all queues
-  and verifies that resources are distributed fairly.
+  Test sprawdza, czy Volcano prawidłowo implementuje mechanizm fair sharing
+  pomiędzy kolejkami o równych wagach i priorytetach. Tworzy trzy oddzielne przestrzenie
+  nazw i kolejki z równymi wagami i gwarancjami zasobów. Test następnie wysyła
+  zadania do wszystkich kolejek i weryfikuje sprawiedliwy podział zasobów.
 
-  Volcano implements fair-sharing through its DRF (Dominant Resource Fairness) plugin
-  and the weight configuration in queue definitions.
+  Volcano implementuje mechanizm fair-sharing poprzez plugin DRF
+  (Dominant Resource Fairness) oraz konfigurację wag w definicjach kolejek.
 
-  Test scenario:
-  1. Configure cluster with limited CPU resources (75 CPU total)
-  2. Configure Volcano with DRF plugin enabled
-  3. Create three queues with equal weights
-  4. Submit multiple jobs to all queues (each queue requesting 30 CPU)
-  5. Verify that all queues receive an equal share of resources (~25 CPU each)
+  Scenariusz testu:
+  1. Konfiguracja klastra z ograniczonymi zasobami CPU (75 CPU łącznie)
+  2. Konfiguracja Volcano z włączonym pluginem DRF
+  3. Utworzenie trzech przestrzeni nazw i kolejek o równych wagach
+  4. Wysłanie zadań sekwencyjnie do wszystkich kolejek
+  5. Weryfikacja równego podziału zasobów między kolejkami (~25 CPU dla każdej)
 tasks:
   # Configure Volcano
   - id: configure-volcano
@@ -60,7 +60,7 @@ tasks:
           resources:
             cpu: 15100m # KWOK potrzebuje 100m → 15000m dostępne
             memory: "15050Mi" # KWOK potrzebuje 50Mi → 15000Mi dostępne
-            pods: 500
+            pods: 110
       timeout: 5m
 
   # Register queue template

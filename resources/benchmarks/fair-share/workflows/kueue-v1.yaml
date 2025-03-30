@@ -1,20 +1,19 @@
 name: kueue-fair-share-benchmark-v1
 description: |
-  Fair Share benchmark for Kueue scheduler.
+  Fair Share benchmark dla schedulera Kueue.
 
-  This benchmark tests whether Kueue properly implements fair resource sharing
-  between tenants with equal priority.
+  Test sprawdza prawidłową implementację mechanizmu fair sharing
+  między tenantami o identycznych priorytetach i wagach.
 
-  The test creates three namespaces with identical ClusterQueues in a cohort.
-  Each queue has identical priority settings and resource quota.
-  The test then submits multiple jobs to all tenants and verifies that resources are distributed fairly.
+  Test tworzy trzy przestrzenie nazw z identycznymi ClusterQueue w kohorcie,
+  następnie wysyła zadania do wszystkich tenantów i weryfikuje sprawiedliwy podział zasobów.
 
-  Test scenario:
-  1. Configure cluster with limited CPU and memory resources (75 CPU & 75GB memory in total)
-  2. Set up Kueue with fairSharing enabled
-  3. Create three tenants with equal priority
-  4. Submit multiple jobs to all tenants
-  5. Verify that all tenants receive an equal share of resources
+  Scenariusz testu:
+  1. Konfiguracja klastra z ograniczonymi zasobami (75 CPU i 75GB pamięci łącznie)
+  2. Konfiguracja Kueue z włączonym mechanizmem fairSharing
+  3. Utworzenie trzech tenantów o równym priorytecie i wadze
+  4. Wysłanie wielu zadań sekwencyjnie do wszystkich tenantów
+  5. Weryfikacja równego podziału zasobów między tenantami
 tasks:
   # Configure Kueue
   - id: configure-kueue
@@ -89,9 +88,9 @@ tasks:
         - type: cpu-node
           count: 5
           resources:
-            cpu: 15100m  # KWOK potrzebuje 100m → 15000m dostępne
-            memory: "15050Mi"  # KWOK potrzebuje 50Mi → 15000Mi dostępne
-            pods: 500
+            cpu: 15100m # KWOK potrzebuje 100m → 15000m dostępne
+            memory: "15050Mi" # KWOK potrzebuje 50Mi → 15000Mi dostępne
+            pods: 110
       timeout: 5m
 
   # Create namespaces for the three tenants
@@ -128,11 +127,27 @@ tasks:
     params:
       template: "resources/benchmarks/fair-share/templates/k8s/namespace.yaml"
 
-  - id: register-job
+  - id: register-job-batch-1
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
-      nameFormat: "fairshare-v1-job{{._ENUM_}}"
+      nameFormat: "fairshare-v1-batch1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-2
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v1-batch2-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-3
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v1-batch3-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
 
@@ -174,11 +189,11 @@ tasks:
               - name: resource-flavor
                 resources:
                   - name: cpu
-                    nominalQuota: 25000m # Gwarantowane 25 CPU (guaranteed)
+                    nominalQuota: 25000m # Gwarantowane 25 CPU (1/3 klastra)
                     borrowingLimit: 50000m # Może pożyczyć dodatkowe 50 CPU
                     lendingLimit: 25000m # Może udostępnić do 25 CPU innym
                   - name: memory
-                    nominalQuota: 25000Mi # Gwarantowane 25Gi pamięci
+                    nominalQuota: 25000Mi # Gwarantowane 25Gi pamięci (1/3 klastra)
                     borrowingLimit: 50000Mi # Może pożyczyć dodatkowe 50Gi
                     lendingLimit: 25000Mi # Może udostępnić do 25Gi innym
                   - name: pods
@@ -213,11 +228,11 @@ tasks:
               - name: resource-flavor
                 resources:
                   - name: cpu
-                    nominalQuota: 25000m # Gwarantowane 25 CPU (guaranteed)
+                    nominalQuota: 25000m # Gwarantowane 25 CPU (1/3 klastra)
                     borrowingLimit: 50000m # Może pożyczyć dodatkowe 50 CPU
                     lendingLimit: 25000m # Może udostępnić do 25 CPU innym
                   - name: memory
-                    nominalQuota: 25000Mi # Gwarantowane 25Gi pamięci
+                    nominalQuota: 25000Mi # Gwarantowane 25Gi pamięci (1/3 klastra)
                     borrowingLimit: 50000Mi # Może pożyczyć dodatkowe 50Gi
                     lendingLimit: 25000Mi # Może udostępnić do 25Gi innym
                   - name: pods
@@ -252,11 +267,11 @@ tasks:
               - name: resource-flavor
                 resources:
                   - name: cpu
-                    nominalQuota: 25000m # Gwarantowane 25 CPU (guaranteed)
+                    nominalQuota: 25000m # Gwarantowane 25 CPU (1/3 klastra)
                     borrowingLimit: 50000m # Może pożyczyć dodatkowe 50 CPU
                     lendingLimit: 25000m # Może udostępnić do 25 CPU innym
                   - name: memory
-                    nominalQuota: 25000Mi # Gwarantowane 25Gi pamięci
+                    nominalQuota: 25000Mi # Gwarantowane 25Gi pamięci (1/3 klastra)
                     borrowingLimit: 50000Mi # Może pożyczyć dodatkowe 50Gi
                     lendingLimit: 25000Mi # Może udostępnić do 25Gi innym
                   - name: pods
@@ -295,12 +310,15 @@ tasks:
         namespace: tenant-c
         clusterQueue: tenant-c-cq
 
-  # Submit 75 jobs for tenant A (requesting 75000m CPU & 7500 Mi Memory - whole free worker nodes resources)
-  - id: submit-jobs-tenant-a
+  # Wysłanie zadań w naprzemienny sposób, aby lepiej symulować realistyczne obciążenie
+  # i obserwować dynamikę fair share między tenantami
+
+  # Runda 1: Pierwszy batch zadań dla wszystkich tenantów
+  - id: submit-jobs-tenant-a-batch1
     type: SubmitObj
     params:
-      refTaskId: register-job
-      count: 75
+      refTaskId: register-job-batch-1
+      count: 30
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
@@ -311,17 +329,16 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-a
+  - id: wait-between-tenants1a
     type: Sleep
     params:
-      timeout: 30s
+      timeout: 15s
 
-  # Submit 75 jobs for tenant B (requesting 75000m CPU & 7500 Mi Memory - whole free worker nodes resources)
-  - id: submit-jobs-tenant-b
+  - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
     params:
-      refTaskId: register-job
-      count: 75
+      refTaskId: register-job-batch-1
+      count: 30
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
@@ -332,17 +349,138 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-b
+  - id: wait-between-tenants1b
     type: Sleep
     params:
-      timeout: 30s
+      timeout: 15s
 
-  # Submit 75 jobs for tenant C (requesting 75000m CPU & 7500 Mi Memory - whole free worker nodes resources)
-  - id: submit-jobs-tenant-c
+  - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
     params:
-      refTaskId: register-job
-      count: 75
+      refTaskId: register-job-batch-1
+      count: 30
+      params:
+        namespace: tenant-c
+        queueName: tenant-c-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 1000Mi
+        ttl: "5m"
+
+  - id: wait-between-rounds1
+    type: Sleep
+    params:
+      timeout: 20s
+
+  # Runda 2: Drugi batch zadań dla wszystkich tenantów
+  - id: submit-jobs-tenant-a-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 25
+      params:
+        namespace: tenant-a
+        queueName: tenant-a-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 1000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants2a
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-b-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 25
+      params:
+        namespace: tenant-b
+        queueName: tenant-b-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 1000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants2b
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-c-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 25
+      params:
+        namespace: tenant-c
+        queueName: tenant-c-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 1000Mi
+        ttl: "5m"
+
+  - id: wait-between-rounds2
+    type: Sleep
+    params:
+      timeout: 20s
+
+  # Runda 3: Trzeci batch zadań dla wszystkich tenantów
+  - id: submit-jobs-tenant-a-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 20
+      params:
+        namespace: tenant-a
+        queueName: tenant-a-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 1000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants3a
+    type: Sleep
+    params:
+      timeout: 5s
+
+  - id: submit-jobs-tenant-b-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 20
+      params:
+        namespace: tenant-b
+        queueName: tenant-b-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 1000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants3b
+    type: Sleep
+    params:
+      timeout: 5s
+
+  - id: submit-jobs-tenant-c-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 20
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
