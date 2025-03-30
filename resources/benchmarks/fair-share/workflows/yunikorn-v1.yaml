@@ -95,9 +95,9 @@ tasks:
         - type: cpu-node
           count: 5
           resources:
-            cpu: 15100m # KWOK needs 100m => 15000m is free to use
-            memory: "15050Mi" # KWOK needs 50Mi => 15000Mi is free to use
-            pods: 110
+            cpu: 15100m  # KWOK potrzebuje 100m → 15000m dostępne
+            memory: "15050Mi"  # KWOK potrzebuje 50Mi → 15000Mi dostępne
+            pods: 500
       timeout: 5m
 
   # Register job template

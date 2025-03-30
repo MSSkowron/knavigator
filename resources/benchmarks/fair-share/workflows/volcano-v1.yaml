@@ -58,9 +58,9 @@ tasks:
         - type: cpu-node
           count: 5
           resources:
-            cpu: 15100m # KWOK needs 100m => 15000m is free to use
-            memory: "15050Mi" # KWOK needs 50Mi => 15000Mi is free to use
-            pods: 110
+            cpu: 15100m # KWOK potrzebuje 100m → 15000m dostępne
+            memory: "15050Mi" # KWOK potrzebuje 50Mi → 15000Mi dostępne
+            pods: 500
       timeout: 5m
 
   # Register queue template
@@ -109,11 +109,8 @@ tasks:
         priority: 100
         guarantee:
           resource:
-            cpu: "25000m" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
             memory: "25000Mi"
-        deserved:
-          cpu: "25000m" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
-          memory: "25000Mi"
         capability:
           cpu: "75000m" # Maksymalne 75 CPU - twardy limit
           memory: "75000Mi"
@@ -130,11 +127,8 @@ tasks:
         priority: 100
         guarantee:
           resource:
-            cpu: "25000m" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
             memory: "25000Mi"
-        deserved:
-          cpu: "25000m" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
-          memory: "25000Mi"
         capability:
           cpu: "75000m" # Maksymalne 75 CPU - twardy limit
           memory: "75000Mi"
@@ -151,11 +145,8 @@ tasks:
         priority: 100
         guarantee:
           resource:
-            cpu: "25000m" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
             memory: "25000Mi"
-        deserved:
-          cpu: "25000m" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
-          memory: "25000Mi"
         capability:
           cpu: "75000m" # Maksymalne 75 CPU - twardy limit
           memory: "75000Mi"
