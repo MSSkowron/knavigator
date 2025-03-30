@@ -58,8 +58,8 @@ tasks:
         - type: cpu-node
           count: 5
           resources:
-            cpu: 15
-            memory: "15Gi"
+            cpu: 15100m # KWOK needs 100m => 15000m is free to use
+            memory: "15050Mi" # KWOK needs 50Mi => 15000Mi is free to use
             pods: 110
       timeout: 5m
 
@@ -109,14 +109,14 @@ tasks:
         priority: 100
         guarantee:
           resource:
-            cpu: "25" # Gwarantowane 10 CPU - zawsze zarezerwowane
-            memory: "25Gi"
+            cpu: "25000m" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            memory: "25000Mi"
         deserved:
-          cpu: "25" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
-          memory: "25Gi"
+          cpu: "25000m" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
+          memory: "25000Mi"
         capability:
-          cpu: "75" # Maksymalne 75 CPU - twardy limit
-          memory: "75Gi"
+          cpu: "75000m" # Maksymalne 75 CPU - twardy limit
+          memory: "75000Mi"
 
   - id: create-queue-b
     type: SubmitObj
@@ -130,14 +130,14 @@ tasks:
         priority: 100
         guarantee:
           resource:
-            cpu: "25" # Gwarantowane 10 CPU - zawsze zarezerwowane
-            memory: "25Gi"
+            cpu: "25000m" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            memory: "25000Mi"
         deserved:
-          cpu: "25" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
-          memory: "25Gi"
+          cpu: "25000m" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
+          memory: "25000Mi"
         capability:
-          cpu: "75" # Maksymalne 75 CPU - twardy limit
-          memory: "75Gi"
+          cpu: "75000m" # Maksymalne 75 CPU - twardy limit
+          memory: "75000Mi"
 
   - id: create-queue-c
     type: SubmitObj
@@ -151,94 +151,69 @@ tasks:
         priority: 100
         guarantee:
           resource:
-            cpu: "25" # Gwarantowane 10 CPU - zawsze zarezerwowane
-            memory: "25Gi"
+            cpu: "25000m" # Gwarantowane 10 CPU - zawsze zarezerwowane
+            memory: "25000Mi"
         deserved:
-          cpu: "25" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
-          memory: "25Gi"
+          cpu: "25000m" # Oczekiwane 25 CPU - wyliczone przez proporción plugin
+          memory: "25000Mi"
         capability:
-          cpu: "75" # Maksymalne 75 CPU - twardy limit
-          memory: "75Gi"
+          cpu: "75000m" # Maksymalne 75 CPU - twardy limit
+          memory: "75000Mi"
 
-  # Submit jobs for queue A
+  # Submit 75 jobs for tenant A (requesting 75000m CPU & 7500 Mi Memory - whole free worker nodes resources)
   - id: submit-jobs-tenant-a
     type: SubmitObj
     params:
       refTaskId: register-job-a
-      count: 30 # Submit 30 jobs
+      count: 75
       params:
         namespace: default
         minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
         image: ubuntu
-        cpu: 1000m # Each job requests 1 CPU
-        memory: 1Gi
+        cpu: 1000m
+        memory: 1000Mi
         ttl: "5m"
 
-  # Submit jobs for queue B
+  - id: wait-a
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Submit 75 jobs for tenant B (requesting 75000m CPU & 7500 Mi Memory - whole free worker nodes resources)
   - id: submit-jobs-tenant-b
     type: SubmitObj
     params:
       refTaskId: register-job-b
-      count: 30 # Submit 30 jobs
+      count: 75
       params:
         namespace: default
         minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
         image: ubuntu
-        cpu: 1000m # Each job requests 1 CPU
-        memory: 1Gi
+        cpu: 1000m
+        memory: 1000Mi
         ttl: "5m"
 
-  # Submit jobs for queue C
+  - id: wait-b
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Submit 75 jobs for tenant C (requesting 75000m CPU & 7500 Mi Memory - whole free worker nodes resources)
   - id: submit-jobs-tenant-c
     type: SubmitObj
     params:
       refTaskId: register-job-c
-      count: 30 # Submit 30 jobs
+      count: 75
       params:
         namespace: default
         minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
         image: ubuntu
-        cpu: 1000m # Each job requests 1 CPU
-        memory: 1Gi
+        cpu: 1000m
+        memory: 1000Mi
         ttl: "5m"
-
-  # # Wait for jobs to be scheduled and start running
-  # - id: wait-for-scheduling
-  #   type: Sleep
-  #   params:
-  #     timeout: 30s
-
-  # # Check queue A has fair share of resources (should be around 25 pods running)
-  # - id: check-tenant-a-active
-  #   type: CheckPod
-  #   params:
-  #     refTaskId: submit-jobs-tenant-a
-  #     status: Running
-  #     timeout: 10s
-
-  # # Check queue B has fair share of resources (should be around 25 pods running)
-  # - id: check-tenant-b-active
-  #   type: CheckPod
-  #   params:
-  #     refTaskId: submit-jobs-tenant-b
-  #     status: Running
-  #     timeout: 10s
-
-  # # Check queue C has fair share of resources (should be around 25 pods running)
-  # - id: check-tenant-c-active
-  #   type: CheckPod
-  #   params:
-  #     refTaskId: submit-jobs-tenant-c
-  #     status: Running
-  #     timeout: 10s
-
-  # # Verify that all queues have approximately equal number of running pods (~25 each)
-  # # For now, we can manually verify by checking the logs or using kubectl
-  # - id: pause-for-verification
-  #   type: Pause
