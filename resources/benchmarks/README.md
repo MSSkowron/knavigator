@@ -186,41 +186,112 @@ Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
 
 Benchmark testuje wydajność schedulera z różnorodnymi obciążeniami, które lepiej reprezentują rzeczywiste wzorce użytkowania klastra. Ocenia, jak dobrze scheduler radzi sobie z heterogenicznymi typami zadań o różnych wymaganiach zasobowych jednocześnie.
 
-**Konfiguracja testu**:
+#### Konfiguracje
 
-- 300 wirtualnych węzłów, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
+Benchmark zawiera wiele konfiguracji z różnymi kombinacjami liczby węzłów i liczby zadań:
+
+##### Liczba zadań każdego typu: 100 (łącznie 300 zadań)
+
+- **300 węzłów**: Test z 300 węzłami i 100 zadaniami każdego typu
+- **400 węzłów**: Test z 400 węzłami i 100 zadaniami każdego typu
+- **500 węzłów**: Test z 500 węzłami i 100 zadaniami każdego typu
+
+##### Liczba zadań każdego typu: 200 (łącznie 600 zadań)
+
+- **300 węzłów**: Test z 300 węzłami i 200 zadaniami każdego typu
+- **400 węzłów**: Test z 400 węzłami i 200 zadaniami każdego typu
+- **500 węzłów**: Test z 500 węzłami i 200 zadaniami każdego typu
+
+##### Liczba zadań każdego typu: 300 (łącznie 900 zadań)
+
+- **300 węzłów**: Test z 300 węzłami i 300 zadaniami każdego typu
+- **400 węzłów**: Test z 400 węzłami i 300 zadaniami każdego typu
+- **500 węzłów**: Test z 500 węzłami i 300 zadaniami każdego typu
+
+Każda konfiguracja testu wykorzystuje:
+
+- Wirtualne węzły, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
 - Trzy różne typy zadań uruchamiane równolegle:
 
-  - **Zadania o wysokim użyciu GPU**: 100 jobów wykorzystujących całe węzły GPU (8 GPU na job)
+  - **Zadania o wysokim użyciu GPU**: Zadania wykorzystujące całe węzły GPU (8 GPU na job)
 
     - 16 rdzeni CPU (12,5% węzła)
     - 96Gi pamięci (9,4% węzła)
     - 8 GPU (100% węzła)
 
-  - **Zadania o średnim użyciu GPU**: 100 jobów z częściowym wykorzystaniem GPU (2 GPU na job)
+  - **Zadania o średnim użyciu GPU**: Zadania z częściowym wykorzystaniem GPU (2 GPU na job)
 
     - 8 rdzeni CPU (6,25% węzła)
     - 32Gi pamięci (3,1% węzła)
     - 2 GPU (25% węzła)
 
-  - **Zadania CPU-only**: 100 jobów bez wymagań GPU
+  - **Zadania CPU-only**: Zadania bez wymagań GPU
 
     - 32 rdzenie CPU (25% węzła)
     - 128Gi pamięci (12,5% węzła)
     - 0 GPU
 
+Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
+
+| Konfiguracja węzłów | Liczba zadań | Całkowite wykorzystanie CPU | Całkowite wykorzystanie pamięci | Całkowite wykorzystanie GPU |
+|-----------|-----------|-----------|-----------|-----------|
+| 300 | 100 każdego typu | 14,58% | 8,33% | 41,67% |
+| 300 | 200 każdego typu | 29,17% | 16,67% | 83,33% |
+| 300 | 300 każdego typu | 43,75% | 25,00% | 125,00% |
+| 400 | 100 każdego typu | 10,94% | 6,25% | 31,25% |
+| 400 | 200 każdego typu | 21,88% | 12,50% | 62,50% |
+| 400 | 300 każdego typu | 32,81% | 18,75% | 93,75% |
+| 500 | 100 każdego typu | 8,75% | 5,00% | 25,00% |
+| 500 | 200 każdego typu | 17,50% | 10,00% | 50,00% |
+| 500 | 300 każdego typu | 26,25% | 15,00% | 75,00% |
+
 **Skrypty do uruchomienia**:
 
 ```bash
-# Dla Kueue
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v3.yaml"
+# Dla Kueue (100 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-300-100.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-400-100.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-500-100.yaml"
 
-# Dla Volcano
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v3.yaml"
+# Dla Kueue (200 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-300-200.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-400-200.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-500-200.yaml"
 
-# Dla YuniKorn
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v3.yaml"
-```
+# Dla Kueue (300 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-500-300.yaml"
+
+# Dla Volcano (100 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-300-100.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-400-100.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-500-100.yaml"
+
+# Dla Volcano (200 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-300-200.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-400-200.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-500-200.yaml"
+
+# Dla Volcano (300 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-500-300.yaml"
+
+# Dla YuniKorn (100 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-300-100.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-400-100.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-500-100.yaml"
+
+# Dla YuniKorn (200 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-300-200.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-400-200.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-500-200.yaml"
+
+# Dla YuniKorn (300 zadań każdego typu)
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-300-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-400-300.yaml"
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-500-300.yaml"
 
 ## Świadomość topologii klastra (Topology Awareness)
 
