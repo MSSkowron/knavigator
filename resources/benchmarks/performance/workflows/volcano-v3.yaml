@@ -83,29 +83,6 @@ tasks:
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
-  # Warmup phase - submit a few small jobs to initialize system
-  - id: warmup-batch
-    type: SubmitObj
-    params:
-      refTaskId: register-high-gpu
-      count: 5
-      params:
-        namespace: default
-        minAvailable: 1
-        replicas: 1
-        queue: default
-        image: ubuntu
-        cpu: 100m # 0.1 rdzenia (0.078% węzła)
-        memory: 128M # 128MB (0.012% węzła)
-        gpu: 1 # 1 GPU (12.5% węzła)
-        ttl: 5s
-
-  # Krótkie opóźnienie po fazie rozgrzewki
-  - id: warmup-delay
-    type: Sleep
-    params:
-      timeout: 15s
-
   # Group 1: High-GPU Jobs (8 GPUs per job)
   # Total resources:
   # - 1,600 CPU cores (100 × 16 = 4.17% of cluster)
