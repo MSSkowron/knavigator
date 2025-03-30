@@ -215,20 +215,20 @@ Każda konfiguracja testu wykorzystuje:
 
   - **Zadania o wysokim użyciu GPU**: Zadania wykorzystujące całe węzły GPU (8 GPU na job)
 
-    - 16 rdzeni CPU (12,5% węzła)
-    - 96Gi pamięci (9,4% węzła)
+    - 16 rdzeni CPU (12.5% węzła)
+    - 96Gi pamięci (9.4% węzła)
     - 8 GPU (100% węzła)
 
   - **Zadania o średnim użyciu GPU**: Zadania z częściowym wykorzystaniem GPU (2 GPU na job)
 
-    - 8 rdzeni CPU (6,25% węzła)
-    - 32Gi pamięci (3,1% węzła)
+    - 8 rdzeni CPU (6.25% węzła)
+    - 32Gi pamięci (3.1% węzła)
     - 2 GPU (25% węzła)
 
   - **Zadania CPU-only**: Zadania bez wymagań GPU
 
     - 32 rdzenie CPU (25% węzła)
-    - 128Gi pamięci (12,5% węzła)
+    - 128Gi pamięci (12.5% węzła)
     - 0 GPU
 
 Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
@@ -292,6 +292,7 @@ Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-300-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-500-300.yaml"
+```
 
 ## Świadomość topologii klastra (Topology Awareness)
 

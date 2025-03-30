@@ -1,0 +1,163 @@
+name: volcano-performance-benchmark-v3-400-100
+description: |
+  Performance benchmark for Volcano with diverse workloads.
+  This tests the scheduler's ability to handle heterogeneous job types
+  with different resource requirements simultaneously.
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+              - plugins:
+                - name: priority
+                - name: gang
+                - name: conformance
+              - plugins:
+                - name: drf
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: hpc.gpu
+          count: 400
+          labels:
+            nvidia.com/gpu.count: "8"
+            nvidia.com/mlnxnics: "16"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+          resources:
+            cpu: 128
+            memory: "1Ti"
+            pods: 110
+            nvidia.com/gpu: 8
+            nvidia.com/mlnxnics: 16
+            hugepages-1Gi: 0
+            hugepages-2Mi: 0
+            ephemeral-storage: "30Ti"
+      timeout: 5m
+
+  # Register job templates for different types
+  - id: register-high-gpu
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/volcano/job.yaml"
+      nameFormat: "high-gpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-medium-gpu
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/volcano/job.yaml"
+      nameFormat: "medium-gpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-cpu-only
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/performance/templates/volcano/job.yaml"
+      nameFormat: "cpu-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # Group 1: High-GPU Jobs (8 GPUs per job)
+  # Total resources:
+  # - 1,600 CPU cores (100 × 16 = 3.13% of cluster)
+  # - ~9.4Ti memory (100 × 96Gi = 2.35% of cluster)
+  # - 800 GPUs (100 × 8 = 25% of cluster)
+  - id: high-gpu-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-high-gpu
+      count: 100
+      params:
+        namespace: default
+        minAvailable: 1
+        replicas: 1
+        queue: default
+        image: ubuntu
+        cpu: 16000m # 16 cores (12.5% of node)
+        memory: 96Gi # 96GB (9.4% of node)
+        gpu: 8 # 8 GPUs (100% of node)
+        ttl: 5m
+
+  # Krótkie opóźnienie po 1 fazie
+  - id: high-gpu-delay
+    type: Sleep
+    params:
+      timeout: 15s
+
+  # Group 2: Medium-GPU Jobs (2 GPUs per job)
+  # Total resources:
+  # - 800 CPU cores (100 × 8 = 1.56% of cluster)
+  # - ~3.13Ti memory (100 × 32Gi = 0.78% of cluster)
+  # - 200 GPUs (100 × 2 = 6.25% of cluster)
+  - id: medium-gpu-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-gpu
+      count: 100
+      params:
+        namespace: default
+        minAvailable: 1
+        replicas: 1
+        queue: default
+        image: ubuntu
+        cpu: 8000m # 8 cores (6.25% of node)
+        memory: 32Gi # 32GB (3.1% of node)
+        gpu: 2 # 2 GPUs (25% of node)
+        ttl: 5m
+
+  # Krótkie opóźnienie po 2 fazie
+  - id: medium-gpu-delay
+    type: Sleep
+    params:
+      timeout: 15s
+
+  # Group 3: CPU-Only Jobs (no GPUs)
+  # Total resources:
+  # - 3,200 CPU cores (100 × 32 = 6.25% of cluster)
+  # - ~12.5Ti memory (100 × 128Gi = 3.13% of cluster)
+  # - 0 GPUs
+  - id: cpu-only-jobs
+    type: SubmitObj
+    params:
+      refTaskId: register-cpu-only
+      count: 100
+      params:
+        namespace: default
+        minAvailable: 1
+        replicas: 1
+        queue: default
+        image: ubuntu
+        cpu: 32000m # 32 cores (25% of node)
+        memory: 128Gi # 128GB (12.5% of node)
+        gpu: 0 # No GPUs
+        ttl: 5m
+# Total cluster utilization:
+# - 5,600 CPU cores (10.94% of cluster)
+# - ~25Ti memory (6.25% of cluster)
+# - 1,000 GPUs (31.25% of cluster)
