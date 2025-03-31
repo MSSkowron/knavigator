@@ -100,6 +100,19 @@ tasks:
             pods: 110
       timeout: 5m
 
+  # Create namespaces for the three tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+      timeout: 1m
+
   # Register job templates for different batches
   - id: register-job-batch-1
     type: RegisterObj
@@ -132,7 +145,7 @@ tasks:
       refTaskId: register-job-batch-1
       count: 30
       params:
-        namespace: default
+        namespace: tenant-a
         replicas: 1
         minMember: 1
         applicationId: "tenant-a-batch1"
@@ -153,7 +166,7 @@ tasks:
       refTaskId: register-job-batch-1
       count: 30
       params:
-        namespace: default
+        namespace: tenant-b
         replicas: 1
         minMember: 1
         applicationId: "tenant-b-batch1"
@@ -174,7 +187,7 @@ tasks:
       refTaskId: register-job-batch-1
       count: 30
       params:
-        namespace: default
+        namespace: tenant-c
         replicas: 1
         minMember: 1
         applicationId: "tenant-c-batch1"
@@ -196,7 +209,7 @@ tasks:
       refTaskId: register-job-batch-2
       count: 25
       params:
-        namespace: default
+        namespace: tenant-a
         replicas: 1
         minMember: 1
         applicationId: "tenant-a-batch2"
@@ -217,7 +230,7 @@ tasks:
       refTaskId: register-job-batch-2
       count: 25
       params:
-        namespace: default
+        namespace: tenant-b
         replicas: 1
         minMember: 1
         applicationId: "tenant-b-batch2"
@@ -238,7 +251,7 @@ tasks:
       refTaskId: register-job-batch-2
       count: 25
       params:
-        namespace: default
+        namespace: tenant-c
         replicas: 1
         minMember: 1
         applicationId: "tenant-c-batch2"
@@ -260,7 +273,7 @@ tasks:
       refTaskId: register-job-batch-3
       count: 20
       params:
-        namespace: default
+        namespace: tenant-a
         replicas: 1
         minMember: 1
         applicationId: "tenant-a-batch3"
@@ -281,7 +294,7 @@ tasks:
       refTaskId: register-job-batch-3
       count: 20
       params:
-        namespace: default
+        namespace: tenant-b
         replicas: 1
         minMember: 1
         applicationId: "tenant-b-batch3"
@@ -302,7 +315,7 @@ tasks:
       refTaskId: register-job-batch-3
       count: 20
       params:
-        namespace: default
+        namespace: tenant-c
         replicas: 1
         minMember: 1
         applicationId: "tenant-c-batch3"
