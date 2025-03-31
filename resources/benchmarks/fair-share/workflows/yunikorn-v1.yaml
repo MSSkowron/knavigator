@@ -149,7 +149,7 @@ tasks:
         queue: root.fairshare.tenant-a
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-tenants1a
     type: Sleep
@@ -167,7 +167,7 @@ tasks:
         queue: root.fairshare.tenant-b
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-tenants1b
     type: Sleep
@@ -185,7 +185,7 @@ tasks:
         queue: root.fairshare.tenant-c
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-rounds1
     type: Sleep
@@ -204,7 +204,7 @@ tasks:
         queue: root.fairshare.tenant-a
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-tenants2a
     type: Sleep
@@ -222,7 +222,7 @@ tasks:
         queue: root.fairshare.tenant-b
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-tenants2b
     type: Sleep
@@ -240,7 +240,7 @@ tasks:
         queue: root.fairshare.tenant-c
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-rounds2
     type: Sleep
@@ -259,7 +259,7 @@ tasks:
         queue: root.fairshare.tenant-a
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-tenants3a
     type: Sleep
@@ -277,7 +277,7 @@ tasks:
         queue: root.fairshare.tenant-b
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
 
   - id: wait-between-tenants3b
     type: Sleep
@@ -295,4 +295,4 @@ tasks:
         queue: root.fairshare.tenant-c
         cpu: 1000m
         memory: 1000Mi
-        ttl: "5m"
+        ttl: 5m
