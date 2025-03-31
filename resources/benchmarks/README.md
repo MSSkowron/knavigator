@@ -556,16 +556,16 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 
 - Klaster z 5 węzłami, każdy z 15100m CPU (efektywnie 15000m CPU do dyspozycji na węzeł, ponieważ 100m jest zarezerwowane dla KWOK) oraz 15050Mi pamięci (efektywnie 15000Mi pamięci do dyspozycji na węzeł, ponieważ 50Mi jest zarezerwowane dla KWOK)
 
-- Trzej najemcy (tenant-a, tenant-b, tenant-c) ze swoimi dedykowanymi przestrzeniami nazw
+- Łączne zasoby klastra: 75 CPU i ~75GB pamięci
 
-- Trzy ClusterQueue w kohorcie "fairshare-cohort", każda z identyczną wagą fair-sharing równą 1
+- Trzej najemcy (tenant-a, tenant-b, tenant-c) z równymi wagami (priorytetami)
 
-- Każda kolejka ma gwarantowane 25000m CPU z możliwością:
+- Każdemu tenantowi gwarantowane jest 1/3 dostępnych zasobów klastra (25000m CPU)
 
-  - Pożyczenia do 50000m CPU (50000Mi pamięci) od innych kolejek (borrowingLimit)
-  - Udostępnienia do 25000m CPU (25000Mi pamięci) innym kolejkom (lendingLimit)
-
-- Parametry preemption skonfigurowane tak, by umożliwić współdzielenie zasobów w kohorcie
+- Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera:
+  - Kueue: Poprzez konfigurację ClusterQueue w kohorcie
+  - Volcano: Poprzez plugin DRF i równe wagi kolejek
+  - YuniKorn: Poprzez hierarchiczne kolejki z równymi wagami
 
 **Działanie**:
 
@@ -584,8 +584,8 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 **Oczekiwany wynik**:
 
 - Mechanizm fair-sharing powinien zapewnić równy podział dostępnych zasobów
-- Każda kolejka powinna otrzymać około 25000m CPU (1/3 dostępnych zasobów)
-- Dla każdej kolejki powinno zostać uruchomionych około 25 zadań, a pozostałe powinny oczekiwać w kolejce
+- Każdy tenant powinien otrzymać około 25000m CPU (1/3 dostępnych zasobów)
+- Dla każdego tenanta powinno zostać uruchomionych około 25 zadań, a pozostałe powinny oczekiwać w kolejce
 - Zrównoważony rozkład obciążenia w trzech rundach pozwala obserwować zarówno początkową alokację jak i długoterminową stabilność fair-share
 
 ### V2: Proporcjonalny podział przy różnych wagach

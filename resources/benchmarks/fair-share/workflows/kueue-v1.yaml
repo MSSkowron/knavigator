@@ -310,10 +310,7 @@ tasks:
         namespace: tenant-c
         clusterQueue: tenant-c-cq
 
-  # Wysłanie zadań w naprzemienny sposób, aby lepiej symulować realistyczne obciążenie
-  # i obserwować dynamikę fair share między tenantami
-
-  # Runda 1: Pierwszy batch zadań dla wszystkich tenantów
+  # Runda 1: Pierwszy batch zadań dla wszystkich tenantów (30 zadań każdy)
   - id: submit-jobs-tenant-a-batch1
     type: SubmitObj
     params:
@@ -374,7 +371,7 @@ tasks:
     params:
       timeout: 60s
 
-  # Runda 2: Drugi batch zadań dla wszystkich tenantów
+  # Runda 2: Drugi batch zadań dla wszystkich tenantów (25 zadań każdy)
   - id: submit-jobs-tenant-a-batch2
     type: SubmitObj
     params:
@@ -435,7 +432,7 @@ tasks:
     params:
       timeout: 60s
 
-  # Runda 3: Trzeci batch zadań dla wszystkich tenantów
+  # Runda 3: Trzeci batch zadań dla wszystkich tenantów (20 zadań każdy)
   - id: submit-jobs-tenant-a-batch3
     type: SubmitObj
     params:
