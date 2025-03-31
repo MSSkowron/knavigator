@@ -318,7 +318,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 55
+      count: 30
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
@@ -332,13 +332,13 @@ tasks:
   - id: wait-between-tenants1a
     type: Sleep
     params:
-      timeout: 30s
+      timeout: 15s
 
   - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 55
+      count: 30
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
@@ -352,13 +352,13 @@ tasks:
   - id: wait-between-tenants1b
     type: Sleep
     params:
-      timeout: 30s
+      timeout: 15s
 
   - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 55
+      count: 30
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
@@ -379,7 +379,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 10
+      count: 25
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
@@ -399,7 +399,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 10
+      count: 25
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
@@ -419,7 +419,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 10
+      count: 25
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
@@ -440,7 +440,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 5
+      count: 20
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
@@ -454,13 +454,13 @@ tasks:
   - id: wait-between-tenants3a
     type: Sleep
     params:
-      timeout: 5s
+      timeout: 15s
 
   - id: submit-jobs-tenant-b-batch3
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 5
+      count: 20
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
@@ -474,13 +474,13 @@ tasks:
   - id: wait-between-tenants3b
     type: Sleep
     params:
-      timeout: 5s
+      timeout: 15s
 
   - id: submit-jobs-tenant-c-batch3
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 5
+      count: 20
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
