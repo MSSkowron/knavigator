@@ -1,0 +1,7 @@
+$ kubectl get queues
+NAME             AGE
+default          23m
+root             23m
+tenant-a-queue   5m6s
+tenant-b-queue   5m6s
+tenant-c-queue   5m6s

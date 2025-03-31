@@ -1,0 +1,27 @@
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  creationTimestamp: "2025-03-31T16:30:09Z"
+  generation: 2
+  name: tenant-b-queue
+  resourceVersion: "36858"
+  uid: 64ea931f-6bfc-4d90-a1f7-8624ae07e949
+spec:
+  capability:
+    cpu: 75000m
+    memory: 75000Mi
+  guarantee:
+    resource:
+      cpu: 25000m
+      memory: 25000Mi
+  parent: root
+  priority: 1
+  reclaimable: true
+  weight: 1
+status:
+  allocated:
+    cpu: "29"
+    memory: 29000Mi
+    pods: "29"
+  reservation: {}
+  state: Open

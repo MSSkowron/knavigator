@@ -1,0 +1,27 @@
+$ kubectl get queue tenant-c-queue -o yaml
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  creationTimestamp: "2025-03-31T16:09:57Z"
+  generation: 2
+  name: tenant-c-queue
+  resourceVersion: "6952"
+  uid: 78c08f97-ccdc-43a0-8776-276dce27b74c
+spec:
+  capability:
+    cpu: 75
+    memory: 75000Mi
+  guarantee:
+    resource:
+      cpu: 25
+      memory: 25000Mi
+  parent: root
+  priority: 1
+  reclaimable: true
+  weight: 1
+status:
+  allocated:
+    cpu: "0"
+    memory: "0"
+  reservation: {}
+  state: Open
