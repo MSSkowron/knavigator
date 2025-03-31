@@ -554,7 +554,7 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 
 **Konfiguracja**:
 
-- Klaster z 5 węzłami, każdy z 15100m CPU (efektywnie 15000m CPU do dyspozycji na węzeł, ponieważ 100m jest zarezerwowane dla KWOK) oraz 15050Mi pamięci (efektywnie 15050Mi pamięci do dyspozycji na węzeł, ponieważ 50Mi jest zarezerwowane dla KWOK)
+- Klaster z 5 węzłami, każdy z 15100m CPU (efektywnie 15000m CPU do dyspozycji na węzeł, ponieważ 100m jest zarezerwowane dla KWOK) oraz 15050Mi pamięci (efektywnie 15000Mi pamięci do dyspozycji na węzeł, ponieważ 50Mi jest zarezerwowane dla KWOK)
 
 - Trzej najemcy (tenant-a, tenant-b, tenant-c) ze swoimi dedykowanymi przestrzeniami nazw
 
@@ -569,19 +569,24 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 
 **Działanie**:
 
-- Sekwencyjnie przesyłane są zadania (30s pomiędzy tenantami) do każdej kolejki:
+- Zadania przesyłane są sekwencyjnie w trzech rundach (15s opóźnienie między tenantami, 60s między rundami):
 
-  - 75 identycznych zadań do tenant-a (każde żądające 1000m CPU i 1000Mi pamięci)
-  - 75 identycznych zadań do tenant-b (każde żądające 1000m CPU i 1000Mi pamięci)
-  - 75 identycznych zadań do tenant-c (każde żądające 1000m CPU i 1000Mi pamięci)
+  - **Runda 1**: 30 zadań do każdego tenanta (40% obciążenia)
+  - **Runda 2**: 25 zadań do każdego tenanta (33% obciążenia)
+  - **Runda 3**: 20 zadań do każdego tenanta (27% obciążenia)
 
-- Łącznie żądania przewyższają dostępne zasoby: 225000m CPU żądane vs. 75000m CPU dostępnych w klastrze
+- Każde zadanie żąda 1000m CPU i 1000Mi pamięci (reprezentuje typowe zadanie obliczeniowe)
+
+- Łącznie każdy tenant wysyła 75 zadań, co daje 225 zadań w klastrze
+
+- Całkowite żądania zasobów: 225000m CPU vs. 75000m CPU dostępnych (300% obciążenie)
 
 **Oczekiwany wynik**:
 
 - Mechanizm fair-sharing powinien zapewnić równy podział dostępnych zasobów
 - Każda kolejka powinna otrzymać około 25000m CPU (1/3 dostępnych zasobów)
 - Dla każdej kolejki powinno zostać uruchomionych około 25 zadań, a pozostałe powinny oczekiwać w kolejce
+- Zrównoważony rozkład obciążenia w trzech rundach pozwala obserwować zarówno początkową alokację jak i długoterminową stabilność fair-share
 
 ### V2: Proporcjonalny podział przy różnych wagach
 
