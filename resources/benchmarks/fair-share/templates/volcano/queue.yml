@@ -1,10 +1,10 @@
 apiVersion: scheduling.volcano.sh/v1beta1
 kind: Queue
 metadata:
-  name: "{{ .name }}"
+  name: {{ .name }}
 spec:
   {{- if .parent }}
-  parent: "{{ .parent }}"
+  parent: {{ .parent }}
   {{- end }}
 
   {{- if .reclaimable }}
@@ -22,21 +22,21 @@ spec:
   {{- if .guarantee }}
   guarantee:
     resource:
-      {{- range $key, $value := .guarantee }}
-      {{ $key }}: "{{ $value }}"
+      {{- range $key, $value := .guarantee.resource }}
+      {{ $key }}: {{ $value }}
       {{- end }}
   {{- end }}
 
   {{- if .deserved }}
   deserved:
     {{- range $key, $value := .deserved }}
-    {{ $key }}: "{{ $value }}"
+    {{ $key }}: {{ $value }}
     {{- end }}
   {{- end }}
 
   {{- if .capability }}
   capability:
     {{- range $key, $value := .capability }}
-    {{ $key }}: "{{ $value }}"
+    {{ $key }}: {{ $value }}
     {{- end }}
   {{- end }}

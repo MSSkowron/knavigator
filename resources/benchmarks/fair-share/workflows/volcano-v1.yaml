@@ -106,11 +106,11 @@ tasks:
         weight: 1
         guarantee:
           resource:
-            cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
-            memory: "25000Mi"
+            cpu: 25000m
+            memory: 25000Mi
         capability:
-          cpu: "75000m" # Maksymalne 75 CPU - twardy limit
-          memory: "75000Mi"
+          cpu: 75000m
+          memory: 75000Mi
 
   - id: create-queue-b
     type: SubmitObj
@@ -124,11 +124,11 @@ tasks:
         weight: 1
         guarantee:
           resource:
-            cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
-            memory: "25000Mi"
+            cpu: 25000m
+            memory: 25000Mi
         capability:
-          cpu: "75000m" # Maksymalne 75 CPU - twardy limit
-          memory: "75000Mi"
+          cpu: 75000m
+          memory: 75000Mi
 
   - id: create-queue-c
     type: SubmitObj
@@ -142,11 +142,14 @@ tasks:
         weight: 1
         guarantee:
           resource:
-            cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
-            memory: "25000Mi"
+            cpu: 25000m
+            memory: 25000Mi
         capability:
-          cpu: "75000m" # Maksymalne 75 CPU - twardy limit
-          memory: "75000Mi"
+          cpu: 75000m
+          memory: 75000Mi
+
+  # - id: manual-check
+  #   type: Pause
 
   # Runda 1: Pierwszy batch zadań dla wszystkich tenantów (30 zadań każdy)
   - id: submit-jobs-tenant-a-batch1
