@@ -28,10 +28,9 @@ tasks:
             queues.yaml: |
               partitions:
                 - name: default
-                  placementRules:
-                    - name: tag
-                      value: namespace
-                      create: true
+                  placementrules:
+                    - name: provided
+                      create: false
                   queues:
                   - name: root
                     submitacl: '*'
@@ -43,6 +42,9 @@ tasks:
                       queues:
                       - name: tenant-a
                         submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
                         resources:
                           guaranteed:
                             memory: 25000Mi
@@ -50,11 +52,11 @@ tasks:
                           max:
                             memory: 75000Mi
                             vcore: 75000m
-                        properties:
-                          weight: 1
-                          fairshare.enable: "true"
                       - name: tenant-b
                         submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
                         resources:
                           guaranteed:
                             memory: 25000Mi
@@ -62,11 +64,11 @@ tasks:
                           max:
                             memory: 75000Mi
                             vcore: 75000m
-                        properties:
-                          weight: 1
-                          fairshare.enable: "true"
                       - name: tenant-c
                         submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
                         resources:
                           guaranteed:
                             memory: 25000Mi
@@ -74,9 +76,6 @@ tasks:
                           max:
                             memory: 75000Mi
                             vcore: 75000m
-                        properties:
-                          weight: 1
-                          fairshare.enable: "true"
       deploymentRestarts:
         - namespace: yunikorn
           name: yunikorn-scheduler
@@ -148,7 +147,6 @@ tasks:
         namespace: tenant-a
         replicas: 1
         minMember: 1
-        applicationId: "tenant-a-batch1"
         queue: "root.fairshare.tenant-a"
         image: ubuntu
         cpu: 1000m
@@ -169,7 +167,6 @@ tasks:
         namespace: tenant-b
         replicas: 1
         minMember: 1
-        applicationId: "tenant-b-batch1"
         queue: "root.fairshare.tenant-b"
         image: ubuntu
         cpu: 1000m
@@ -190,7 +187,6 @@ tasks:
         namespace: tenant-c
         replicas: 1
         minMember: 1
-        applicationId: "tenant-c-batch1"
         queue: "root.fairshare.tenant-c"
         image: ubuntu
         cpu: 1000m
@@ -212,7 +208,6 @@ tasks:
         namespace: tenant-a
         replicas: 1
         minMember: 1
-        applicationId: "tenant-a-batch2"
         queue: "root.fairshare.tenant-a"
         image: ubuntu
         cpu: 1000m
@@ -233,7 +228,6 @@ tasks:
         namespace: tenant-b
         replicas: 1
         minMember: 1
-        applicationId: "tenant-b-batch2"
         queue: "root.fairshare.tenant-b"
         image: ubuntu
         cpu: 1000m
@@ -254,7 +248,6 @@ tasks:
         namespace: tenant-c
         replicas: 1
         minMember: 1
-        applicationId: "tenant-c-batch2"
         queue: "root.fairshare.tenant-c"
         image: ubuntu
         cpu: 1000m
@@ -276,7 +269,6 @@ tasks:
         namespace: tenant-a
         replicas: 1
         minMember: 1
-        applicationId: "tenant-a-batch3"
         queue: "root.fairshare.tenant-a"
         image: ubuntu
         cpu: 1000m
@@ -297,7 +289,6 @@ tasks:
         namespace: tenant-b
         replicas: 1
         minMember: 1
-        applicationId: "tenant-b-batch3"
         queue: "root.fairshare.tenant-b"
         image: ubuntu
         cpu: 1000m
@@ -318,7 +309,6 @@ tasks:
         namespace: tenant-c
         replicas: 1
         minMember: 1
-        applicationId: "tenant-c-batch3"
         queue: "root.fairshare.tenant-c"
         image: ubuntu
         cpu: 1000m

@@ -9,29 +9,16 @@ spec:
   template:
     metadata:
       labels:
-        applicationId: "{{.applicationId}}"
+        applicationId: {{._NAME_}}
         queue: {{.queue}}
         app: {{._NAME_}}
       annotations:
-        yunikorn.apache.org/task-group-name: group-{{._NAME_}}
-        yunikorn.apache.org/schedulingPolicyParameters: "gangSchedulingStyle=Hard"
-        yunikorn.apache.org/task-groups: |-
-          [{
-            "name": "group-{{._NAME_}}",
-            "minMember": {{.minMember}},
-            "minResource": {
-              "cpu": {{.cpu}},
-              "memory": {{.memory}}{{if .gpu}},
-              "nvidia.com/gpu": {{.gpu}}{{end}}
-            },
-            "nodeSelector": {},
-            "tolerations": [],
-            "affinity": {}
-          }]
-        pod-complete.stage.kwok.x-k8s.io/delay: {{.ttl}}
-        pod-complete.stage.kwok.x-k8s.io/jitter-delay: {{.ttl}}
+        pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
+        pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
     spec:
       schedulerName: yunikorn
+      nodeSelector:
+        type: kwok
       containers:
       - name: test
         image: {{.image}}
