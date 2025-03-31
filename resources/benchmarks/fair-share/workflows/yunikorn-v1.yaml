@@ -146,9 +146,7 @@ tasks:
       params:
         namespace: tenant-a
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-a"
-        image: ubuntu
+        queue: root.fairshare.tenant-a
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -166,9 +164,7 @@ tasks:
       params:
         namespace: tenant-b
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-b"
-        image: ubuntu
+        queue: root.fairshare.tenant-b
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -186,9 +182,7 @@ tasks:
       params:
         namespace: tenant-c
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-c"
-        image: ubuntu
+        queue: root.fairshare.tenant-c
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -207,9 +201,7 @@ tasks:
       params:
         namespace: tenant-a
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-a"
-        image: ubuntu
+        queue: root.fairshare.tenant-a
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -227,9 +219,7 @@ tasks:
       params:
         namespace: tenant-b
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-b"
-        image: ubuntu
+        queue: root.fairshare.tenant-b
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -247,9 +237,7 @@ tasks:
       params:
         namespace: tenant-c
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-c"
-        image: ubuntu
+        queue: root.fairshare.tenant-c
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -268,9 +256,7 @@ tasks:
       params:
         namespace: tenant-a
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-a"
-        image: ubuntu
+        queue: root.fairshare.tenant-a
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -288,9 +274,7 @@ tasks:
       params:
         namespace: tenant-b
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-b"
-        image: ubuntu
+        queue: root.fairshare.tenant-b
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -308,9 +292,7 @@ tasks:
       params:
         namespace: tenant-c
         replicas: 1
-        minMember: 1
-        queue: "root.fairshare.tenant-c"
-        image: ubuntu
+        queue: root.fairshare.tenant-c
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"

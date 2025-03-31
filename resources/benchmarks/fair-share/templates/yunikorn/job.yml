@@ -9,9 +9,9 @@ spec:
   template:
     metadata:
       labels:
-        applicationId: {{._NAME_}}
+        applicationId: "test-{{._NAME_}}"
+        app: "test-{{._NAME_}}"
         queue: {{.queue}}
-        app: {{._NAME_}}
       annotations:
         pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
         pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
@@ -21,7 +21,7 @@ spec:
         type: kwok
       containers:
       - name: test
-        image: {{.image}}
+        image: ubuntu
         imagePullPolicy: IfNotPresent
         resources:
           limits:
