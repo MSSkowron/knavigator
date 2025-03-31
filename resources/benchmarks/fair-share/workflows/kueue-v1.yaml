@@ -318,7 +318,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 30
+      count: 55
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
@@ -332,13 +332,13 @@ tasks:
   - id: wait-between-tenants1a
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 30s
 
   - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 30
+      count: 55
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
@@ -352,13 +352,13 @@ tasks:
   - id: wait-between-tenants1b
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 30s
 
   - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 30
+      count: 55
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
@@ -372,14 +372,14 @@ tasks:
   - id: wait-between-rounds1
     type: Sleep
     params:
-      timeout: 20s
+      timeout: 60s
 
   # Runda 2: Drugi batch zadań dla wszystkich tenantów
   - id: submit-jobs-tenant-a-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 25
+      count: 10
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
@@ -393,13 +393,13 @@ tasks:
   - id: wait-between-tenants2a
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 15s
 
   - id: submit-jobs-tenant-b-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 25
+      count: 10
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
@@ -413,13 +413,13 @@ tasks:
   - id: wait-between-tenants2b
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 15s
 
   - id: submit-jobs-tenant-c-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 25
+      count: 10
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
@@ -433,14 +433,14 @@ tasks:
   - id: wait-between-rounds2
     type: Sleep
     params:
-      timeout: 20s
+      timeout: 60s
 
   # Runda 3: Trzeci batch zadań dla wszystkich tenantów
   - id: submit-jobs-tenant-a-batch3
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 20
+      count: 5
       params:
         namespace: tenant-a
         queueName: tenant-a-queue
@@ -460,7 +460,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 20
+      count: 5
       params:
         namespace: tenant-b
         queueName: tenant-b-queue
@@ -480,7 +480,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 20
+      count: 5
       params:
         namespace: tenant-c
         queueName: tenant-c-queue
