@@ -27,17 +27,16 @@ tasks:
           op: create
           data:
             volcano-scheduler.conf: |
-              actions: "enqueue, allocate, backfill, preempt, reclaim"
+              actions: "enqueue, allocate, reclaim"
               tiers:
               - plugins:
                 - name: priority
                 - name: gang
               - plugins:
-                - name: drf  # Dominant Resource Fairness plugin for fair sharing
-                  enablePreemptable: true  # Allow preemption for fair sharing
+                - name: drf
+                  enablePreemptable: true
                 - name: predicates
-                - name: capacity # capacity plugin must be enabled
-                  enableHierarchy: true # enable hierarchical queue
+                - name: proportion
                 - name: nodeorder
                 - name: binpack
       deploymentRestarts:
@@ -103,8 +102,8 @@ tasks:
       params:
         name: "tenant-a-queue"
         reclaimable: true
-        weight: 100 # Równa waga
-        priority: 100
+        priority: 1
+        weight: 1
         guarantee:
           resource:
             cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
@@ -121,8 +120,8 @@ tasks:
       params:
         name: "tenant-b-queue"
         reclaimable: true
-        weight: 100 # Równa waga
-        priority: 100
+        priority: 1
+        weight: 1
         guarantee:
           resource:
             cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
@@ -139,8 +138,8 @@ tasks:
       params:
         name: "tenant-c-queue"
         reclaimable: true
-        weight: 100 # Równa waga
-        priority: 100
+        priority: 1
+        weight: 1
         guarantee:
           resource:
             cpu: "25000m" # Gwarantowane 25 CPU - zawsze zarezerwowane
