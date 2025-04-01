@@ -588,6 +588,19 @@ Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobó
 - Dla każdego tenanta powinno zostać uruchomionych około 25 zadań, a pozostałe powinny oczekiwać w kolejce
 - Zrównoważony rozkład obciążenia w trzech rundach pozwala obserwować zarówno początkową alokację jak i długoterminową stabilność fair-share
 
+**Skrypty do uruchomienia**:
+
+```sh
+# Dla Kueue
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1.yaml'
+
+# Dla Volcano
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1.yaml'
+
+# Dla YuniKorn
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1.yaml'
+```
+
 ### V2: Proporcjonalny podział przy różnych wagach
 
 **Opis**: Weryfikuje proporcjonalny podział na podstawie wag.

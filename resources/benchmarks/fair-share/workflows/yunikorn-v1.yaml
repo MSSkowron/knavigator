@@ -39,6 +39,8 @@ tasks:
                       submitacl: '*'
                       properties:
                         application.sort.policy: fair
+                        preemption.policy: fence
+                        preemption.delay: 10s
                       queues:
                       - name: tenant-a
                         submitacl: '*'
