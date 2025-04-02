@@ -1,0 +1,286 @@
+name: yunikorn-fair-share-benchmark-v2-no-guarantees
+description: |
+  Weighted Fair Share benchmark for YuniKorn (No Guarantees).
+  Tests proportional resource sharing (3:2:1 weights) in a homogeneous cluster
+  with identical jobs under high load, using explicit weights and no guarantees.
+tasks:
+  # Configure YuniKorn (with weights, no guarantees)
+  - id: configure-yunikorn
+    type: Configure
+    params:
+      configmaps:
+        - name: yunikorn-configs
+          namespace: yunikorn
+          op: create
+          data:
+            queues.yaml: |
+              partitions:
+                - name: default
+                  placementrules:
+                    - name: provided
+                      create: false
+                  queues:
+                  - name: root
+                    submitacl: '*'
+                    queues:
+                    - name: fairshare # Parent queue
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                        preemption.policy: fence
+                        preemption.delay: 10s
+                      queues:
+                      - name: tenant-a
+                        submitacl: '*'
+                        properties:
+                          weight: "3" # EXPLICIT WEIGHT 3
+                        resources:
+                          guaranteed:
+                            memory: 48Gi   # GUARANTEE 3/6
+                            vcore: 48000m # GUARANTEE 3/6
+                          max:
+                            memory: 96Gi
+                            vcore: 96000m
+                      - name: tenant-b
+                        submitacl: '*'
+                        properties:
+                          weight: "2" # EXPLICIT WEIGHT 2
+                        resources:
+                          guaranteed:
+                            memory: 32Gi   # GUARANTEE 2/6
+                            vcore: 32000m # GUARANTEE 2/6
+                          max:
+                            memory: 96Gi
+                            vcore: 96000m
+                      - name: tenant-c
+                        submitacl: '*'
+                        properties:
+                          weight: "1" # EXPLICIT WEIGHT 1
+                        resources:
+                          guaranteed:
+                            memory: 16Gi   # GUARANTEE 1/6
+                            vcore: 16000m # GUARANTEE 1/6
+                          max:
+                            memory: 96Gi
+                            vcore: 96000m
+      deploymentRestarts:
+        - namespace: yunikorn
+          name: yunikorn-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes (6 nodes, 16 CPU/16GB each = 96 CPU/96GB total)
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: cpu-node # Homogeneous nodes
+          count: 6
+          resources:
+            cpu: 16100m
+            memory: "16050Mi"
+            pods: 110
+      timeout: 5m
+
+  # Create namespaces
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+      timeout: 1m
+
+  # Register YuniKorn job templates
+  - id: register-job-batch-1
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v2-ng-b1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-2
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v2-ng-b2-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-3
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
+      nameFormat: "fairshare-v2-ng-b3-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-.*"
+      podCount: "{{.replicas}}"
+
+  # --- Job Submission Rounds ---
+  # Round 1 (A:30, B:20, C:10) - Tasks req <1 CPU, 1 GB RAM>
+  - id: submit-jobs-tenant-a-batch1
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-1
+      count: 30
+      params:
+        namespace: tenant-a
+        replicas: 1
+        queue: root.fairshare.tenant-a
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait1a
+    type: Sleep
+    params:
+      timeout: 15s
+
+  - id: submit-jobs-tenant-b-batch1
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-1
+      count: 20
+      params:
+        namespace: tenant-b
+        replicas: 1
+        queue: root.fairshare.tenant-b
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait1b
+    type: Sleep
+    params:
+      timeout: 15s
+
+  - id: submit-jobs-tenant-c-batch1
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-1
+      count: 10
+      params:
+        namespace: tenant-c
+        replicas: 1
+        queue: root.fairshare.tenant-c
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait1r
+    type: Sleep
+    params:
+      timeout: 60s
+
+  # Round 2 (A:25, B:15, C:10)
+  - id: submit-jobs-tenant-a-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 25
+      params:
+        namespace: tenant-a
+        replicas: 1
+        queue: root.fairshare.tenant-a
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait2a
+    type: Sleep
+    params:
+      timeout: 15s
+
+  - id: submit-jobs-tenant-b-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 15
+      params:
+        namespace: tenant-b
+        replicas: 1
+        queue: root.fairshare.tenant-b
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait2b
+    type: Sleep
+    params:
+      timeout: 15s
+
+  - id: submit-jobs-tenant-c-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 10
+      params:
+        namespace: tenant-c
+        replicas: 1
+        queue: root.fairshare.tenant-c
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait2r
+    type: Sleep
+    params:
+      timeout: 60s
+
+  # Round 3 (A:20, B:15, C:10)
+  - id: submit-jobs-tenant-a-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 20
+      params:
+        namespace: tenant-a
+        replicas: 1
+        queue: root.fairshare.tenant-a
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait3a
+    type: Sleep
+    params:
+      timeout: 15s
+
+  - id: submit-jobs-tenant-b-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 15
+      params:
+        namespace: tenant-b
+        replicas: 1
+        queue: root.fairshare.tenant-b
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"
+
+  - id: wait3b
+    type: Sleep
+    params:
+      timeout: 15s
+
+  - id: submit-jobs-tenant-c-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 10
+      params:
+        namespace: tenant-c
+        replicas: 1
+        queue: root.fairshare.tenant-c
+        cpu: 1000m
+        memory: 1Gi
+        ttl: "5m"

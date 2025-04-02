@@ -546,123 +546,254 @@ Na tym diagramie:
 
 ## Sprawiedliwy przydział zasobów (Fair Share)
 
-Benchmarki oceniają zdolność schedulerów do sprawiedliwego podziału zasobów między różnymi kolejkami i zadaniami. Testują, czy scheduler prawidłowo dostosowuje się do priorytetów zadań i zapobiega monopolizacji zasobów przez pojedyncze zadania lub grupy.
+Benchmarki w tej sekcji oceniają zdolność schedulerów do sprawiedliwego podziału zasobów klastra między różnymi grupami użytkowników (najemcami) lub kolejkami zadań. Testują one różne aspekty mechanizmów *fair share*, w tym:
 
-### V1: Równy podział przy identycznych wagach
+1. **Równy podział** przy identycznych wymaganiach i wagach (V1).
+2. **Proporcjonalny podział** na podstawie zdefiniowanych wag (V2).
+3. **Dominant Resource Fairness (DRF)** w środowisku z wieloma typami zasobów i różnorodnymi wymaganiami zadań (V3).
 
-**Opis**: Sprawdza, czy scheduler prawidłowo implementuje sprawiedliwy podział zasobów między najemcami (tenants) o identycznych wagach.
+Każdy scenariusz jest testowany w dwóch wariantach: bez gwarancji zasobów (aby obserwować "czysty" mechanizm fair share) oraz z gwarancjami (aby zbadać interakcję fair share z gwarantowanymi kwotami i potencjalnym wpływem na preempcję).
+
+### V1: Równy podział przy identycznych wagach (Homogeniczny Klaster)
+
+**Opis**: Sprawdza, czy scheduler prawidłowo implementuje podstawowy mechanizm sprawiedliwego podziału zasobów między najemcami (tenants) o **identycznych wagach**, uruchamiającymi **identyczne zadania** w **homogenicznym** klastrze. Test ten stanowi bazę przed bardziej złożonymi scenariuszami.
 
 **Konfiguracja**:
 
-- Klaster z 5 węzłami, każdy z 15100m CPU (efektywnie 15000m CPU do dyspozycji na węzeł, ponieważ 100m jest zarezerwowane dla KWOK) oraz 15050Mi pamięci (efektywnie 15000Mi pamięci do dyspozycji na węzeł, ponieważ 50Mi jest zarezerwowane dla KWOK)
-
-- Łączne zasoby klastra: 75 CPU i ~75GB pamięci
-
-- Trzej najemcy (tenant-a, tenant-b, tenant-c) z równymi wagami (priorytetami)
-
-- Każdemu tenantowi gwarantowane jest 1/3 dostępnych zasobów klastra (25000m CPU)
-
-- Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera:
-  - Kueue: Poprzez konfigurację ClusterQueue w kohorcie
-  - Volcano: Poprzez plugin DRF i równe wagi kolejek
-  - YuniKorn: Poprzez hierarchiczne kolejki z równymi wagami
+- Klaster z 5 identycznymi węzłami, każdy z ~15 CPU i ~15 GB RAM do dyspozycji.
+- Łączne zasoby klastra: **75 CPU** i **~75 GB RAM**.
+- Trzej najemcy (tenant-a, tenant-b, tenant-c) z **równymi wagami** (weight=1 lub domyślna równa waga).
+- Każde zadanie wymaga identycznych zasobów: **<1 CPU, 1 GB RAM>**.
+- Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera.
+- **Dwa warianty testu:**
+    1. **Bez Gwarancji (`*-v1-no-guarantees.yaml`):** Gwarantowane zasoby (`guarantee`/`nominalQuota`) ustawione na 0, aby obserwować "czysty" efekt fair sharing sterowany tylko dostępnością zasobów i równymi uprawnieniami.
+    2. **Z Gwarancjami (`*-v1-guaranteed.yaml`):** Każdemu najemcy gwarantowane jest 1/3 zasobów klastra (25 CPU, 25 GB RAM), aby obserwować interakcję fair sharing z gwarancjami (np. potencjalny wpływ na preempcję, gdy kolejka spadnie poniżej gwarancji).
 
 **Działanie**:
 
-- Zadania przesyłane są sekwencyjnie w trzech rundach (15s opóźnienie między tenantami, 60s między rundami):
-
-  - **Runda 1**: 30 zadań do każdego tenanta (40% obciążenia)
-  - **Runda 2**: 25 zadań do każdego tenanta (33% obciążenia)
-  - **Runda 3**: 20 zadań do każdego tenanta (27% obciążenia)
-
-- Każde zadanie żąda 1000m CPU i 1000Mi pamięci (reprezentuje typowe zadanie obliczeniowe)
-
-- Łącznie każdy tenant wysyła 75 zadań, co daje 225 zadań w klastrze
-
-- Całkowite żądania zasobów: 225000m CPU vs. 75000m CPU dostępnych (300% obciążenie)
+- Zadania przesyłane są sekwencyjnie w trzech rundach z opóźnieniami:
+  - Runda 1: 30 zadań / najemcę
+  - Runda 2: 25 zadań / najemcę
+  - Runda 3: 20 zadań / najemcę
+- Łącznie 75 zadań / najemcę, 225 zadań w sumie.
+- Całkowite zapotrzebowanie (225 CPU, 225 GB RAM) znacznie przekracza pojemność klastra (75 CPU, 75 GB RAM), wymuszając działanie mechanizmów fair sharing.
 
 **Oczekiwany wynik**:
 
-- Mechanizm fair-sharing powinien zapewnić równy podział dostępnych zasobów
-- Każdy tenant powinien otrzymać około 25000m CPU (1/3 dostępnych zasobów)
-- Dla każdego tenanta powinno zostać uruchomionych około 25 zadań, a pozostałe powinny oczekiwać w kolejce
-- Zrównoważony rozkład obciążenia w trzech rundach pozwala obserwować zarówno początkową alokację jak i długoterminową stabilność fair-share
+- Niezależnie od wariantu (z gwarancjami czy bez), w stanie nasycenia klastera, mechanizm fair-sharing powinien zapewnić **równy podział dostępnych zasobów** (zarówno CPU, jak i RAM) między trzech najemców.
+- Każdy najemca powinien otrzymać około **1/3 zasobów klastra**, czyli:
+  - **~25 CPU**
+  - **~25 GB RAM**
+- Biorąc pod uwagę, że każde zadanie wymaga 1 CPU i 1 GB RAM, dla każdego najemcy powinno zostać **uruchomionych około 25 zadań**.
+- Pozostałe zadania (50 na najemcę) powinny oczekiwać w kolejce.
+- W wariancie "z gwarancjami", gwarancje mogą wpłynąć na dynamikę osiągania stanu równowagi lub zachowanie preempcji, ale ostateczny, stabilny podział zasobów powinien być taki sam (1/3 dla każdego).
 
 **Skrypty do uruchomienia**:
 
-```sh
-# Dla Kueue
-./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1.yaml'
+- **Wariant BEZ Gwarancji:**
 
-# Dla Volcano
-./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1.yaml'
+    ```sh
+    # Dla Kueue
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-no-guarantees.yaml'
+    # Dla Volcano
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-no-guarantees.yaml'
+    # Dla YuniKorn
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-no-guarantees.yaml'
+    ```
 
-# Dla YuniKorn
-./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1.yaml'
-```
+- **Wariant Z Gwarancjami:**
 
-### V2: Proporcjonalny podział przy różnych wagach
+    ```sh
+    # Dla Kueue
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-guaranteed.yaml'
+    # Dla Volcano
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-guaranteed.yaml'
+    # Dla YuniKorn
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-guaranteed.yaml'
+    ```
 
-**Opis**: Weryfikuje proporcjonalny podział na podstawie wag.
+### V2: Proporcjonalny podział przy różnych wagach (Homogeniczny Klaster)
 
-**Konfiguracja**:
-
-- Kolejki: X (waga 3), Y (waga 2), Z (waga 1).
-
-- Zasób klastra: 60 CPU (przykład: 3+2+1=6 jednostek wagi → 10 CPU na jednostkę).
-
-**Działanie**:
-
-- Prześlij zadania wymagające łącznie >60 CPU (np. X: 40 CPU, Y: 30 CPU, Z: 20 CPU).
-
-**Oczekiwany wynik**:
-
-- Kolejka X: 30 CPU (3/6 zasobów), Y: 20 CPU (2/6), Z: 10 CPU (1/6).
-
-### V3: Dynamiczne zarządzanie nadmiarowymi zasobami
-
-**Cel**: Sprawdź zdolność planisty do umożliwienia kolejkom wykorzystania nadmiarowych zasobów, gdy inne kolejki nie wykorzystują swoich udziałów, i powrotu do równych udziałów, gdy wszystkie kolejki żądają zasobów.
+**Opis**: Weryfikuje, czy scheduler prawidłowo implementuje **proporcjonalny podział zasobów** na podstawie **różnych wag** przypisanych najemcom w **homogenicznym** klastrze, gdy zadania mają identyczne wymagania.
 
 **Konfiguracja**:
 
-- Dwie kolejki (P, Q) z wagą 1.
-
-- Zasób klastera: 100 CPU.
+- Klaster z 6 identycznymi węzłami, każdy z ~16 CPU i ~16 GB RAM do dyspozycji.
+- Łączne zasoby klastra: **96 CPU** i **~96 GB RAM**.
+- Trzej najemcy (tenant-a, tenant-b, tenant-c) z różnymi wagami (konfigurowanymi odpowiednio dla danego schedulera):
+  - **Tenant A: waga 3**
+  - **Tenant B: waga 2**
+  - **Tenant C: waga 1**
+  - (Łączna liczba jednostek wagi: 3 + 2 + 1 = 6)
+- Każde zadanie wymaga identycznych zasobów: **<1 CPU, 1 GiB RAM>**.
+- Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera (z uwzględnieniem wag).
+- **Dwa warianty testu:**
+    1. **Bez Gwarancji (`*-v2-no-guarantees.yaml`):** Gwarantowane zasoby (`guarantee`/`nominalQuota`) ustawione na 0 (lub minimalną wartość wymaganą przez Kueue z użyciem `dummy-queue`). Podział zasobów powinien być sterowany wyłącznie przez wagi i dostępność zasobów.
+    2. **Z Gwarancjami (`*-v2-guaranteed.yaml`):** Gwarantowane zasoby ustawione proporcjonalnie do wag (A: 48 CPU/48GB, B: 32 CPU/32GB, C: 16 CPU/16GB). Obserwujemy interakcję mechanizmu ważonego podziału z gwarancjami.
 
 **Działanie**:
 
-- Faza 1: Prześlij zadania tylko do kolejki P (np. wymagające 100 CPU).
-
-- Faza 2: Po 5 minutach dodaj zadania do kolejki Q (również 100 CPU).
+- Zadania przesyłane są sekwencyjnie w trzech rundach z opóźnieniami: **10 sekund między najemcami** w ramach rundy i **10 sekund między rundami**.
+  - **Runda 1**: 50 zadań / najemcę (łącznie 150 zadań)
+  - **Runda 2**: 30 zadań / najemcę (łącznie 90 zadań)
+  - **Runda 3**: 10 zadań / najemcę (łącznie 30 zadań)
+- Łącznie **90 zadań / najemcę**, **270 zadań w sumie**.
+- Całkowite zapotrzebowanie (**270 CPU, 270 GiB RAM**) znacznie przekracza pojemność klastra (96 CPU, 96 GB RAM), wymuszając działanie mechanizmów fair sharing.
 
 **Oczekiwany wynik**:
 
-- Faza 1: Kolejka P wykorzystuje >90% CPU przez pierwsze 5 minut.
+- Niezależnie od wariantu (z gwarancjami czy bez), w stanie nasycenia klastera, mechanizm fair-sharing (uwzględniający wagi) powinien zapewnić **podział dostępnych zasobów proporcjonalnie do wag 3:2:1**.
+- Oczekiwana alokacja zasobów dla każdego najemcy:
+  - **Tenant A (waga 3):** (3/6) *96 CPU = **48 CPU**; (3/6)* 96 GB = **48 GB RAM**
+  - **Tenant B (waga 2):** (2/6) *96 CPU = **32 CPU**; (2/6)* 96 GB = **32 GB RAM**
+  - **Tenant C (waga 1):** (1/6) *96 CPU = **16 CPU**; (1/6)* 96 GB = **16 GB RAM**
+- Biorąc pod uwagę zadania <1 CPU, 1 GiB RAM>, oczekiwana liczba **uruchomionych zadań** w stanie równowagi:
+  - **Tenant A: ~48 zadań**
+  - **Tenant B: ~32 zadania**
+  - **Tenant C: ~16 zadań**
+- Pozostałe zadania (A: 90-48=42, B: 90-32=58, C: 90-16=74) powinny oczekiwać w kolejce. *(Uwaga: te liczby oczekujących zadań są teraz wyższe ze względu na większą liczbę wysłanych zadań)*.
+- W wariancie "z gwarancjami", gwarancje ustawione zgodnie z oczekiwanym podziałem wagowym mogą ustabilizować alokację i wpłynąć na preempcję, ale ostateczny podział zasobów powinien być zgodny ze stosunkiem wag 3:2:1 (choć jak zaobserwowano w Kueue, interakcja może być złożona).
 
-- Faza 2: W ciągu 2–3 minut od dodania zadań do Q, alokacja stabilizuje się na poziomie ~50% dla każdej kolejki.
+**Skrypty do uruchomienia**:
 
-### V4: Hierarchia kolejek z wagami na wielu poziomach
+- **Wariant BEZ Gwarancji:**
 
-**Opis**: Ten scenariusz testuje mechanizm sprawiedliwego podziału w strukturze hierarchicznych kolejek, upewniając się, że alokacja zasobów respektuje hierarchię i wagi na różnych poziomach.
+    ```sh
+    # Dla Kueue
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-no-guarantees.yaml'
+    # Dla Volcano
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-no-guarantees.yaml'
+    # Dla YuniKorn
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-no-guarantees.yaml'
+    ```
+
+- **Wariant Z Gwarancjami:**
+
+    ```sh
+    # Dla Kueue
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-guaranteed.yaml'
+    # Dla Volcano
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-guaranteed.yaml'
+    # Dla YuniKorn
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-guaranteed.yaml'
+    ```
+
+### V3: Heterogeniczna sprawiedliwość
+
+**Opis**: Weryfikuje implementację algorytmu **Dominant Resource Fairness (DRF)** w środowisku **heterogenicznym**. Test sprawdza, jak scheduler rozdziela zasoby (CPU, RAM, GPU) między najemców o **różnych profilach zapotrzebowania** i równych wagach, dążąc do wyrównania ich dominujących udziałów w zasobach całego klastra.
 
 **Konfiguracja**:
 
-- Kolejka główna G (waga 2) z pod-kolejkami:
-
-  - G1 (waga 3)
-
-  - G2 (waga 1)
-
-- Kolejka równoległa H (waga 1).
-
-- Zasób klastra: 120 CPU.
+- Klaster z 12 węzłami podzielonymi na 3 typy, zapewniający różnorodność zasobów:
+  - **Typ A**: 4 węzły CPU-intensive (~64 CPU, ~64 GiB RAM, 0 GPU każdy)
+  - **Typ B**: 4 węzły RAM-intensive (~16 CPU, ~256 GiB RAM, 0 GPU każdy)
+  - **Typ C**: 4 węzły GPU-enabled (~16 CPU, ~64 GiB RAM, 4 GPU każdy)
+- Całkowite zasoby klastra: **~384 CPU, ~1536 GiB RAM, 16 GPU**.
+- Trzej najemcy (tenant-a, tenant-b, tenant-c) z **równymi wagami** (weight=1 lub domyślnie), ale różnymi profilami zadań:
+  - **Tenant A (CPU-heavy)**: Zadania `<4 CPU, 4 GiB RAM, 0 GPU>` (Dominujący zasób: CPU)
+  - **Tenant B (Memory-heavy)**: Zadania `<1 CPU, 16 GiB RAM, 0 GPU>` (Dominujący zasób: RAM)
+  - **Tenant C (GPU-heavy)**: Zadania `<1 CPU, 4 GiB RAM, 1 GPU>` (Dominujący zasób: GPU)
+- Mechanizmy fair share/DRF skonfigurowane odpowiednio dla każdego schedulera.
+- **Dwa warianty testu:**
+    1. **Bez Gwarancji (`*-v3-no-guarantees.yaml`):** Gwarantowane/minimalne zasoby (`guarantee`/`nominalQuota`) ustawione na 0 (lub minimalną wartość/z użyciem dummy-queue dla Kueue). Celem jest obserwacja "czystego" algorytmu DRF, gdzie podział sterowany jest głównie dostępnością zasobów i dążeniem do wyrównania dominujących udziałów.
+    2. **Z Gwarancjami (`*-v3-guaranteed.yaml`):** Gwarantowane zasoby ustawione na poziomie ~1/3 dominującego zasobu dla każdego najemcy (A: 128 CPU/128GiB, B: 32 CPU/512GiB, C: 5 CPU/20GiB/5 GPU). Limity pożyczania ustawione na maksimum. Celem jest obserwacja **interakcji** między mechanizmem gwarancji/preempcji `reclaim` a dynamicznym algorytmem DRF działającym na zasobach pożyczonych.
 
 **Działanie**:
 
-- Prześlij zadania do G1, G2 i H, każda wymagająca 80 CPU.
+- Zadania przesyłane są sekwencyjnie w trzech rundach z opóźnieniami (**10s między najemcami, 30s między rundami**):
+  - Runda 1: A: 100, B: 100, C: 50 zadań
+  - Runda 2: A: 100, B: 100, C: 50 zadań
+  - Runda 3: A: 100, B: 100, C: 50 zadań
+- Łącznie: Tenant A: 300, Tenant B: 300, Tenant C: 150 zadań.
+- Duża liczba zadań zapewnia nasycenie klastra i wymusza działanie mechanizmów sprawiedliwego podziału.
 
 **Oczekiwany wynik**:
 
-- Kolejka główna G otrzymuje 2/3 zasobów (80 CPU), a H 1/3 (40 CPU) – zgodnie z wagami G:H = 2:1.
+Scheduler powinien przydzielić zasoby zgodnie z zasadami DRF (Dominant Resource Fairness), co oznacza dążenie do **wyrównania całkowitego zużycia dominującego zasobu** przez każdego najemcę, ważonego jego wagą (tutaj wagi są równe 1).
 
-- W ramach G: G1 otrzymuje 3/4 z 80 CPU (60 CPU), G2 1/4 (20 CPU) – zgodnie z wagami G1:G2 = 3:1.
+- **Identyfikacja zasobu dominującego i jego udziału (na zadanie):**
+  - Całkowite zasoby klastra: `R = <384 CPU, 1536 GB RAM, 16 GPU>`
+  - **Tenant A** (Zadanie `<4 CPU, 4 GB RAM, 0 GPU>`):
+    - Udziały: CPU `4/384 = 1/96`, RAM `4/1536 = 1/384`, GPU `0/16 = 0`
+    - Dominujący zasób: **CPU**. Udział dominujący na zadanie: **1/96**
+  - **Tenant B** (Zadanie `<1 CPU, 16 GB RAM, 0 GPU>`):
+    - Udziały: CPU `1/384`, RAM `16/1536 = 1/96`, GPU `0/16 = 0`
+    - Dominujący zasób: **RAM**. Udział dominujący na zadanie: **1/96**
+  - **Tenant C** (Zadanie `<1 CPU, 4 GB RAM, 1 GPU>`):
+    - Udziały: CPU `1/384`, RAM `4/1536 = 1/384`, GPU `1/16 = 6/96`
+    - Dominujący zasób: **GPU**. Udział dominujący na zadanie: **1/16** (czyli 6 razy większy niż A i B)
+
+- **Oczekiwana relacja liczby zadań przy równym podziale DRF:**
+  - Aby całkowite udziały dominujące były równe (`TotalShare_A ≈ TotalShare_B ≈ TotalShare_C`):
+    `N_A * (1/96) ≈ N_B * (1/96) ≈ N_C * (6/96)`
+  - Oznacza to, że w stanie równowagi oczekujemy relacji liczby uruchomionych zadań:
+    `N_A ≈ N_B` oraz `N_A ≈ 6 * N_C` (lub `N_C ≈ N_A / 6`)
+
+- **Obliczenie maksymalnej liczby zadań przy ograniczeniach klastra:**
+  - Podstawiając relacje z kroku 2 do ograniczeń zasobów klastra:
+    - CPU:
+
+      `4*N_A + 1*N_B + 1*N_C ≤ 384` =>
+
+      `4*N_A + N_A + (N_A/6) ≤ 384` =>
+
+      `5.167 * N_A ≤ 384` =>
+
+      `N_A ≤ ~74`
+
+    - RAM:
+
+      `4*N_A + 16*N_B + 4*N_C ≤ 1536` =>
+
+      `4*N_A + 16*N_A + 4*(N_A/6) ≤ 1536` =>
+
+      `20.667 * N_A ≤ 1536` =>
+
+      `N_A ≤ ~74`
+
+    - GPU:
+
+      `0*N_A + 0*N_B + 1*N_C ≤ 16` =>
+
+      `N_A/6 ≤ 16` =>
+
+      `N_A ≤ 96`
+
+  - Najbardziej restrykcyjnym ograniczeniem jest CPU i RAM, które limitują `N_A` do około 74.
+
+- **Oczekiwana liczba uruchomionych zadań (przy pełnym obciążeniu i działającym DRF):**
+  - **Tenant A:** `N_A ≈ 74` zadania (CPU-heavy)
+  - **Tenant B:** `N_B ≈ 74` zadania (Memory-heavy)
+  - **Tenant C:** `N_C ≈ 12` zadań (GPU-heavy, bo `74 / 6 ≈ 12`)
+  - Obserwacja stosunku liczby działających zadań bliskiego **~74 : ~74 : ~12** będzie potwierdzeniem poprawnej implementacji DRF przez scheduler.
+
+- Scheduler powinien efektywnie wykorzystywać dostępne zasoby na odpowiednich typach węzłów (heterogeniczność), jednocześnie dążąc do globalnego zrównoważenia udziałów dominujących zasobów zgodnie z powyższymi obliczeniami. Gwarancje zasobów (jeśli ustawione wysoko) mogą wpływać na początkową alokację lub preempcję, ale w stanie nasycenia klastera podział powinien dążyć do wyniku DRF. W tym teście minimalizujemy wpływ gwarancji, aby obserwować "czysty" efekt DRF.
+
+**Interpretacja Wariantów:**
+
+- **Wariant "Bez Gwarancji":** Oczekujemy, że system będzie swobodnie dążył do jednego z powyższych stanów równowagi DRF, sterowany głównie dostępnością zasobów i algorytmem sprawiedliwości.
+- **Wariant "Z Gwarancjami":** Oczekujemy zobaczyć **interakcję**. System może początkowo stabilizować się bliżej gwarancji (np. 32/32/5 dla Kueue z `reclaim: Any`), a następnie, w miarę kończenia się zadań i działania preempcji/pożyczania, **potencjalnie (choć niekoniecznie w pełni)** ewoluować w kierunku stanu równowagi DRF. Porównanie z wariantem "Bez Gwarancji" pokaże, jak gwarancje wpływają na tę dynamikę i ostateczny podział w danym schedulerze.
+
+**Skrypty do uruchomienia**:
+
+- **Wariant BEZ Gwarancji:**
+
+    ```sh
+    # Dla Kueue
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v3-no-guarantees.yaml'
+    # Dla Volcano
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v3-no-guarantees.yaml'
+    # Dla YuniKorn
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v3-no-guarantees.yaml'
+    ```
+
+- **Wariant Z Gwarancjami:**
+
+    ```sh
+    # Dla Kueue
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v3-guarantees.yaml'
+    # Dla Volcano
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v3-guarantees.yaml'
+    # Dla YuniKorn
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v3-guarantees.yaml'
+    ```

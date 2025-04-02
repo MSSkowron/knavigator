@@ -1,0 +1,689 @@
+name: kueue-fair-share-benchmark-v3
+description: |
+  Fair Share benchmark dla schedulera Kueue w środowisku heterogenicznym.
+
+  Test sprawdza działanie mechanizmu fair sharing (Dominant Resource Fairness)
+  pomiędzy najemcami o różnych profilach obciążenia w heterogenicznym klastrze.
+
+  Test tworzy trzy przestrzenie nazw z ClusterQueue w kohorcie, każdy o innych
+  wymaganiach zasobowych, następnie wysyła zadania do wszystkich najemców
+  i weryfikuje sprawiedliwy podział zasobów zgodnie z zasadami DRF.
+
+  Scenariusz testu:
+  1. Konfiguracja heterogenicznego klastra z 12 węzłami o różnych profilach zasobów
+  2. Konfiguracja Kueue z włączonym mechanizmem fairSharing
+  3. Utworzenie trzech najemców o różnych profilach obciążenia
+  4. Sekwencyjne wysłanie zadań w trzech rundach
+  5. Weryfikacja sprawiedliwego podziału dominujących zasobów
+tasks:
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
+              clientConnection:
+                qps: 50
+                burst: 100
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null # null indicates infinite requeuing
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+              fairSharing:
+               enable: true
+               preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure heterogeneous nodes
+  # Cluster capacity:
+  # CPU: 384000m
+  # Memory: 1536000Mi
+  # Pods: 1320
+  # GPU: 16
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        # Typ A: CPU-intensive (4 węzły)
+        - type: cpu-node
+          count: 4
+          labels:
+            node-type: cpu-intensive
+          resources:
+            cpu: 64100m # 64 rdzenie + 100m na system KWOK
+            memory: "64050Mi" # 64GB + 50Mi na system KWOK
+            pods: 110
+            nvidia.com/gpu: 0
+
+        # Typ B: RAM-intensive (4 węzły)
+        - type: ram-node
+          count: 4
+          labels:
+            node-type: ram-intensive
+          resources:
+            cpu: 16100m # 16 rdzeni + 100m na system KWOK
+            memory: "256050Mi" # 256GB + 50Mi na system KWOK
+            pods: 110
+            nvidia.com/gpu: 0
+
+        # Typ C: GPU-enabled (4 węzły)
+        - type: gpu-node
+          count: 4
+          labels:
+            node-type: gpu-enabled
+            nvidia.com/gpu.count: "4"
+          resources:
+            cpu: 16100m # 16 rdzeni + 100m na system KWOK
+            memory: "64050Mi" # 64GB + 50Mi na system KWOK
+            pods: 110
+            nvidia.com/gpu: 4
+      timeout: 5m
+
+  # Create namespaces for the three tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+      timeout: 1m
+
+  # Register Kueue-specific resources
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/cluster-queue.yaml"
+
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/local-queue.yaml"
+
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/resource-flavor.yaml"
+
+  - id: register-job-batch-1
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v3-batch1-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-2
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v3-batch2-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-batch-3
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v3-batch3-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # Create resource flavors for different node types
+  - id: create-resource-flavor-cpu
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "cpu-flavor"
+        nodeLabels:
+          node-type: "cpu-intensive"
+
+  - id: create-resource-flavor-ram
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "ram-flavor"
+        nodeLabels:
+          node-type: "ram-intensive"
+
+  - id: create-resource-flavor-gpu
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "gpu-flavor"
+        nodeLabels:
+          node-type: "gpu-enabled"
+
+  # Create a cohort and three cluster queues with equal weight
+  - id: create-cluster-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-a-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+            flavors:
+              - name: cpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+              - name: ram-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+              - name: gpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+
+  - id: create-cluster-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-b-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+            flavors:
+              - name: ram-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+              - name: cpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+              - name: gpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+
+  - id: create-cluster-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-c-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+              - nvidia.com/gpu
+            flavors:
+              - name: gpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 16 # Może pożyczać GPU (do limitu klastra)
+              - name: cpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
+              - name: ram-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m
+                    borrowingLimit: 384000m
+                  - name: memory
+                    nominalQuota: 0Mi
+                    borrowingLimit: 1536000Mi
+                  - name: pods
+                    nominalQuota: 0
+                    borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
+
+  # !!! Create the DUMMY ClusterQueue !!!
+  - id: create-dummy-cluster-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: dummy-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 0 # Waga nieistotna
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+              - nvidia.com/gpu
+            flavors:
+              - name: cpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 256000m
+                    borrowingLimit: 0m
+                    lendingLimit: 256000m
+                  - name: memory
+                    nominalQuota: 256000Mi
+                    borrowingLimit: 0Mi
+                    lendingLimit: 256000Mi
+                  - name: pods
+                    nominalQuota: 440
+                    borrowingLimit: 0
+                    lendingLimit: 440
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
+                    lendingLimit: 0
+              - name: ram-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 64000m
+                    borrowingLimit: 0m
+                    lendingLimit: 64000m
+                  - name: memory
+                    nominalQuota: 1024000Mi
+                    borrowingLimit: 0Mi
+                    lendingLimit: 1024000Mi
+                  - name: pods
+                    nominalQuota: 440
+                    borrowingLimit: 0
+                    lendingLimit: 440
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
+                    lendingLimit: 0
+              - name: gpu-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 64000m
+                    borrowingLimit: 0m
+                    lendingLimit: 64000m
+                  - name: memory
+                    nominalQuota: 256000Mi
+                    borrowingLimit: 0Mi
+                    lendingLimit: 256000Mi
+                  - name: pods
+                    nominalQuota: 440
+                    borrowingLimit: 0
+                    lendingLimit: 440
+                  - name: nvidia.com/gpu
+                    nominalQuota: 16
+                    borrowingLimit: 0
+                    lendingLimit: 16
+
+  # Create local queues for all tenants
+  - id: create-local-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-a-queue
+        namespace: tenant-a
+        clusterQueue: tenant-a-cq
+
+  - id: create-local-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-b-queue
+        namespace: tenant-b
+        clusterQueue: tenant-b-cq
+
+  - id: create-local-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-c-queue
+        namespace: tenant-c
+        clusterQueue: tenant-c-cq
+
+  # Runda 1: Pierwszy batch zadań dla wszystkich najemców
+  - id: submit-jobs-tenant-a-batch1
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-1
+      count: 100
+      params:
+        namespace: tenant-a
+        queueName: tenant-a-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 4000m
+        memory: 4000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants1a
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-b-batch1
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-1
+      count: 100
+      params:
+        namespace: tenant-b
+        queueName: tenant-b-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 16000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants1b
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-c-batch1
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-1
+      count: 50
+      params:
+        namespace: tenant-c
+        queueName: tenant-c-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 4000Mi
+        gpu: 1
+        ttl: "5m"
+
+  - id: wait-between-rounds1
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Runda 2: Drugi batch zadań dla wszystkich najemców
+  - id: submit-jobs-tenant-a-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 100
+      params:
+        namespace: tenant-a
+        queueName: tenant-a-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 4000m
+        memory: 4000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants2a
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-b-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 100
+      params:
+        namespace: tenant-b
+        queueName: tenant-b-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 16000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants2b
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-c-batch2
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-2
+      count: 50
+      params:
+        namespace: tenant-c
+        queueName: tenant-c-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 4000Mi
+        gpu: 1
+        ttl: "5m"
+
+  - id: wait-between-rounds2
+    type: Sleep
+    params:
+      timeout: 30s
+
+  # Runda 3: Trzeci batch zadań dla wszystkich najemców
+  - id: submit-jobs-tenant-a-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 100
+      params:
+        namespace: tenant-a
+        queueName: tenant-a-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 4000m
+        memory: 4000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants3a
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-b-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 100
+      params:
+        namespace: tenant-b
+        queueName: tenant-b-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 16000Mi
+        ttl: "5m"
+
+  - id: wait-between-tenants3b
+    type: Sleep
+    params:
+      timeout: 10s
+
+  - id: submit-jobs-tenant-c-batch3
+    type: SubmitObj
+    params:
+      refTaskId: register-job-batch-3
+      count: 50
+      params:
+        namespace: tenant-c
+        queueName: tenant-c-queue
+        replicas: 1
+        completionMode: NonIndexed
+        image: ubuntu
+        cpu: 1000m
+        memory: 4000Mi
+        gpu: 1
+        ttl: "5m"
