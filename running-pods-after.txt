@@ -1,4 +1,0 @@
-mateuszskowron@NBMSKOWRON:~/knavigator$ kubectl get pods -n tenant-a | grep 'Running' | wc -l && kubectl get pods -n tenant-b | grep 'Running' | wc -l && kubectl get pods -n tenant-c | grep 'Running' | wc -l
-29
-29
-17
