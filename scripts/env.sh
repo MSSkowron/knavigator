@@ -1,5 +1,4 @@
 #!/bin/bash
-# env.sh
 
 # Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
@@ -100,7 +99,7 @@ deploy_kwok() {
     log_info "Waiting for KWOK controller to be ready..."
     kubectl -n kube-system wait --for=condition=available deployment/kwok-controller --timeout=600s || {
         log_error "KWOK controller not ready after 60s"
-        return 1  # Exit function with error if controller isn't ready
+        return 1 # Exit function with error if controller isn't ready
     }
 
     # Deploy stages
@@ -242,16 +241,13 @@ deploy_kueue() {
 deploy_volcano() {
     log_info "Deploying Volcano ${VOLCANO_VERSION}..."
 
-    # Add prompt for Network Topology Aware Scheduling
     echo "Select Volcano deployment type:"
     echo "1) Standard Volcano (default)"
     echo "2) Network Topology Aware Scheduling enabled"
     read -p "Enter your choice [1]: " volcano_type
 
-    # Set default if no input
     volcano_type=${volcano_type:-1}
 
-    # Determine version based on user choice
     if [ "$volcano_type" = "2" ]; then
         log_info "Deploying Volcano with Network Topology Aware Scheduling..."
         VERSION_TO_USE="${VOLCANO_VERSION}-network-topology-preview.0"
@@ -262,7 +258,6 @@ deploy_volcano() {
 
     helm repo add --force-update volcano-sh https://volcano-sh.github.io/helm-charts
 
-    # Deploy Volcano with appropriate version
     log_info "Installing Volcano version ${VERSION_TO_USE}..."
     helm upgrade --install volcano volcano-sh/volcano -n volcano-system --create-namespace \
         --version="${VERSION_TO_USE}" \
@@ -270,7 +265,6 @@ deploy_volcano() {
         --set custom.metrics_enable=true \
         --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
 
-    # Wait for all Volcano deployments to be available
     log_info "Waiting for Volcano deployments to be available..."
     kubectl -n volcano-system wait --for=condition=available \
         deployment/volcano-admission \
@@ -281,7 +275,27 @@ deploy_volcano() {
         return 1
     }
 
-    # Verify the installation
+    log_info "Patching volcano-scheduler to add node-selector..."
+
+    # Zapisz aktualne argumenty
+    CURRENT_ARGS=$(kubectl get deployment -n volcano-system volcano-scheduler -o jsonpath='{.spec.template.spec.containers[0].args}')
+
+    # Utwórz nową listę argumentów z dodanym node-selector we właściwym miejscu
+    NEW_ARGS=$(echo "$CURRENT_ARGS" | jq '.[:-2] + ["--node-selector=type:kwok"] + .[-2:]')
+
+    # Zastosuj patch z nową listą argumentów
+    kubectl patch deployment -n volcano-system volcano-scheduler --type=json \
+        -p="[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/args\",\"value\":$NEW_ARGS}]" || {
+        log_error "Failed to patch volcano-scheduler with node-selector"
+        return 1
+    }
+
+    log_info "Waiting for patched volcano-scheduler to roll out..."
+    kubectl rollout status deployment/volcano-scheduler -n volcano-system --timeout=300s || {
+        log_error "Timed out waiting for patched volcano-scheduler to roll out"
+        return 1
+    }
+
     if kubectl -n volcano-system get pods | grep -q "volcano-scheduler"; then
         log_success "Volcano deployment complete"
 
@@ -291,6 +305,29 @@ deploy_volcano() {
         fi
 
         log_info "Volcano metrics are available at the /metrics endpoint of each component"
+
+        log_info "Deploying Volcano Dashboard..."
+        if ! kubectl get ns volcano-system >/dev/null 2>&1; then
+            log_info "Creating namespace volcano-system for dashboard..."
+            kubectl create ns volcano-system || {
+                log_error "Failed to create namespace volcano-system"
+                return 1
+            }
+        fi
+
+        log_info "Applying dashboard manifest..."
+        kubectl apply -f https://raw.githubusercontent.com/volcano-sh/dashboard/main/deployment/volcano-dashboard.yaml || {
+            log_error "Failed to apply Volcano Dashboard manifest"
+            return 1
+        }
+
+        log_info "Waiting for Volcano Dashboard deployment to be available..."
+        kubectl -n volcano-system wait --for=condition=available deployment/volcano-dashboard --timeout=300s || {
+            log_warning "Timed out waiting for Volcano Dashboard deployment, check status manually."
+        }
+
+        log_success "Volcano Dashboard deployment initiated. Use 'kubectl port-forward svc/volcano-dashboard 8080:80 -n volcano-system' to access it."
+
     else
         log_error "Volcano deployment failed - scheduler is not running"
         return 1

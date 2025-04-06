@@ -1,21 +1,16 @@
-name: volcano-fair-share-benchmark-v1
+name: volcano-fair-share-benchmark-v1-guaranteed
 description: |
-  Fair Share benchmark dla schedulera Volcano.
+  Fair Share benchmark dla Volcano (Wariant Gwarantowany - Capacity Plugin).
 
-  Test sprawdza, czy Volcano prawidłowo implementuje mechanizm fair sharing
-  pomiędzy kolejkami o równych wagach i priorytetach. Tworzy trzy oddzielne przestrzenie
-  nazw i kolejki z równymi wagami i gwarancjami zasobów. Test następnie wysyła
-  zadania do wszystkich kolejek i weryfikuje sprawiedliwy podział zasobów.
-
-  Volcano implementuje mechanizm fair-sharing poprzez plugin DRF
-  (Dominant Resource Fairness) oraz konfigurację wag w definicjach kolejek.
+  Test sprawdza równy podział zasobów (1:1:1) przy użyciu pluginu 'capacity'
+  z jawnym ustawieniem 'deserved' i 'guarantee' na 1/3 zasobów klastra.
 
   Scenariusz testu:
-  1. Konfiguracja klastra z ograniczonymi zasobami CPU (75 CPU łącznie)
-  2. Konfiguracja Volcano z włączonym pluginem DRF
-  3. Utworzenie trzech przestrzeni nazw i kolejek o równych wagach
-  4. Wysłanie zadań sekwencyjnie do wszystkich kolejek w trzech rundach
-  5. Weryfikacja równego podziału zasobów między kolejkami (~25 CPU dla każdej)
+  1. Konfiguracja klastra (75 CPU / 75 GB RAM).
+  2. Konfiguracja Volcano z pluginem 'capacity'. Usunięto plugin 'gang'.
+  3. Utworzenie 3 kolejek z priority=1, guarantee=1/3, deserved=1/3.
+  4. Wysłanie 225 zadań (po 75 na kolejkę) w 3 rundach.
+  5. Weryfikacja równego podziału zasobów (~25 CPU / ~25 GB RAM na kolejkę).
 tasks:
   # Configure Volcano
   - id: configure-volcano
@@ -35,7 +30,7 @@ tasks:
                 - name: drf
                   enablePreemptable: true
                 - name: predicates
-                - name: proportion
+                - name: capacity
                 - name: nodeorder
                 - name: binpack
       deploymentRestarts:
@@ -115,7 +110,13 @@ tasks:
         name: "tenant-a-queue"
         reclaimable: true
         priority: 1
-        weight: 1
+        guarantee:
+          resource:
+            cpu: 25000m
+            memory: 25000Mi
+        deserved:
+          cpu: 25000m
+          memory: 25000Mi
         capability:
           cpu: 75000m
           memory: 75000Mi
@@ -129,7 +130,13 @@ tasks:
         name: "tenant-b-queue"
         reclaimable: true
         priority: 1
-        weight: 1
+        guarantee:
+          resource:
+            cpu: 25000m
+            memory: 25000Mi
+        deserved:
+          cpu: 25000m
+          memory: 25000Mi
         capability:
           cpu: 75000m
           memory: 75000Mi
@@ -143,7 +150,13 @@ tasks:
         name: "tenant-c-queue"
         reclaimable: true
         priority: 1
-        weight: 1
+        guarantee:
+          resource:
+            cpu: 25000m
+            memory: 25000Mi
+        deserved:
+          cpu: 25000m
+          memory: 25000Mi
         capability:
           cpu: 75000m
           memory: 75000Mi

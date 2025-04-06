@@ -1,21 +1,16 @@
-name: volcano-fair-share-benchmark-v1
+name: volcano-fair-share-benchmark-v2-no-guarantees
 description: |
-  Fair Share benchmark dla schedulera Volcano.
+  Weighted Fair Share benchmark for Volcano (Wariant Bez Gwarancji - Capacity Plugin).
 
-  Test sprawdza, czy Volcano prawidłowo implementuje mechanizm fair sharing
-  pomiędzy kolejkami o równych wagach i priorytetach. Tworzy trzy oddzielne przestrzenie
-  nazw i kolejki z równymi wagami i gwarancjami zasobów. Test następnie wysyła
-  zadania do wszystkich kolejek i weryfikuje sprawiedliwy podział zasobów.
-
-  Volcano implementuje mechanizm fair-sharing poprzez plugin DRF
-  (Dominant Resource Fairness) oraz konfigurację wag w definicjach kolejek.
+  Test sprawdza proporcjonalny podział zasobów (3:2:1) przy użyciu pluginu 'capacity'
+  z jawnym ustawieniem 'deserved' zgodnie z proporcjami, ale 'guarantee' na 0.
 
   Scenariusz testu:
-  1. Konfiguracja klastra z ograniczonymi zasobami CPU (75 CPU łącznie)
-  2. Konfiguracja Volcano z włączonym pluginem DRF
-  3. Utworzenie trzech przestrzeni nazw i kolejek o równych wagach
-  4. Wysłanie zadań sekwencyjnie do wszystkich kolejek w trzech rundach
-  5. Weryfikacja równego podziału zasobów między kolejkami (~25 CPU dla każdej)
+  1. Konfiguracja klastra (96 CPU / 96 GB RAM).
+  2. Konfiguracja Volcano z pluginem 'capacity'. Usunięto plugin 'gang'.
+  3. Utworzenie 3 kolejek z priority=1, guarantee=0, deserved ustawionymi proporcjonalnie (48/32/16).
+  4. Wysłanie 270 zadań (po 90 na kolejkę) w 3 rundach.
+  5. Weryfikacja proporcjonalnego podziału zasobów (~48:~32:~16 CPU/RAM).
 tasks:
   # Configure Volcano
   - id: configure-volcano
@@ -35,7 +30,7 @@ tasks:
                 - name: drf
                   enablePreemptable: true
                 - name: predicates
-                - name: proportion
+                - name: capacity
                 - name: nodeorder
                 - name: binpack
       deploymentRestarts:
@@ -48,20 +43,20 @@ tasks:
     params:
       timeout: 5s
 
-  # Configure nodes
+  # Configure nodes (6 nodes, 16 CPU/16GB each = 96 CPU/96GB total)
   - id: configure-nodes
     type: Configure
     params:
       nodes:
-        - type: cpu-node
-          count: 5
+        - type: cpu-node # Homogeneous nodes
+          count: 6
           resources:
-            cpu: 15100m # KWOK potrzebuje 100m → 15000m dostępne
-            memory: "15050Mi" # KWOK potrzebuje 50Mi → 15000Mi dostępne
+            cpu: 16100m
+            memory: "16050Mi"
             pods: 110
       timeout: 5m
 
-  # Create namespaces for the three tenants
+  # Create namespaces
   - id: create-namespaces
     type: Configure
     params:
@@ -74,18 +69,17 @@ tasks:
           op: create
       timeout: 1m
 
-  # Register queue template
+  # Register Volcano resources (Queue, Job)
   - id: register-queue
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/volcano/queue.yml"
 
-  # Register job templates for different batches
   - id: register-job-batch-1
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
-      nameFormat: "a-fairshare-v1-batch1-job{{._ENUM_}}"
+      nameFormat: "fairshare-v2-ng-b1-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
@@ -93,7 +87,7 @@ tasks:
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
-      nameFormat: "a-fairshare-v1-batch2-job{{._ENUM_}}"
+      nameFormat: "fairshare-v2-ng-b2-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
@@ -101,11 +95,11 @@ tasks:
     type: RegisterObj
     params:
       template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
-      nameFormat: "a-fairshare-v1-batch3-job{{._ENUM_}}"
+      nameFormat: "fairshare-v2-ng-b3-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
-  # Create queues with equal weights
+  # Create Queues with weights 3:2:1 and NO guarantees
   - id: create-queue-a
     type: SubmitObj
     params:
@@ -115,10 +109,12 @@ tasks:
         name: "tenant-a-queue"
         reclaimable: true
         priority: 1
-        weight: 1
+        deserved: # Ustawione proporcjonalnie (3/6)
+          cpu: 48000m
+          memory: 48000Mi
         capability:
-          cpu: 75000m
-          memory: 75000Mi
+          cpu: 96000m
+          memory: 96000Mi
 
   - id: create-queue-b
     type: SubmitObj
@@ -129,10 +125,12 @@ tasks:
         name: "tenant-b-queue"
         reclaimable: true
         priority: 1
-        weight: 1
+        deserved: # Ustawione proporcjonalnie (2/6)
+          cpu: 32000m
+          memory: 32000Mi
         capability:
-          cpu: 75000m
-          memory: 75000Mi
+          cpu: 96000m
+          memory: 96000Mi
 
   - id: create-queue-c
     type: SubmitObj
@@ -143,20 +141,22 @@ tasks:
         name: "tenant-c-queue"
         reclaimable: true
         priority: 1
-        weight: 1
+        deserved: # Ustawione proporcjonalnie (1/6)
+          cpu: 16000m
+          memory: 16000Mi
         capability:
-          cpu: 75000m
-          memory: 75000Mi
+          cpu: 96000m
 
-  # Runda 1: Pierwszy batch zadań dla wszystkich tenantów (30 zadań każdy)
+  # --- Job Submission Rounds ---
+  # Round 1 (A:50, B:50, C:50) - Tasks req <1 CPU, 1 GB RAM>
   - id: submit-jobs-tenant-a-batch1
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 30
+      count: 50
       params:
         namespace: tenant-a
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
         image: ubuntu
@@ -164,19 +164,19 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants1a
+  - id: wait1a
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 30
+      count: 50
       params:
         namespace: tenant-b
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
         image: ubuntu
@@ -184,19 +184,19 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants1b
+  - id: wait1b
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 30
+      count: 50
       params:
         namespace: tenant-c
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
         image: ubuntu
@@ -204,20 +204,20 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-rounds1
+  - id: wait1r
     type: Sleep
     params:
       timeout: 9600s
 
-  # Runda 2: Drugi batch zadań dla wszystkich tenantów (25 zadań każdy)
+  # Round 2 (A:30, B:30, C:30)
   - id: submit-jobs-tenant-a-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 25
+      count: 30
       params:
         namespace: tenant-a
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
         image: ubuntu
@@ -225,19 +225,19 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants2a
+  - id: wait2a
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-b-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 25
+      count: 30
       params:
         namespace: tenant-b
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
         image: ubuntu
@@ -245,19 +245,19 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants2b
+  - id: wait2b
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-c-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 25
+      count: 30
       params:
         namespace: tenant-c
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
         image: ubuntu
@@ -265,20 +265,20 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-rounds2
+  - id: wait2r
     type: Sleep
     params:
-      timeout: 60s
+      timeout: 10s
 
-  # Runda 3: Trzeci batch zadań dla wszystkich tenantów (20 zadań każdy)
+  # Round 3 (A:10, B:10, C:10)
   - id: submit-jobs-tenant-a-batch3
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 20
+      count: 10
       params:
         namespace: tenant-a
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
         image: ubuntu
@@ -286,19 +286,19 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants3a
+  - id: wait3a
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-b-batch3
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 20
+      count: 10
       params:
         namespace: tenant-b
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
         image: ubuntu
@@ -306,19 +306,19 @@ tasks:
         memory: 1000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants3b
+  - id: wait3b
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-c-batch3
     type: SubmitObj
     params:
       refTaskId: register-job-batch-3
-      count: 20
+      count: 10
       params:
         namespace: tenant-c
-        minAvailable: 0
+        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
         image: ubuntu

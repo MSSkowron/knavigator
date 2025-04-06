@@ -30,10 +30,19 @@ spec:
           pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
           {{- end }}
       spec:
+        # nodeSelector:
+        #   type: kwok
         containers:
         - name: job
           image: {{.image}}
           imagePullPolicy: IfNotPresent
+          {{- if .ttl }}
+          command: ["sleep"]
+          args: ["{{.ttl}}"]
+          {{- else }}
+          command: ["sleep"]
+          args: ["1s"]
+          {{- end }}
           resources:
             limits:
               cpu: {{.cpu}}
@@ -47,3 +56,4 @@ spec:
               {{- if .gpu }}
               nvidia.com/gpu: {{.gpu}}
               {{- end }}
+        restartPolicy: Never

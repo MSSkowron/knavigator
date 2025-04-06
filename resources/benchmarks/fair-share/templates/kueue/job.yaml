@@ -21,6 +21,8 @@ spec:
         pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
         {{- end }}
     spec:
+      nodeSelector:
+        type: kwok
       containers:
       - name: test
         image: {{.image}}
