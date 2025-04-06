@@ -48,10 +48,10 @@ tasks:
                           application.sort.policy: fifo
                           priority.offset: "0"
                         resources:
-                          guaranteed: # << NO GUARANTEE
+                          guaranteed:
                             memory: 0Mi
                             vcore: 0m
-                          max: # << Keep max high
+                          max:
                             memory: 75000Mi
                             vcore: 75000m
                       - name: tenant-b
@@ -60,10 +60,10 @@ tasks:
                           application.sort.policy: fifo
                           priority.offset: "0"
                         resources:
-                          guaranteed: # << NO GUARANTEE
+                          guaranteed:
                             memory: 0Mi
                             vcore: 0m
-                          max: # << Keep max high
+                          max:
                             memory: 75000Mi
                             vcore: 75000m
                       - name: tenant-c
@@ -72,10 +72,10 @@ tasks:
                           application.sort.policy: fifo
                           priority.offset: "0"
                         resources:
-                          guaranteed: # << NO GUARANTEE
+                          guaranteed:
                             memory: 0Mi
                             vcore: 0m
-                          max: # << Keep max high
+                          max:
                             memory: 75000Mi
                             vcore: 75000m
       deploymentRestarts:

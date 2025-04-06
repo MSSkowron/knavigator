@@ -51,11 +51,13 @@ tasks:
                           priority.offset: "0"
                         resources:
                           guaranteed:
-                            memory: 0Gi
+                            memory: 0Mi
                             vcore: 0m
+                            nvidia.com/gpu: 0
                           max:
-                            memory: 1536Gi
+                            memory: 1536000Mi
                             vcore: 384000m
+                            nvidia.com/gpu: 16
                       - name: tenant-b
                         submitacl: '*'
                         properties:
@@ -63,11 +65,13 @@ tasks:
                           priority.offset: "0"
                         resources:
                           guaranteed:
-                            memory: 0Gi
+                            memory: 0Mi
                             vcore: 0m
+                            nvidia.com/gpu: 0
                           max:
-                            memory: 1536Gi
+                            memory: 1536000Mi
                             vcore: 384000m
+                            nvidia.com/gpu: 16
                       - name: tenant-c
                         submitacl: '*'
                         properties:
@@ -75,11 +79,11 @@ tasks:
                           priority.offset: "0"
                         resources:
                           guaranteed:
-                            memory: 0Gi
+                            memory: 0Mi
                             vcore: 0m
                             nvidia.com/gpu: 0
                           max:
-                            memory: 1536Gi
+                            memory: 1536000Mi
                             vcore: 384000m
                             nvidia.com/gpu: 16
       deploymentRestarts:
@@ -93,6 +97,11 @@ tasks:
       timeout: 5s
 
   # Configure heterogeneous nodes
+  # Cluster capacity:
+  # CPU: 384000m
+  # Memory: 1536000Mi
+  # Pods: 1320
+  # GPU: 16
   - id: configure-nodes
     type: Configure
     params:
@@ -102,6 +111,7 @@ tasks:
           count: 4
           labels:
             node-type: cpu-intensive
+            nvidia.com/gpu.count: "0"
           resources:
             cpu: 64100m # 64 rdzenie + 100m na system KWOK
             memory: "64050Mi" # 64GB + 50Mi na system KWOK
@@ -113,6 +123,7 @@ tasks:
           count: 4
           labels:
             node-type: ram-intensive
+            nvidia.com/gpu.count: "0"
           resources:
             cpu: 16100m # 16 rdzeni + 100m na system KWOK
             memory: "256050Mi" # 256GB + 50Mi na system KWOK
@@ -181,13 +192,13 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-a
         cpu: 4000m # 4 rdzenie CPU
-        memory: 4Gi # 4GB RAM
+        memory: 4000Mi # 4GB RAM
         ttl: 5m
 
   - id: wait-between-tenants1a
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
@@ -199,13 +210,13 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-b
         cpu: 1000m # 1 rdzeń CPU
-        memory: 16Gi # 16GB RAM
+        memory: 16000Mi # 16GB RAM
         ttl: 5m
 
   - id: wait-between-tenants1b
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
@@ -217,14 +228,14 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-c
         cpu: 1000m # 1 rdzeń CPU
-        memory: 4Gi # 4GB RAM
+        memory: 4000Mi # 4GB RAM
         gpu: 1 # 1 GPU
         ttl: 5m
 
   - id: wait-between-rounds1
     type: Sleep
     params:
-      timeout: 60s
+      timeout: 9600s
 
   # Runda 2: Drugi batch zadań dla wszystkich najemców
   - id: submit-jobs-tenant-a-batch2
@@ -237,13 +248,13 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-a
         cpu: 4000m # 4 rdzenie CPU
-        memory: 4Gi # 4GB RAM
+        memory: 4000Mi # 4GB RAM
         ttl: 5m
 
   - id: wait-between-tenants2a
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-b-batch2
     type: SubmitObj
@@ -255,13 +266,13 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-b
         cpu: 1000m # 1 rdzeń CPU
-        memory: 16Gi # 16GB RAM
+        memory: 16000Mi # 16GB RAM
         ttl: 5m
 
   - id: wait-between-tenants2b
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-c-batch2
     type: SubmitObj
@@ -273,14 +284,14 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-c
         cpu: 1000m # 1 rdzeń CPU
-        memory: 4Gi # 4GB RAM
+        memory: 4000Mi # 4GB RAM
         gpu: 1 # 1 GPU
         ttl: 5m
 
   - id: wait-between-rounds2
     type: Sleep
     params:
-      timeout: 60s
+      timeout: 30s
 
   # Runda 3: Trzeci batch zadań dla wszystkich najemców
   - id: submit-jobs-tenant-a-batch3
@@ -293,13 +304,13 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-a
         cpu: 4000m # 4 rdzenie CPU
-        memory: 4Gi # 4GB RAM
+        memory: 4000Mi # 4GB RAM
         ttl: 5m
 
   - id: wait-between-tenants3a
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-b-batch3
     type: SubmitObj
@@ -311,13 +322,13 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-b
         cpu: 1000m # 1 rdzeń CPU
-        memory: 16Gi # 16GB RAM
+        memory: 16000Mi # 16GB RAM
         ttl: 5m
 
   - id: wait-between-tenants3b
     type: Sleep
     params:
-      timeout: 15s
+      timeout: 10s
 
   - id: submit-jobs-tenant-c-batch3
     type: SubmitObj
@@ -329,6 +340,6 @@ tasks:
         replicas: 1
         queue: root.fairshare.tenant-c
         cpu: 1000m # 1 rdzeń CPU
-        memory: 4Gi # 4GB RAM
+        memory: 4000Mi # 4GB RAM
         gpu: 1 # 1 GPU
         ttl: 5m

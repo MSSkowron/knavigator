@@ -96,6 +96,7 @@ tasks:
           count: 4
           labels:
             node-type: cpu-intensive
+            nvidia.com/gpu.count: "0"
           resources:
             cpu: 64100m # 64 rdzenie + 100m na system KWOK
             memory: "64050Mi" # 64GB + 50Mi na system KWOK
@@ -107,6 +108,7 @@ tasks:
           count: 4
           labels:
             node-type: ram-intensive
+            nvidia.com/gpu.count: "0"
           resources:
             cpu: 16100m # 16 rdzeni + 100m na system KWOK
             memory: "256050Mi" # 256GB + 50Mi na system KWOK
