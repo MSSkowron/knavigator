@@ -567,7 +567,7 @@ Każdy scenariusz jest testowany w dwóch wariantach: bez gwarancji zasobów (ab
 - Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera.
 - **Dwa warianty testu:**
     1. **Bez Gwarancji (`*-v1-no-guarantees.yaml`):** Gwarantowane zasoby (`guarantee`/`nominalQuota`) ustawione na 0, aby obserwować "czysty" efekt fair sharing sterowany tylko dostępnością zasobów i równymi uprawnieniami.
-    2. **Z Gwarancjami (`*-v1-guaranteed.yaml`):** Każdemu najemcy gwarantowane jest 1/3 zasobów klastra (25 CPU, 25 GB RAM), aby obserwować interakcję fair sharing z gwarancjami (np. potencjalny wpływ na preempcję, gdy kolejka spadnie poniżej gwarancji).
+    2. **Z Gwarancjami (`*-v1-guarantees.yaml`):** Każdemu najemcy gwarantowane jest 1/3 zasobów klastra (25 CPU, 25 GB RAM), aby obserwować interakcję fair sharing z gwarancjami (np. potencjalny wpływ na preempcję, gdy kolejka spadnie poniżej gwarancji).
 
 **Działanie**:
 
@@ -605,11 +605,11 @@ Każdy scenariusz jest testowany w dwóch wariantach: bez gwarancji zasobów (ab
 
     ```sh
     # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-guaranteed.yaml'
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-guarantees.yaml'
     # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-guaranteed.yaml'
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-guarantees.yaml'
     # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-guaranteed.yaml'
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-guarantees.yaml'
     ```
 
 ### V2: Proporcjonalny podział przy różnych wagach (Homogeniczny Klaster)
@@ -629,7 +629,7 @@ Każdy scenariusz jest testowany w dwóch wariantach: bez gwarancji zasobów (ab
 - Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera (z uwzględnieniem wag).
 - **Dwa warianty testu:**
     1. **Bez Gwarancji (`*-v2-no-guarantees.yaml`):** Gwarantowane zasoby (`guarantee`/`nominalQuota`) ustawione na 0 (lub minimalną wartość wymaganą przez Kueue z użyciem `dummy-queue`). Podział zasobów powinien być sterowany wyłącznie przez wagi i dostępność zasobów.
-    2. **Z Gwarancjami (`*-v2-guaranteed.yaml`):** Gwarantowane zasoby ustawione proporcjonalnie do wag (A: 48 CPU/48GB, B: 32 CPU/32GB, C: 16 CPU/16GB). Obserwujemy interakcję mechanizmu ważonego podziału z gwarancjami.
+    2. **Z Gwarancjami (`*-v2-guarantees.yaml`):** Gwarantowane zasoby ustawione proporcjonalnie do wag (A: 48 CPU/48GB, B: 32 CPU/32GB, C: 16 CPU/16GB). Obserwujemy interakcję mechanizmu ważonego podziału z gwarancjami.
 
 **Działanie**:
 
@@ -671,11 +671,11 @@ Każdy scenariusz jest testowany w dwóch wariantach: bez gwarancji zasobów (ab
 
     ```sh
     # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-guaranteed.yaml'
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-guarantees.yaml'
     # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-guaranteed.yaml'
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-guarantees.yaml'
     # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-guaranteed.yaml'
+    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-guarantees.yaml'
     ```
 
 ### V3: Heterogeniczna sprawiedliwość
@@ -696,7 +696,7 @@ Każdy scenariusz jest testowany w dwóch wariantach: bez gwarancji zasobów (ab
 - Mechanizmy fair share/DRF skonfigurowane odpowiednio dla każdego schedulera.
 - **Dwa warianty testu:**
     1. **Bez Gwarancji (`*-v3-no-guarantees.yaml`):** Gwarantowane/minimalne zasoby (`guarantee`/`nominalQuota`) ustawione na 0 (lub minimalną wartość/z użyciem dummy-queue dla Kueue). Celem jest obserwacja "czystego" algorytmu DRF, gdzie podział sterowany jest głównie dostępnością zasobów i dążeniem do wyrównania dominujących udziałów.
-    2. **Z Gwarancjami (`*-v3-guaranteed.yaml`):** Gwarantowane zasoby ustawione na poziomie ~1/3 dominującego zasobu dla każdego najemcy (A: 128 CPU/128GiB, B: 32 CPU/512GiB, C: 5 CPU/20GiB/5 GPU). Limity pożyczania ustawione na maksimum. Celem jest obserwacja **interakcji** między mechanizmem gwarancji/preempcji `reclaim` a dynamicznym algorytmem DRF działającym na zasobach pożyczonych.
+    2. **Z Gwarancjami (`*-v3-guarantees.yaml`):** Gwarantowane zasoby ustawione na poziomie ~1/3 dominującego zasobu dla każdego najemcy (A: 128 CPU/128GiB, B: 32 CPU/512GiB, C: 5 CPU/20GiB/5 GPU). Limity pożyczania ustawione na maksimum. Celem jest obserwacja **interakcji** między mechanizmem gwarancji/preempcji `reclaim` a dynamicznym algorytmem DRF działającym na zasobach pożyczonych.
 
 **Działanie**:
 
