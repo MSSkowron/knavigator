@@ -31,14 +31,17 @@ else
     exit 1
 fi
 
-# Configuration
+# --- Global Configuration ---
 readonly KIND_NODE_VERSION="v1.30.0" # Make sure this matches your intended K8s version
 readonly REQUIRED_COMMANDS=(kind helm kubectl)
 readonly KIND_CLUSTER_NAME="kind" # Define cluster name once
 
-# --- Funkcje pomocnicze do wykrywania zasobów hosta ---
+# Default target allocatable resources for the Kind node.
+# These values might be adjusted downwards if the host doesn't have enough capacity.
+readonly TARGET_CPU="8"
+readonly TARGET_MEMORY_GIB="16"
+# --- End Global Configuration ---
 
-# Pobiera liczbę logicznych procesorów CPU dostępnych dla systemu
 get_host_cpu_count() {
     local os_type
     os_type=$(uname -s)
@@ -56,7 +59,6 @@ get_host_cpu_count() {
     esac
 }
 
-# Pobiera całkowitą pamięć RAM hosta w GiB (zaokrąglone w dół)
 get_host_memory_gib() {
     local os_type
     os_type=$(uname -s)
@@ -90,8 +92,6 @@ get_host_memory_gib() {
     fi
 }
 
-# --- Koniec funkcji pomocniczych ---
-
 main() {
     log_info "Starting test cluster creation script..."
 
@@ -100,15 +100,13 @@ main() {
         check_command "$cmd" || exit 1
     done
 
-    setup_kind_cluster # This will call create_new_cluster internally
+    setup_kind_cluster
     deploy_prometheus_and_grafana
     deploy_kwok
     select_and_deploy_workload_manager
     create_additional_dashboards
 
     log_success "Cluster setup complete!"
-    log_info "Node '${KIND_CLUSTER_NAME}-control-plane' should have reduced Allocatable resources."
-    log_info "Run 'kubectl describe node ${KIND_CLUSTER_NAME}-control-plane' to verify."
 }
 
 setup_kind_cluster() {
@@ -134,7 +132,6 @@ create_new_cluster() {
     log_info "Creating new kind cluster '${KIND_CLUSTER_NAME}' with dynamically calculated resources..."
     local config_file="${SCRIPT_DIR}/kind-config-${KIND_CLUSTER_NAME}.yaml" # Store config near script
 
-    # --- Dynamiczne wykrywanie zasobów hosta ---
     log_info "Detecting host resources..."
     local detected_cpu
     detected_cpu=$(get_host_cpu_count)
@@ -146,13 +143,9 @@ create_new_cluster() {
         exit 1
     fi
     log_info "Detected host resources: CPU=${detected_cpu}, Memory=${detected_memory_gib}Gi (approx. total)"
-    # --- Koniec dynamicznego wykrywania ---
 
-    # --- Konfiguracja docelowych zasobów Allocatable dla Kind ---
-    # Define how much CPU/Memory the Kind node should report as Allocatable
-    local target_cpu="8"
-    local target_memory_gib="16"
-    # --- Koniec konfiguracji docelowej ---
+    local target_cpu="${TARGET_CPU}"
+    local target_memory_gib="${TARGET_MEMORY_GIB}"
 
     # Check if host has enough resources for the target, adjust if necessary
     if [[ "$detected_cpu" -lt "$target_cpu" ]]; then
@@ -211,7 +204,7 @@ EOF
     if ! kind create cluster --name "${KIND_CLUSTER_NAME}" --config "${config_file}"; then
         log_error "Failed to create kind cluster with configuration file."
         log_error "Check the output above and '${config_file}' for details."
-        # rm -f "${config_file}" # Clean up config file on failure
+        rm -f "${config_file}" # Clean up config file on failure
         exit 1
     fi
     log_success "Kind cluster '${KIND_CLUSTER_NAME}' created successfully using configuration file."
@@ -220,37 +213,28 @@ EOF
     log_info "Removing temporary config file '${config_file}'."
     rm -f "${config_file}"
 
-    # --- Docker update block removed as per request ---
-    # No 'docker update' commands will be executed.
-    # Kubernetes Allocatable resources are set via KubeletConfiguration only.
     log_info "Skipping Docker container resource limit updates."
 
     log_info "Waiting for cluster nodes to be ready..."
     kubectl wait --for=condition=ready node --all --timeout=300s || {
         log_error "Nodes did not become ready in time."
-        # Consider deleting the cluster here if readiness fails
-        # kind delete cluster --name "${KIND_CLUSTER_NAME}"
+        kind delete cluster --name "${KIND_CLUSTER_NAME}"
         exit 1
     }
     log_success "Cluster nodes are ready."
 }
 
 select_and_deploy_workload_manager() {
-    # Make sure kubectl context is set to the new cluster if needed,
-    # although 'kind create cluster' usually does this.
-    # kubectl config use-context "kind-${KIND_CLUSTER_NAME}"
-
     log_info "Select workload manager:"
     PS3="Enter choice > "
     select manager in "Kueue" "Volcano" "YuniKorn"; do
         case "$manager" in
         "Kueue" | "Volcano" | "YuniKorn")
-            # Assuming deploy_workload_manager exists in env.sh or similar
             if declare -f deploy_workload_manager >/dev/null; then
-                deploy_workload_manager "${manager,,}" # Call the function (expects lowercase name)
+                deploy_workload_manager "${manager,,}"
             else
                 log_error "Function 'deploy_workload_manager' not found. Cannot deploy ${manager}."
-                # Decide how to handle: exit or continue? For now, continue.
+                exit 1
             fi
             break
             ;;
