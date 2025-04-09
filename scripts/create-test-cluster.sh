@@ -278,9 +278,11 @@ create_additional_dashboards() {
         log_info "Importing dashboard: $(basename "$dashboard_file") as ConfigMap '${configmap_name}'"
 
         # Create or update ConfigMap for dashboard
+        local dashboard_filename
+        dashboard_filename=$(basename "$dashboard_file")
         kubectl create configmap "${configmap_name}" \
             --namespace "${monitoring_namespace}" \
-            --from-file="dashboard.json=${dashboard_file}" \
+            --from-file="${dashboard_filename}=${dashboard_file}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
         # Label ConfigMap for Grafana sidecar to pick it up
