@@ -120,7 +120,10 @@ deploy_prometheus_and_grafana() {
 
     helm repo add --force-update prometheus-community https://prometheus-community.github.io/helm-charts
 
-    helm upgrade --install -n monitoring --create-namespace kube-prometheus-stack \
+    local helm_release_name="kube-prometheus-stack"
+    local namespace="monitoring"
+
+    helm upgrade --install -n ${namespace} --create-namespace ${helm_release_name} \
         prometheus-community/kube-prometheus-stack \
         --version="$PROMETHEUS_STACK_VERSION" \
         --wait \
@@ -145,21 +148,35 @@ prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    podMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    podMonitorNamespaceSelector: {}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
 EOF
 
-    log_info "Waiting for kube-prometheus-stack pods to become ready..."
-    kubectl -n monitoring wait --for=condition=ready pod -l app.kubernetes.io/instance=kube-prometheus-stack --timeout=600s
+    log_info "Waiting for ${helm_release_name} pods to become ready in namespace ${namespace}..."
+    # Czekanie na pody z labelką instancji Helm
+    kubectl -n ${namespace} wait --for=condition=ready pod -l app.kubernetes.io/instance=${helm_release_name} --timeout=600s
 
     log_info "Deploying Node Resource Exporter..."
-    helm upgrade --install -n monitoring node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
+    helm upgrade --install -n ${namespace} node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
 
     log_info "Waiting for node-resource-exporter pods to become ready..."
-    kubectl -n monitoring wait --for=condition=ready pod -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
+    kubectl -n ${namespace} wait --for=condition=ready pod -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
 
     log_success "Deployment complete: Prometheus, Grafana, and monitoring stack are now operational."
     log_info "Access monitoring interfaces by running: ${REPO_HOME}/monitoring-portforward.sh"
     log_info "Grafana login credentials: Username 'admin' | Password 'admin'"
-    log_info "Additional scheduler-specific dashboards have been installed."
+    log_info "Prometheus datasource should be pre-configured as default."
+    log_info "Additional scheduler-specific dashboards have been installed (if applicable)."
 }
 
 deploy_workload_manager() {

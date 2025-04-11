@@ -67,6 +67,9 @@ tasks:
           namePrefix: n1
           labels:
             ta-optimal: "true"
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -84,6 +87,9 @@ tasks:
           namePrefix: n2
           labels:
             ta-optimal: "true"
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -101,6 +107,9 @@ tasks:
           namePrefix: n3
           labels:
             ta-optimal: "true"
+            network.topology.kubernetes.io/block: sw113
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -119,6 +128,9 @@ tasks:
           count: 1
           namePrefix: n4
           labels:
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -135,6 +147,9 @@ tasks:
           count: 1
           namePrefix: n5
           labels:
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -151,6 +166,9 @@ tasks:
           count: 1
           namePrefix: n6
           labels:
+            network.topology.kubernetes.io/block: sw114
+            network.topology.kubernetes.io/spine: sw21
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -169,6 +187,9 @@ tasks:
           count: 1
           namePrefix: n7
           labels:
+            network.topology.kubernetes.io/block: sw123
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -185,6 +206,9 @@ tasks:
           count: 1
           namePrefix: n8
           labels:
+            network.topology.kubernetes.io/block: sw123
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -201,6 +225,9 @@ tasks:
           count: 1
           namePrefix: n9
           labels:
+            network.topology.kubernetes.io/block: sw123
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -219,6 +246,9 @@ tasks:
           count: 1
           namePrefix: n10
           labels:
+            network.topology.kubernetes.io/block: sw124
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -235,6 +265,9 @@ tasks:
           count: 1
           namePrefix: n11
           labels:
+            network.topology.kubernetes.io/block: sw124
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -251,6 +284,9 @@ tasks:
           count: 1
           namePrefix: n12
           labels:
+            network.topology.kubernetes.io/block: sw124
+            network.topology.kubernetes.io/spine: sw22
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -269,6 +305,9 @@ tasks:
           count: 1
           namePrefix: n13
           labels:
+            network.topology.kubernetes.io/block: sw133
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -285,6 +324,9 @@ tasks:
           count: 1
           namePrefix: n14
           labels:
+            network.topology.kubernetes.io/block: sw133
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -301,6 +343,9 @@ tasks:
           count: 1
           namePrefix: n15
           labels:
+            network.topology.kubernetes.io/block: sw133
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -319,6 +364,9 @@ tasks:
           count: 1
           namePrefix: n16
           labels:
+            network.topology.kubernetes.io/block: sw134
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -335,6 +383,9 @@ tasks:
           count: 1
           namePrefix: n17
           labels:
+            network.topology.kubernetes.io/block: sw134
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -351,6 +402,9 @@ tasks:
           count: 1
           namePrefix: n18
           labels:
+            network.topology.kubernetes.io/block: sw134
+            network.topology.kubernetes.io/spine: sw23
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -369,6 +423,9 @@ tasks:
           count: 1
           namePrefix: n19
           labels:
+            network.topology.kubernetes.io/block: sw143
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -385,6 +442,9 @@ tasks:
           count: 1
           namePrefix: n20
           labels:
+            network.topology.kubernetes.io/block: sw143
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -401,6 +461,9 @@ tasks:
           count: 1
           namePrefix: n21
           labels:
+            network.topology.kubernetes.io/block: sw143
+            network.topology.kubernetes.io/spine: sw24
+            network.topology.kubernetes.io/datacenter: sw31
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
