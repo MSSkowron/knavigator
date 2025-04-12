@@ -166,11 +166,11 @@ EOF
     # Czekanie na pody z labelką instancji Helm
     kubectl -n ${namespace} wait --for=condition=ready pod -l app.kubernetes.io/instance=${helm_release_name} --timeout=600s
 
-    log_info "Deploying Node Resource Exporter..."
-    helm upgrade --install -n ${namespace} node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
+    # log_info "Deploying Node Resource Exporter..."
+    # helm upgrade --install -n ${namespace} node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
 
-    log_info "Waiting for node-resource-exporter pods to become ready..."
-    kubectl -n ${namespace} wait --for=condition=ready pod -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
+    # log_info "Waiting for node-resource-exporter pods to become ready..."
+    # kubectl -n ${namespace} wait --for=condition=ready pod -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
 
     log_success "Deployment complete: Prometheus, Grafana, and monitoring stack are now operational."
     log_info "Access monitoring interfaces by running: ${REPO_HOME}/monitoring-portforward.sh"
@@ -216,6 +216,48 @@ deploy_unified_job_exporter() {
     fi
 
     log_success "Unified Job Metrics Exporter deployment complete."
+}
+
+deploy_node_resource_exporter() {
+    log_info "Deploying Node Resource Exporter..."
+
+    local manifest_dir="${REPO_HOME}/manifests/node-resource-exporter"
+    local deployment_manifest="${manifest_dir}/node-resource-exporter-deployment.yaml"
+    local sm_manifest="${manifest_dir}/node-resource-exporter-servicemonitor.yaml"
+    local namespace="monitoring"
+    local deployment_name="node-resource-exporter"
+
+    if [[ ! -f "${deployment_manifest}" ]]; then
+        log_error "Node Resource Exporter deployment manifest not found at: ${deployment_manifest}"
+        return 1
+    fi
+     if [[ ! -f "${sm_manifest}" ]]; then
+        log_error "Node Resource Exporter ServiceMonitor manifest not found at: ${sm_manifest}"
+        return 1
+    fi
+
+    log_info "Applying Node Resource Exporter deployment manifest (${deployment_manifest})..."
+    if ! kubectl apply -f "${deployment_manifest}"; then
+        log_error "Failed to apply Node Resource Exporter deployment manifest."
+        return 1
+    fi
+
+    log_info "Applying Node Resource Exporter ServiceMonitor manifest (${sm_manifest})..."
+     if ! kubectl apply -f "${sm_manifest}"; then
+        log_error "Failed to apply Node Resource Exporter ServiceMonitor manifest."
+        # Nie musi to być błąd krytyczny, jeśli ServiceMonitor zostanie zastosowany później
+        log_warning "ServiceMonitor might not be picked up immediately if Prometheus Operator is not ready yet or CRDs are missing."
+    fi
+
+    log_info "Waiting for ${deployment_name} deployment to become available in namespace ${namespace}..."
+    if ! kubectl -n ${namespace} wait --for=condition=available deployment/"${deployment_name}" --timeout=600s; then
+       log_error "${deployment_name} deployment did not become available in time."
+       # Nie zwracaj błędu, aby reszta skryptu mogła kontynuować, ale zaloguj błąd
+       log_error "Node Resource Exporter might not be running correctly."
+       return 1 # Zwróć błąd, deployment jest kluczowy
+    fi
+
+    log_success "Node Resource Exporter deployment complete."
 }
 
 deploy_workload_manager() {
@@ -494,5 +536,5 @@ EOF
 export -f log log_error log_success log_info log_debug
 export -f check_command wait_for_pods
 export -f deploy_kwok deploy_prometheus_and_grafana deploy_workload_manager
-export -f deploy_unified_job_exporter
+export -f deploy_unified_job_exporter deploy_node_resource_exporter
 export -f deploy_kueue deploy_volcano deploy_yunikorn

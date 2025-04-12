@@ -56,97 +56,49 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "P95 latency of the scheduler's internal decision-making process (Kueue/Volcano/YuniKorn combined view using 'or'). Assumes comparable histogram metrics exist and are scraped. Namespace filter applied. Note: YuniKorn latency (ms) is converted to seconds. Lower is better.",
+      "description": "Scheduler throughput based on successful operations per second (admitted workloads for Kueue, allocated containers for YuniKorn, scheduled tasks count for Volcano proxy). Higher is better.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 5
-              },
-              {
-                "color": "red",
-                "value": 15
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 1
-      },
-      "id": 11,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "11.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "(histogram_quantile(0.95, sum(rate(kueue_workload_scheduling_latency_seconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) or\nhistogram_quantile(0.95, sum(rate(volcano_e2e_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000 or\nhistogram_quantile(0.95, sum(rate(yunikorn_scheduler_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000) or vector(0)",
-          "instant": true,
-          "legendFormat": "P95 Latency",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "P95 Internal Scheduling Latency",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Average scheduler throughput based on successful operations per second (admitted workloads for Kueue, allocated containers for YuniKorn, scheduled tasks count for Volcano proxy). Higher is better.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              },
-              {
-                "color": "green",
-                "value": 5
-              }
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "green", "value": 5 }
             ]
           },
           "unit": "ops"
@@ -155,108 +107,36 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 4,
+        "w": 8,
+        "x": 0,
         "y": 1
       },
       "id": 17,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["mean"],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "textMode": "auto",
-        "wideLayout": true
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "11.0.0",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "expr": "(\n  # Kueue: Admitted workloads/sec\n  sum(rate(kueue_admitted_workloads_total[5m]))\n)\nOR\n(\n  # Volcano: Scheduled tasks/sec (proxy)\n  sum(rate(volcano_task_scheduling_latency_milliseconds_count[5m]))\n)\nOR\n(\n  # YuniKorn: Allocated containers/sec\n  sum(rate(yunikorn_scheduler_container_allocation_attempt_total{state=\"allocated\"}[5m]))\n)\nOR\nvector(0)",
           "instant": false,
-          "legendFormat": "Throughput",
+          "legendFormat": "{{ scheduler }} Throughput",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Scheduler Throughput (Ops/s)",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Average time from Job creation to Job start (based on KSM or volcano-exporter, filtered by job namespace). Lower is better.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 60
-              },
-              {
-                "color": "red",
-                "value": 300
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 1
-      },
-      "id": 13,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "(\n  avg(kube_job_status_start_time{namespace=~\"$namespace\"} - kube_job_created{namespace=~\"$namespace\"})\n)\nOR\n(\n  # Filter volcano metrics by exported_namespace\n  avg(volcano_job_start_timestamp_seconds{exported_namespace=~\"$namespace\"} - volcano_job_created_timestamp_seconds{exported_namespace=~\"$namespace\"})\n)\nOR vector(0)",
-          "instant": true,
-          "legendFormat": "Avg Job Wait Time",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Avg Job Wait Time (KSM / Volcano Exp.)",
-      "type": "stat"
+      "title": "Scheduler Operation Rate (ops/s)",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -293,8 +173,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 12,
+        "w": 8,
+        "x": 8,
         "y": 1
       },
       "id": 14,
@@ -362,7 +242,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 8,
         "x": 16,
         "y": 1
       },
@@ -396,297 +276,12 @@
       "type": "stat"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Number of pending units reported directly by the selected scheduler (Workloads/Pods/Applications). Filtered by namespace. Uses hidden queries based on $scheduler variable.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
-            ]
-          },
-          "unit": ""
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 1
-      },
-      "id": 16,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "11.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum(kueue_pending_workloads{namespace=~\"$namespace\"}) or vector(0)",
-          "hide": "$scheduler != \"kueue\"",
-          "instant": true,
-          "legendFormat": "Pending Kueue WLs",
-          "range": false,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum(volcano_queue_pending_pods{namespace=~\"$namespace\"}) or vector(0)",
-          "hide": "$scheduler != \"volcano\"",
-          "instant": true,
-          "legendFormat": "Pending Volcano Pods",
-          "range": false,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum(yunikorn_scheduler_queue_pending_applications{namespace=~\"$namespace\"}) or vector(0)",
-          "hide": "$scheduler != \"yunikorn\"",
-          "instant": true,
-          "legendFormat": "Pending YK Apps",
-          "range": false,
-          "refId": "C"
-        }
-      ],
-      "title": "Current Pending Scheduler Units",
-      "type": "stat"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 5
-      },
-      "id": 20,
-      "panels": [],
-      "title": "Performance: Throughput & Latency",
-      "type": "row"
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Latency quantiles (P99, P95, P50) of the scheduler's internal decision-making process (Kueue/Volcano/YuniKorn combined view using 'or'). Assumes comparable histogram metrics exist and are scraped. Namespace filter applied. Note: YuniKorn latency (ms) is converted to seconds. Lower is better.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 5
-              },
-              {
-                "color": "red",
-                "value": 15
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 6
-      },
-      "id": 22,
-      "legend": {
-        "alignAsTable": true,
-        "calcs": ["mean", "max", "lastNotNull"],
-        "displayMode": "list",
-        "placement": "bottom",
-        "showLegend": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "percentage": false,
-      "pluginVersion": "11.0.0",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "(histogram_quantile(0.99, sum(rate(kueue_workload_scheduling_latency_seconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) or\nhistogram_quantile(0.99, sum(rate(volcano_e2e_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000 or\nhistogram_quantile(0.99, sum(rate(yunikorn_scheduler_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000) or vector(0)",
-          "legendFormat": "P99 Latency",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "(histogram_quantile(0.95, sum(rate(kueue_workload_scheduling_latency_seconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) or\nhistogram_quantile(0.95, sum(rate(volcano_e2e_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000 or\nhistogram_quantile(0.95, sum(rate(yunikorn_scheduler_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000) or vector(0)",
-          "hide": false,
-          "legendFormat": "P95 Latency",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "(histogram_quantile(0.50, sum(rate(kueue_workload_scheduling_latency_seconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) or\nhistogram_quantile(0.50, sum(rate(volcano_e2e_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000 or\nhistogram_quantile(0.50, sum(rate(yunikorn_scheduler_scheduling_latency_milliseconds_bucket{namespace=~\"$namespace\"}[5m])) by (le)) / 1000) or vector(0)",
-          "hide": false,
-          "legendFormat": "P50 Latency",
-          "range": true,
-          "refId": "C"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Internal Scheduler Scheduling Latency (Quantiles)",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "timeseries",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:404",
-          "format": "s",
-          "label": "Latency",
-          "logBase": 1,
-          "max": null,
-          "min": "0",
-          "show": true
-        },
-        {
-          "$$hashKey": "object:405",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 14
       },
       "id": 300,
       "panels": [],
@@ -699,10 +294,10 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 15
+        "y": 6
       },
-      "title": "Average Job Times (KSM / Volcano Exp.)",
-      "description": "Average times for Jobs based on KSM timestamps (kube_job_*) or Volcano Exporter (volcano_job_*_timestamp), filtered by job namespace. Wait Time: Created to Start. Execution Time: Start to Completion. Total Time: Created to Completion. Note: Completion time is only available for completed jobs.",
+      "title": "Average Job Times",
+      "description": "Average times for Jobs (K8s & Volcano) based on unified exporter metrics, filtered by job namespace. Wait Time: Created to Start. Execution Time: Start to Completion. Total Time: Created to Completion. Note: Completion time is only available for completed jobs.",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -770,25 +365,34 @@
       },
       "targets": [
         {
-          "expr": "avg by (namespace) (\n  (kube_job_status_start_time{namespace=~\"$namespace\"} - kube_job_created{namespace=~\"$namespace\"})\n  OR\n  # Replace exported_namespace with namespace for Volcano metrics before averaging\n  label_replace(\n    # Wait time calculation for Volcano (no status filter needed)\n    volcano_job_start_timestamp_seconds{exported_namespace=~\"$namespace\"} - volcano_job_created_timestamp_seconds{exported_namespace=~\"$namespace\"},\n    \"namespace\", \"$1\", \"exported_namespace\", \"(.+)\"\n  )\n) OR vector(0)",
+          "expr": "avg by (exported_namespace) (unified_job_wait_duration_seconds{exported_namespace=~\"$namespace\"}) or vector(0)",
           "legendFormat": "Avg Wait Time - {{ namespace }}",
           "range": true,
           "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
-          "expr": "avg by (namespace) (\n  (kube_job_status_completion_time{namespace=~\"$namespace\"} - kube_job_status_start_time{namespace=~\"$namespace\"})\n  OR\n  # Replace exported_namespace with namespace for Volcano metrics before averaging\n  label_replace(\n    # Execution time calculation for Volcano, matching on job_name, exported_namespace, uid\n    (\n      volcano_job_completion_timestamp_seconds{exported_namespace=~\"$namespace\", status=~\"Completed|Failed\"} \n      - on(job_name, exported_namespace, uid) \n      volcano_job_start_timestamp_seconds{exported_namespace=~\"$namespace\"}\n    ),\n     \"namespace\", \"$1\", \"exported_namespace\", \"(.+)\"\n  )\n) OR vector(0)",
+          "expr": "avg by (exported_namespace) (unified_job_execution_duration_seconds{exported_namespace=~\"$namespace\", status=~\"Succeeded|Failed\"}) or vector(0)",
           "legendFormat": "Avg Execution Time - {{ namespace }}",
           "range": true,
           "refId": "B",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         },
         {
-          "expr": "avg by (namespace) (\n  (kube_job_status_completion_time{namespace=~\"$namespace\"} - kube_job_created{namespace=~\"$namespace\"})\n  OR\n  # Replace exported_namespace with namespace for Volcano metrics before averaging\n  label_replace(\n     # Total time calculation for Volcano, matching on job_name, exported_namespace, uid\n    (\n      volcano_job_completion_timestamp_seconds{exported_namespace=~\"$namespace\", status=~\"Completed|Failed\"} \n      - on(job_name, exported_namespace, uid) \n      volcano_job_created_timestamp_seconds{exported_namespace=~\"$namespace\"}\n    ),\n     \"namespace\", \"$1\", \"exported_namespace\", \"(.+)\"\n  )\n) OR vector(0)",
+          "expr": "avg by (exported_namespace) (unified_job_total_duration_seconds{exported_namespace=~\"$namespace\", status=~\"Succeeded|Failed\"}) or vector(0)",
           "legendFormat": "Avg Total Time - {{ namespace }}",
           "range": true,
           "refId": "C",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
         }
       ]
     },
@@ -798,10 +402,10 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 15
+        "y": 6
       },
-      "title": "Job Status Count (KSM / Volcano Exp.)",
-      "description": "Number of Jobs in different states based on KSM metrics or Volcano Exporter (filtered by job namespace). Includes Suspended/Pending.",
+      "title": "Job Status Count",
+      "description": "Number of Jobs (K8s & Volcano) in different states based on unified exporter metrics (filtered by job namespace).",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -869,8 +473,8 @@
       },
       "targets": [
         {
-          "expr": "sum(kube_job_status_active{namespace=~\"$namespace\"})\nOR\nsum(volcano_job_status_phase{exported_namespace=~\"$namespace\"} == 1)",
-          "legendFormat": "Active / Running",
+          "expr": "count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 1)",
+          "legendFormat": "Running",
           "range": true,
           "refId": "A",
           "datasource": {
@@ -879,8 +483,8 @@
           }
         },
         {
-          "expr": "sum(kube_job_status_succeeded{condition=\"true\", namespace=~\"$namespace\"})\nOR\nsum(volcano_job_status_phase{exported_namespace=~\"$namespace\"} == 2)",
-          "legendFormat": "Succeeded / Completed",
+          "expr": "count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 2)",
+          "legendFormat": "Succeeded",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -889,7 +493,7 @@
           }
         },
         {
-          "expr": "sum(kube_job_status_failed{condition=\"true\", namespace=~\"$namespace\"})\nOR\nsum(volcano_job_status_phase{exported_namespace=~\"$namespace\"} == 3)",
+          "expr": "count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 3)",
           "legendFormat": "Failed",
           "range": true,
           "refId": "C",
@@ -899,8 +503,8 @@
           }
         },
         {
-          "expr": "count(kube_job_spec_suspended{namespace=~\"$namespace\", suspended=\"true\"})\nOR\nsum(volcano_job_status_phase{exported_namespace=~\"$namespace\"} == 0)",
-          "legendFormat": "Suspended / Pending",
+          "expr": "count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 0)",
+          "legendFormat": "Pending",
           "range": true,
           "refId": "D",
           "datasource": {
@@ -1029,7 +633,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 14
       },
       "id": 303,
       "options": {
@@ -1160,7 +764,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 14
       },
       "id": 304,
       "options": {
@@ -1213,11 +817,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 22
       },
       "id": 80,
       "panels": [],
-      "title": "Cluster Resources: Overall Utilization (Requests)",
+      "title": "Cluster Resources: Overall Simulated Utilization (Node Exporter)",
       "type": "row"
     },
     {
@@ -1225,7 +829,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Sum of CPU requests from pods in selected namespaces as a percentage of total allocatable CPU across worker nodes.",
+      "description": "Sum of simulated CPU usage (pod requests) as a percentage of total allocatable CPU across worker nodes. Based on node-resource-exporter.",
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -1260,7 +864,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 32
+        "y": 23
       },
       "id": 82,
       "options": {
@@ -1281,13 +885,13 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"$namespace\", node!~\"kind-control-plane\"}) / sum(kube_node_status_allocatable{resource=\"cpu\", node!~\"kind-control-plane\"})",
-          "legendFormat": "CPU Requests vs Allocatable",
+          "expr": "sum(node_simulated_usage_cpu_cores{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"})",
+          "legendFormat": "Simulated CPU Usage vs Allocatable",
           "instant": true,
           "refId": "A"
         }
       ],
-      "title": "Cluster CPU Requests vs Allocatable",
+      "title": "Cluster Simulated CPU Usage vs Allocatable",
       "type": "gauge"
     },
     {
@@ -1295,7 +899,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Sum of Memory requests from pods in selected namespaces as a percentage of total allocatable Memory across worker nodes.",
+      "description": "Sum of simulated Memory usage (pod requests) as a percentage of total allocatable Memory across worker nodes. Based on node-resource-exporter.",
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -1330,7 +934,7 @@
         "h": 6,
         "w": 6,
         "x": 6,
-        "y": 32
+        "y": 23
       },
       "id": 84,
       "options": {
@@ -1351,13 +955,13 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"$namespace\", node!~\"kind-control-plane\"}) / sum(kube_node_status_allocatable{resource=\"memory\", node!~\"kind-control-plane\"})",
-          "legendFormat": "Memory Requests vs Allocatable",
+          "expr": "sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"})",
+          "legendFormat": "Simulated Memory Usage vs Allocatable",
           "instant": true,
           "refId": "A"
         }
       ],
-      "title": "Cluster Memory Requests vs Allocatable",
+      "title": "Cluster Simulated Memory Usage vs Allocatable",
       "type": "gauge"
     },
     {
@@ -1365,7 +969,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Sum of GPU requests from pods in selected namespaces as a percentage of total allocatable GPUs across worker nodes. Relies on proper extended resource reporting in KSM.",
+      "description": "Sum of simulated GPU usage (pod requests) as a percentage of total allocatable GPUs across worker nodes. Based on node-resource-exporter.",
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -1400,7 +1004,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 32
+        "y": 23
       },
       "id": 85,
       "options": {
@@ -1421,13 +1025,13 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", namespace=~\"$namespace\", node!~\"kind-control-plane\"}) / sum(kube_node_status_allocatable{resource=\"nvidia.com/gpu\", node!~\"kind-control-plane\"}) or vector(0)",
-          "legendFormat": "GPU Requests vs Allocatable",
+          "expr": "sum(node_simulated_usage_gpu_cards{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_gpu_cards{node_name!~\"kind-control-plane\"}) or vector(0)",
+          "legendFormat": "Simulated GPU Usage vs Allocatable",
           "instant": true,
           "refId": "A"
         }
       ],
-      "title": "Cluster GPU Requests vs Allocatable",
+      "title": "Cluster Simulated GPU Usage vs Allocatable",
       "type": "gauge"
     },
     {
@@ -1435,7 +1039,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Time series of resource requests compared to total allocatable resources over time. Shows dynamic changes in cluster resource allocation across namespaces.",
+      "description": "Time series of simulated resource usage (pod requests) compared to total allocatable resources over time. Shows dynamic changes in cluster resource allocation. Based on node-resource-exporter.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1489,7 +1093,7 @@
         "h": 6,
         "w": 6,
         "x": 18,
-        "y": 32
+        "y": 23
       },
       "id": 86,
       "options": {
@@ -1512,7 +1116,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"$namespace\", node!~\"kind-control-plane\"}) / sum(kube_node_status_allocatable{resource=\"cpu\", node!~\"kind-control-plane\"})",
+          "expr": "sum(node_simulated_usage_cpu_cores{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"})",
           "hide": false,
           "instant": false,
           "legendFormat": "CPU",
@@ -1525,7 +1129,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"$namespace\", node!~\"kind-control-plane\"}) / sum(kube_node_status_allocatable{resource=\"memory\", node!~\"kind-control-plane\"})",
+          "expr": "sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"})",
           "hide": false,
           "instant": false,
           "legendFormat": "Memory",
@@ -1538,7 +1142,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", namespace=~\"$namespace\", node!~\"kind-control-plane\"}) / sum(kube_node_status_allocatable{resource=\"nvidia.com/gpu\", node!~\"kind-control-plane\"}) or vector(0)",
+          "expr": "sum(node_simulated_usage_gpu_cards{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_gpu_cards{node_name!~\"kind-control-plane\"}) or vector(0)",
           "hide": false,
           "instant": false,
           "legendFormat": "GPU",
@@ -1546,7 +1150,7 @@
           "refId": "C"
         }
       ],
-      "title": "Resource Allocation Trends",
+      "title": "Simulated Usage Allocation Trends",
       "type": "timeseries"
     },
     {
@@ -1554,7 +1158,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Resource requests over time in absolute values. Shows actual CPU cores, memory bytes, and GPU counts requested across all pods in selected namespace(s).",
+      "description": "Simulated resource usage (pod requests) over time in absolute values. Shows actual CPU cores, memory bytes, and GPU counts requested across all pods. Based on node-resource-exporter.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1605,7 +1209,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "CPU Requests"
+              "options": "CPU Simulated Usage"
             },
             "properties": [
               {
@@ -1624,7 +1228,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Memory Requests"
+              "options": "Memory Simulated Usage"
             },
             "properties": [
               {
@@ -1647,7 +1251,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "GPU Requests"
+              "options": "GPU Simulated Usage"
             },
             "properties": [
               {
@@ -1673,7 +1277,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 29
       },
       "id": 87,
       "options": {
@@ -1696,10 +1300,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"$namespace\"})",
+          "expr": "sum(node_simulated_usage_cpu_cores{node_name!~\"kind-control-plane\"})",
           "hide": false,
           "instant": false,
-          "legendFormat": "CPU Requests",
+          "legendFormat": "CPU Simulated Usage",
           "range": true,
           "refId": "A"
         },
@@ -1709,10 +1313,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"$namespace\"})",
+          "expr": "sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"})",
           "hide": false,
           "instant": false,
-          "legendFormat": "Memory Requests",
+          "legendFormat": "Memory Simulated Usage",
           "range": true,
           "refId": "B"
         },
@@ -1722,15 +1326,15 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", namespace=~\"$namespace\"}) or vector(0)",
+          "expr": "sum(node_simulated_usage_gpu_cards{node_name!~\"kind-control-plane\"}) or vector(0)",
           "hide": false,
           "instant": false,
-          "legendFormat": "GPU Requests",
+          "legendFormat": "GPU Simulated Usage",
           "range": true,
           "refId": "C"
         }
       ],
-      "title": "Total Resource Requests Over Time",
+      "title": "Total Simulated Usage Over Time (Absolute)",
       "type": "timeseries"
     },
     {
@@ -1739,11 +1343,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 37
       },
       "id": 90,
       "panels": [],
-      "title": "Cluster Resources: Node Details & Fragmentation Proxy",
+      "title": "Cluster Resources: Pod Distribution & Node Load",
       "type": "row"
     },
     {
@@ -1751,11 +1355,11 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Shows resource requests vs allocatable per node, along with pending pods count (filtered by selected namespace and node). High pending pods count despite available resources on some nodes can indicate fragmentation or scheduling constraints.",
+      "description": "Current number of pods per node compared to allocatable pod capacity and simulated CPU/Memory usage. Uses metrics from node-resource-exporter. KWOK nodes are identified.",
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "decimals": 2,
+          "decimals": 0,
           "color": {
             "mode": "thresholds"
           },
@@ -1782,72 +1386,120 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Node"
+              "options": "Node Name"
             },
             "properties": [
               {
                 "id": "width",
-                "value": 150
+                "value": 250
+              },
+              {
+                "id": "unit",
+                "value": "string"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "CPU Requests %"
+              "options": "Pod Count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Allocatable Pods"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pod Usage %"
             },
             "properties": [
               {
                 "id": "unit",
                 "value": "percent"
+              },
+              {
+                "id": "width",
+                "value": 90
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Memory Requests %"
+              "options": "Is KWOK Node"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "string"
+              },
+              {
+                "id": "width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU Usage %"
             },
             "properties": [
               {
                 "id": "unit",
                 "value": "percent"
+              },
+              {
+                "id": "width",
+                "value": 90
+              },
+              {
+                "id": "decimals",
+                "value": 1
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "CPU Allocatable"
+              "options": "Mem Usage %"
             },
             "properties": [
               {
                 "id": "unit",
-                "value": "cores"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Memory Allocatable"
-            },
-            "properties": [
+                "value": "percent"
+              },
               {
-                "id": "unit",
-                "value": "bytes"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Pending Pods"
-            },
-            "properties": [
+                "id": "width",
+                "value": 90
+              },
               {
-                "id": "unit",
-                "value": ""
+                "id": "decimals",
+                "value": 1
               }
             ]
           }
@@ -1855,23 +1507,23 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 24,
+        "w": 12,
         "x": 0,
-        "y": 47
+        "y": 38
       },
-      "id": 91,
+      "id": 94,
       "options": {
         "showHeader": true,
         "sortBy": [
           {
-            "displayName": "CPU Requests %",
+            "displayName": "Pod Count",
             "desc": true
           }
         ],
         "footer": {
           "show": true,
-          "reducer": ["sum", "mean"],
-          "fields": ["CPU Requests %", "Memory Requests %", "Pending Pods"],
+          "reducer": ["sum"],
+          "fields": ["Pod Count", "Allocatable Pods"],
           "enablePagination": false,
           "countRows": false
         }
@@ -1879,11 +1531,25 @@
       "pluginVersion": "11.0.0",
       "targets": [
         {
-          "hide": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "node_simulated_pod_count{node_name=~\"$node\", node_name!~\"kind-control-plane\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Pod Count",
           "refId": "A"
         },
         {
-          "hide": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "node_allocatable_pods{node_name=~\"$node\", node_name!~\"kind-control-plane\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Allocatable Pods",
           "refId": "B"
         },
         {
@@ -1891,10 +1557,10 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (node) (kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"$namespace\", node=~\"$node\", node!~\"kind-control-plane\"}) / sum by (node) (kube_node_status_allocatable{resource=\"cpu\", node=~\"$node\", node!~\"kind-control-plane\"}) * 100 or vector(0)",
+          "expr": "(node_simulated_pod_count{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_pods{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100",
           "format": "table",
           "instant": true,
-          "legendFormat": "CPU Requests %",
+          "legendFormat": "Pod Usage %",
           "refId": "C"
         },
         {
@@ -1902,10 +1568,10 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (node) (kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"$namespace\", node=~\"$node\", node!~\"kind-control-plane\"}) / sum by (node) (kube_node_status_allocatable{resource=\"memory\", node=~\"$node\", node!~\"kind-control-plane\"}) * 100 or vector(0)",
+          "expr": "(node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100",
           "format": "table",
           "instant": true,
-          "legendFormat": "Memory Requests %",
+          "legendFormat": "CPU Usage %",
           "refId": "D"
         },
         {
@@ -1913,69 +1579,42 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (node) (kube_node_status_allocatable{resource=\"cpu\", node=~\"$node\", node!~\"kind-control-plane\"}) or vector(0)",
+          "expr": "(node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100",
           "format": "table",
           "instant": true,
-          "legendFormat": "CPU Allocatable",
+          "legendFormat": "Mem Usage %",
           "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum by (node) (kube_node_status_allocatable{resource=\"memory\", node=~\"$node\", node!~\"kind-control-plane\"}) or vector(0)",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "Memory Allocatable",
-          "refId": "F"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum by (node) (kube_pod_status_phase{phase=\"Pending\", namespace=~\"$namespace\", node=~\"$node\"}) or vector(0)",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "Pending Pods",
-          "refId": "G"
         }
       ],
-      "title": "Node Resource Details & Pending Pods (Fragmentation Proxy)",
+      "title": "Pod Count & Usage per Node (Table)",
       "transformations": [
         {
           "id": "merge",
           "options": {}
         },
         {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "names": [
-                "Time",
-                "Node",
-                "CPU Requests %",
-                "Memory Requests %",
-                "CPU Allocatable",
-                "Memory Allocatable",
-                "Pending Pods"
-              ]
-            }
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "Time": true,
+              "instance": true,
+              "job": true,
+              "container": true,
+              "endpoint": true,
+              "__name__": true,
+              "instance_type": true,
+              "region": true,
+              "zone": true
+            },
             "indexByName": {},
             "renameByName": {
-              "Value #C": "CPU Requests %",
-              "Value #D": "Memory Requests %",
-              "Value #E": "CPU Allocatable",
-              "Value #F": "Memory Allocatable",
-              "Value #G": "Pending Pods",
-              "node": "Node"
+              "node_name": "Node Name",
+              "Value #A": "Pod Count",
+              "Value #B": "Allocatable Pods",
+              "Value #C": "Pod Usage %",
+              "Value #D": "CPU Usage %",
+              "Value #E": "Mem Usage %",
+              "is_kwok": "Is KWOK Node"
             }
           }
         }
@@ -1987,7 +1626,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Node resource allocation analysis showing the distribution of pods and resources across nodes. Helps identify imbalances in scheduling decisions.",
+      "description": "Number of Pods scheduled on each worker node over time. Helps identify load balancing and saturation patterns. Based on node-resource-exporter.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2039,10 +1678,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
+        "h": 10,
         "w": 12,
-        "x": 0,
-        "y": 57
+        "x": 12,
+        "y": 38
       },
       "id": 92,
       "options": {
@@ -2053,7 +1692,7 @@
           "showLegend": true
         },
         "tooltip": {
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -2065,15 +1704,15 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (node) (kube_pod_info{namespace=~\"$namespace\", node!~\"kind-control-plane\"})",
+          "expr": "node_simulated_pod_count{node_name=~\"$node\", node_name!~\"kind-control-plane\"}",
           "hide": false,
           "instant": false,
-          "legendFormat": "{{node}}",
+          "legendFormat": "{{node_name}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Pod Distribution per Node",
+      "title": "Pod Distribution per Node (Timeseries)",
       "type": "timeseries"
     },
     {
@@ -2081,76 +1720,273 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Distribution of CPU/Memory request sizes across pods, showing the variety of pod sizes in the workload. Helps identify if the workload is homogeneous or heterogeneous.",
+      "description": "Distribution of nodes based on their simulated CPU utilization percentage (pod requests / allocatable).",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "shades"
           },
+          "unit": "percent",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "id": 95,
+      "options": {
+        "bucketSize": 10,
+        "bucketOffset": 0,
+        "combine": false,
+        "legend": {
+          "show": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xAxis": {
+          "placement": "bottom"
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "axisLabel": "Node Count"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "(node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100",
+          "instant": true,
+          "legendFormat": "CPU Usage %",
+          "refId": "A"
+        }
+      ],
+      "title": "Node CPU Utilization Distribution (%)",
+      "type": "histogram"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Distribution of nodes based on their simulated Memory utilization percentage (pod requests / allocatable).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "shades"
+          },
+          "unit": "percent",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "id": 96,
+      "options": {
+        "bucketSize": 10,
+        "bucketOffset": 0,
+        "combine": false,
+        "legend": {
+          "show": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xAxis": {
+          "placement": "bottom"
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "axisLabel": "Node Count"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "(node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100",
+          "instant": true,
+          "legendFormat": "Memory Usage %",
+          "refId": "A"
+        }
+      ],
+      "title": "Node Memory Utilization Distribution (%)",
+      "type": "histogram"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Average and Standard Deviation of simulated resource utilization percentage across nodes. Lower StdDev indicates more even load balancing.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "percent",
+          "decimals": 1,
           "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "axisPlacement": "left",
+            "drawStyle": "line"
           }
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "CPU Requests"
+              "options": "/.* Std Dev/"
             },
             "properties": [
               {
-                "id": "unit",
-                "value": "cores"
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [5, 5]
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
               }
             ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "id": 97,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
+          "expr": "avg( (node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Avg CPU Usage %",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "stddev( (node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "CPU Usage % Std Dev",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "avg( (node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Avg Memory Usage %",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "stddev( (node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Memory Usage % Std Dev",
+          "refId": "D"
+        }
+      ],
+      "title": "Node Utilization Evenness (Avg & Std Dev)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Average and Standard Deviation of simulated GPU utilization percentage across nodes. Lower StdDev indicates more even load balancing.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "percent",
+          "decimals": 1,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "axisPlacement": "left",
+            "drawStyle": "line"
+          }
+        },
+        "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Memory Requests"
+              "options": "/.* Std Dev/"
             },
             "properties": [
               {
-                "id": "unit",
-                "value": "bytes"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "GPU Requests"
-            },
-            "properties": [
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
               {
-                "id": "unit",
-                "value": "none"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Count"
-            },
-            "properties": [
+                "id": "custom.lineWidth",
+                "value": 1
+              },
               {
-                "id": "unit",
-                "value": "short"
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [5, 5]
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
               }
             ]
           }
@@ -2160,22 +1996,20 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 57
+        "y": 56
       },
-      "id": 93,
+      "id": 99,
       "options": {
-        "footer": {
-          "show": false,
-          "reducer": ["sum"],
-          "fields": ""
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull"]
         },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "displayName": "CPU Requests",
-            "desc": true
-          }
-        ]
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "pluginVersion": "11.0.0",
       "targets": [
@@ -2184,12 +2018,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "editorMode": "code",
-          "expr": "sum by (value) (count by (pod, value) (kube_pod_container_resource_requests{resource=\"cpu\", namespace=~\"$namespace\"}))",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "{{value}}",
-          "range": false,
+          "expr": "avg( (node_simulated_usage_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 ) or vector(0)",
+          "legendFormat": "Avg GPU Usage %",
           "refId": "A"
         },
         {
@@ -2197,55 +2027,78 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "editorMode": "code",
-          "expr": "sum by (value) (count by (pod, value) (kube_pod_container_resource_requests{resource=\"memory\", namespace=~\"$namespace\"}))",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "legendFormat": "{{value}}",
-          "range": false,
+          "expr": "stddev( (node_simulated_usage_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 ) or vector(0)",
+          "legendFormat": "GPU Usage % Std Dev",
           "refId": "B"
+        }
+      ],
+      "title": "Node GPU Utilization Evenness (Avg & Std Dev)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Number of worker nodes with simulated utilization (pod requests / allocatable) exceeding 80% for CPU or Memory.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "axisPlacement": "left",
+            "drawStyle": "line"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 64
+      },
+      "id": 98,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "count( (node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) > 0.80 )",
+          "legendFormat": "Nodes >80% CPU Usage",
+          "refId": "A"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "editorMode": "code",
-          "expr": "sum by (value) (count by (pod, value) (kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", namespace=~\"$namespace\"})) or vector(0)",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "legendFormat": "{{value}}",
-          "range": false,
-          "refId": "C"
+          "expr": "count( (node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) > 0.80 )",
+          "legendFormat": "Nodes >80% Memory Usage",
+          "refId": "B"
         }
       ],
-      "title": "Resource Request Distribution",
-      "transformations": [
-        {
-          "id": "seriesToColumns",
-          "options": {
-            "byField": "Value"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "indexByName": {},
-            "renameByName": {
-              "Value": "Resource Size",
-              "Value #A": "CPU Requests",
-              "Value #B": "Memory Requests",
-              "Value #C": "GPU Requests"
-            }
-          }
-        }
-      ],
-      "type": "table"
+      "title": "Saturated Nodes Count (>80% Usage)",
+      "type": "timeseries"
     },
     {
       "collapsed": false,
@@ -2253,7 +2106,344 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 72
+      },
+      "id": 1000,
+      "panels": [],
+      "title": "Cluster Resources: Simulated Usage Details (Per Node Aggregates)",
+      "type": "row"
+    },
+    {
+      "id": 1001,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 73
+      },
+      "title": "Node Simulated CPU Usage (Avg/Min/Max)",
+      "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) across selected nodes. Based on node-resource-exporter.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Cores",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "cores"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "avg(node_simulated_usage_cpu_cores{node_name=~\"$node\"})",
+          "legendFormat": "Avg CPU Usage",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "min(node_simulated_usage_cpu_cores{node_name=~\"$node\"})",
+          "legendFormat": "Min CPU Usage",
+          "range": true,
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max(node_simulated_usage_cpu_cores{node_name=~\"$node\"})",
+          "legendFormat": "Max CPU Usage",
+          "range": true,
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1002,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 73
+      },
+      "title": "Node Simulated Memory Usage (Avg/Min/Max)",
+      "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) across selected nodes. Based on node-resource-exporter.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Bytes",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "avg(node_simulated_usage_memory_bytes{node_name=~\"$node\"})",
+          "legendFormat": "Avg Memory Usage",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "min(node_simulated_usage_memory_bytes{node_name=~\"$node\"})",
+          "legendFormat": "Min Memory Usage",
+          "range": true,
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max(node_simulated_usage_memory_bytes{node_name=~\"$node\"})",
+          "legendFormat": "Max Memory Usage",
+          "range": true,
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1003,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 73
+      },
+      "title": "Node Simulated GPU Usage (Avg/Min/Max)",
+      "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) across selected nodes. Based on node-resource-exporter. Will show 0 if no GPUs requested or available.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "GPUs",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "avg(node_simulated_usage_gpu_cards{node_name=~\"$node\"}) or vector(0)",
+          "legendFormat": "Avg GPU Usage",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "min(node_simulated_usage_gpu_cards{node_name=~\"$node\"}) or vector(0)",
+          "legendFormat": "Min GPU Usage",
+          "range": true,
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max(node_simulated_usage_gpu_cards{node_name=~\"$node\"}) or vector(0)",
+          "legendFormat": "Max GPU Usage",
+          "range": true,
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 81
       },
       "id": 40,
       "panels": [],
@@ -2327,7 +2517,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 66
+        "y": 82
       },
       "id": 41,
       "legend": {
@@ -2485,7 +2675,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 66
+        "y": 82
       },
       "id": 42,
       "legend": {
@@ -2582,7 +2772,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 74
+        "y": 90
       },
       "id": 600,
       "panels": [],
@@ -2595,7 +2785,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 75
+        "y": 91
       },
       "title": "$scheduler: Queue Status",
       "description": "Shows scheduler-specific queue length metrics (filtered by namespace). Note: These metrics are NOT directly comparable between schedulers (Workloads vs Pods vs Applications). Use the 'Job Status Count' panel (Suspended/Pending) for a comparable view. Queries are hidden based on the selected '$scheduler' variable. Check Prometheus if 'No data'.",
@@ -2703,7 +2893,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 75
+        "y": 91
       },
       "title": "$scheduler: Internal Scheduling Latency (P95)",
       "description": "P95 internal scheduling/allocation latency reported by the specific scheduler. Namespace filter applied. Note: YuniKorn latency (ms) is converted to seconds. Queries are hidden based on the selected '$scheduler' variable. See also the combined latency panel in the main section. Check Prometheus if 'No data'.",
@@ -2811,7 +3001,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 75
+        "y": 91
       },
       "title": "$scheduler: Scheduling Attempts/Errors (rate/s)",
       "description": "Rate of scheduling/allocation attempts per second, broken down by result/status, as reported by the specific scheduler. Namespace filter applied. Queries are hidden based on the selected '$scheduler' variable. Check Prometheus if 'No data'.",
@@ -3001,7 +3191,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(kube_node_info{node!~\"kind-control-plane\"}, node)",
+        "definition": "label_values(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"}, node_name)",
         "description": "Select node(s) to filter node-specific views (excludes control-plane by default)",
         "hide": 0,
         "includeAll": true,
@@ -3010,7 +3200,7 @@
         "name": "node",
         "options": [],
         "query": {
-          "query": "label_values(kube_node_info{node!~\"kind-control-plane\"}, node)",
+          "query": "label_values(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"}, node_name)",
           "refId": "Prometheus-Node-Variable"
         },
         "refresh": 1,
@@ -3048,8 +3238,8 @@
     "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
   },
   "timezone": "browser",
-  "title": "knavigator - performance",
-  "uid": "knavigator-k8s-scheduler-benchmark-performance",
+  "title": "knavigator - Performance Benchmark",
+  "uid": "knavigator-performance-benchmark",
   "version": 1,
   "weekStart": ""
 }

@@ -103,6 +103,7 @@ main() {
     setup_kind_cluster
     deploy_prometheus_and_grafana
     deploy_unified_job_exporter
+    deploy_node_resource_exporter
     deploy_kwok
     select_and_deploy_workload_manager
     create_additional_dashboards

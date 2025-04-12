@@ -1,0 +1,3 @@
+prometheus-client
+kubernetes
+python-dateutil # Choć nie jest już używany w node-exporter, może być potrzebny dla unified-job-exporter
