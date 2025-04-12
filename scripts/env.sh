@@ -18,7 +18,7 @@
 readonly KWOK_REPO="kubernetes-sigs/kwok"
 readonly KWOK_RELEASE="v0.6.1"
 
-readonly PROMETHEUS_STACK_VERSION="69.8.0"
+readonly PROMETHEUS_STACK_VERSION="70.4.2"
 
 readonly KUEUE_VERSION="v0.10.2"
 readonly VOLCANO_VERSION="1.11.0"
@@ -179,6 +179,45 @@ EOF
     log_info "Additional scheduler-specific dashboards have been installed (if applicable)."
 }
 
+deploy_unified_job_exporter() {
+    log_info "Deploying Unified Job Metrics Exporter..."
+
+    local manifest_dir="${REPO_HOME}/manifests/unified-job-exporter"
+    local deployment_manifest="${manifest_dir}/unified-job-exporter-deployment.yaml"
+    local sm_manifest="${manifest_dir}/unified-job-exporter-servicemonitor.yaml"
+    local namespace="monitoring"
+    local deployment_name="unified-job-exporter"
+
+    if [[ ! -f "${deployment_manifest}" ]]; then
+        log_error "Unified Job Exporter deployment manifest not found at: ${deployment_manifest}"
+        return 1
+    fi
+     if [[ ! -f "${sm_manifest}" ]]; then
+        log_error "Unified Job Exporter ServiceMonitor manifest not found at: ${sm_manifest}"
+        return 1
+    fi
+
+    log_info "Applying Unified Job Exporter deployment manifest (${deployment_manifest})..."
+    if ! kubectl apply -f "${deployment_manifest}"; then
+        log_error "Failed to apply Unified Job Exporter deployment manifest."
+        return 1
+    fi
+
+    log_info "Applying Unified Job Exporter ServiceMonitor manifest (${sm_manifest})..."
+     if ! kubectl apply -f "${sm_manifest}"; then
+        log_error "Failed to apply Unified Job Exporter ServiceMonitor manifest."
+        log_warning "ServiceMonitor might not be picked up immediately if Prometheus Operator is not ready yet."
+    fi
+
+    log_info "Waiting for ${deployment_name} deployment to become available in namespace ${namespace}..."
+    if ! kubectl -n ${namespace} wait --for=condition=available deployment/"${deployment_name}" --timeout=600s; then
+       log_error "${deployment_name} deployment did not become available in time."
+       return 1
+    fi
+
+    log_success "Unified Job Metrics Exporter deployment complete."
+}
+
 deploy_workload_manager() {
     local choice=$1
 
@@ -321,6 +360,34 @@ deploy_volcano() {
             log_info "You'll need to create HyperNode CRs to define your network topology"
         fi
 
+        if kubectl get crd servicemonitors.monitoring.coreos.com &>/dev/null; then
+            log_info "Creating ServiceMonitor for Volcano metrics..."
+            cat <<EOF | kubectl apply -f -
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: volcano-scheduler-monitor
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: volcano-scheduler
+  namespaceSelector:
+    matchNames:
+    - volcano-system
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+EOF
+            log_success "ServiceMonitor created for Prometheus integration"
+        else
+            log_info "Prometheus Operator CRDs not found. Skipping ServiceMonitor creation."
+            log_info "To manually configure Prometheus monitoring for Volcano, add appropriate scrape configuration."
+        fi
+
         log_info "Volcano metrics are available at the /metrics endpoint of each component"
 
         log_info "Deploying Volcano Dashboard..."
@@ -427,4 +494,5 @@ EOF
 export -f log log_error log_success log_info log_debug
 export -f check_command wait_for_pods
 export -f deploy_kwok deploy_prometheus_and_grafana deploy_workload_manager
+export -f deploy_unified_job_exporter
 export -f deploy_kueue deploy_volcano deploy_yunikorn

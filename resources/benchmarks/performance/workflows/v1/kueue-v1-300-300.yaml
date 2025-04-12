@@ -179,4 +179,4 @@ tasks:
         cpu: 16000m # 16 cores (12.5% node CPU)
         memory: 256Gi # 256GB (25% node)
         gpu: 4 # 4 GPU (50% node GPU)
-        ttl: 5m
+        ttl: "5m"
