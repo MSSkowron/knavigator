@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from collections import defaultdict
 from datetime import datetime, timezone
 
 import kubernetes
@@ -27,6 +28,7 @@ volcano_start_times_cache = {}
 previously_exported_completion_metrics = {}
 observed_wait_times_uids = set()
 observed_executiontotal_durations_uids = set()
+previous_concurrency_keys = set()
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
@@ -85,6 +87,13 @@ unified_job_status_phase = Gauge(
     "unified_job_status_phase",
     "Current phase of the Job (Pending=0, Running=1, Succeeded=2, Failed=3, ...)",
     LABELS,
+    registry=REGISTRY,
+)
+
+unified_job_concurrency_count = Gauge(
+    "unified_job_concurrency_count",
+    "Number of jobs in a specific phase per queue and job kind.",
+    ["queue", "phase", "job_kind"],
     registry=REGISTRY,
 )
 
@@ -600,17 +609,23 @@ def process_job(job_obj):
         unified_job_status_phase.labels(**base_labels).set(phase_value)
 
         logging.debug(f"{log_prefix} Processing finished.")
-        return uid
+
+        return {
+            "uid": uid,
+            "queue": queue_name,
+            "phase": current_phase_str,
+            "job_kind": job_kind,
+        }
 
     except Exception as e:
-        uid_safe = uid if uid else "unknown"  # Użyj uid jeśli zostało już ustalone
+        uid_safe = uid if uid else "unknown"
         job_name_safe = name if name else "unknown"
         job_ns_safe = namespace if namespace else "unknown"
         logging.error(
             f"{log_prefix} UNEXPECTED error during processing job {job_ns_safe}/{job_name_safe} (UID: {uid_safe}): {e}",
             exc_info=True,
         )
-        return uid  # Zwróć UID, aby nie czyścić cache przez pomyłkę
+        return None
 
 
 # --- Główna Pętla ---
@@ -626,9 +641,17 @@ def collect_metrics(
     global volcano_start_times_cache, previously_exported_completion_metrics
     global observed_wait_times_uids
     global observed_executiontotal_durations_uids
+    global previous_concurrency_keys  # Dostęp do globalnej zmiennej
+
     current_job_uids_processed = set()  # UIDy przetworzone w tym cyklu
-    metrics_to_remove_candidates = previously_exported_completion_metrics.copy()
-    previously_exported_completion_metrics.clear()
+    # Usunięto logikę previously_exported_completion_metrics stąd, bo bazujemy na czyszczeniu UIDów
+
+    # --- Inicjalizacja liczników dla bieżącego cyklu ---
+    current_phase_counts = defaultdict(int)
+    current_concurrency_keys = (
+        set()
+    )  # Zbiór kluczy (queue, phase, kind) widzianych w tym cyklu
+    # --- Koniec inicjalizacji liczników ---
 
     logging.info("Starting unified metrics collection cycle...")
     all_jobs_raw = []  # Lista obiektów/słowników z API
@@ -698,7 +721,9 @@ def collect_metrics(
     except Exception as e:
         logging.error(f"Unexpected error fetching Volcano Jobs: {e}", exc_info=True)
 
-    if not all_jobs_raw and start_time_cycle == time.time():
+    if (
+        not all_jobs_raw and start_time_cycle == time.time()
+    ):  # Sprawdzenie czy coś pobrano
         logging.warning(
             "No job objects fetched in this cycle. Possible connection or permission issue."
         )
@@ -708,63 +733,118 @@ def collect_metrics(
     processed_count = 0
     error_count = 0
     for job_obj in all_jobs_raw:
-        # Przekaż oryginalny obiekt/słownik do process_job
-        processed_uid = process_job(job_obj)
-        if processed_uid:
-            current_job_uids_processed.add(processed_uid)
-            metrics_to_remove_candidates.pop(processed_uid, None)
-            processed_count += 1
-        else:
-            # process_job zwraca None lub UID, nawet przy błędzie, więc to raczej się nie zdarzy,
-            # ale można dodać licznik błędów, jeśli process_job zostanie zmieniony
-            error_count += 1
+        # Przechwyć wynik z process_job (oczekiwany dict lub None)
+        process_result = process_job(job_obj)
 
-    # --- Czyszczenie Starych Metryk Zakończenia ---
-    if metrics_to_remove_candidates:
-        logging.info(
-            f"Stale completion metrics detected for UIDs: {list(metrics_to_remove_candidates.keys())}. Relying on Prometheus staleness."
-        )
-        # W przyszłości można by tu dodać logikę aktywnego usuwania, ale obecne podejście jest OK.
+        if process_result and isinstance(process_result, dict):
+            uid = process_result.get("uid")
+            if uid:
+                current_job_uids_processed.add(uid)
+                processed_count += 1
+
+                # --- Zliczanie dla unified_job_concurrency_count ---
+                queue = process_result.get("queue", "<error_in_result>")
+                phase = process_result.get("phase", "Unknown")  # Używamy stringa fazy
+                kind = process_result.get("job_kind", "Unknown")
+                concurrency_key = (queue, phase, kind)
+                current_phase_counts[concurrency_key] += 1
+                current_concurrency_keys.add(concurrency_key)
+                # --- Koniec zliczania ---
+            else:
+                # process_job zwrócił dict, ale bez UID - mało prawdopodobne
+                error_count += 1
+                logging.warning(
+                    f"process_job returned result dict without UID for an object."
+                )
+
+        elif process_result is None:  # process_job zwrócił None (błąd lub brak danych)
+            error_count += 1
+            # Logowanie błędu powinno być w process_job
+        else:  # Nieoczekiwany wynik z process_job
+            error_count += 1
+            logging.error(
+                f"Unexpected return type from process_job: {type(process_result)}"
+            )
+
+    # --- Ustawianie metryki unified_job_concurrency_count ---
+    logging.debug(
+        f"Setting concurrency counts. Found {len(current_phase_counts)} (queue, phase, kind) combinations."
+    )
+    # Ustaw wartości dla kombinacji znalezionych w tym cyklu
+    for (queue, phase, kind), count in current_phase_counts.items():
+        try:
+            # Zakładamy, że metryka unified_job_concurrency_count jest zdefiniowana globalnie
+            unified_job_concurrency_count.labels(
+                queue=queue, phase=phase, job_kind=kind
+            ).set(count)
+            logging.debug(
+                f"Set unified_job_concurrency_count{{queue='{queue}', phase='{phase}', job_kind='{kind}'}} = {count}"
+            )
+        except Exception as e:
+            # Logujemy błąd, ale kontynuujemy, aby nie przerwać całego cyklu
+            logging.error(
+                f"Failed to set concurrency count for {queue}/{phase}/{kind}: {e}",
+                exc_info=True,
+            )
+
+    # Wyzeruj metryki dla kombinacji, które istniały poprzednio, ale nie istnieją teraz
+    stale_keys = previous_concurrency_keys - current_concurrency_keys
+    if stale_keys:
+        logging.info(f"Zeroing out {len(stale_keys)} stale concurrency count metrics.")
+        for queue, phase, kind in stale_keys:
+            try:
+                unified_job_concurrency_count.labels(
+                    queue=queue, phase=phase, job_kind=kind
+                ).set(0)
+                logging.debug(
+                    f"Zeroed out unified_job_concurrency_count{{queue='{queue}', phase='{phase}', job_kind='{kind}'}}"
+                )
+            except Exception as e:
+                # Logujemy błąd, ale kontynuujemy
+                logging.error(
+                    f"Failed to zero out stale concurrency count for {queue}/{phase}/{kind}: {e}",
+                    exc_info=True,
+                )
+
+    # Zaktualizuj zbiór kluczy na potrzeby następnego cyklu
+    previous_concurrency_keys = current_concurrency_keys
+    # --- Koniec ustawiania metryki concurrency ---
 
     # --- Czyszczenie Cache Czasu Startu Volcano ---
     volcano_uids_to_remove_from_cache = (
         set(volcano_start_times_cache.keys()) - current_job_uids_processed
     )
     if volcano_uids_to_remove_from_cache:
-        logging.info(
-            f"Removing {len(volcano_uids_to_remove_from_cache)} UIDs from Volcano start time cache: {list(volcano_uids_to_remove_from_cache)}"
+        logging.debug(  # Zmieniono na debug, bo może być tego sporo
+            f"Removing {len(volcano_uids_to_remove_from_cache)} UIDs from Volcano start time cache."
         )
         for uid in volcano_uids_to_remove_from_cache:
             volcano_start_times_cache.pop(uid, None)
 
-    # --- Czyszczenie Zbioru Zaobserwowanych Czasów Oczekiwania ---
+    # --- Czyszczenie Zbioru Zaobserwowanych Czasów Oczekiwania (Histogram) ---
     uids_to_remove_from_observed = observed_wait_times_uids - current_job_uids_processed
     if uids_to_remove_from_observed:
-        logging.info(
+        logging.debug(  # Zmieniono na debug
             f"Removing {len(uids_to_remove_from_observed)} UIDs from observed wait times set."
-        )
-        logging.debug(
-            f"UIDs to remove from observed set: {list(uids_to_remove_from_observed)}"
         )
         observed_wait_times_uids.difference_update(uids_to_remove_from_observed)
 
-    # --- NOWA LOGIKA: Czyszczenie Zbioru Zaobserwowanych Czasów Zakończenia ---
+    # --- Czyszczenie Zbioru Zaobserwowanych Czasów Zakończenia (Histogramy) ---
     uids_to_remove_from_observed_completion = (
         observed_executiontotal_durations_uids - current_job_uids_processed
     )
     if uids_to_remove_from_observed_completion:
-        logging.info(
+        logging.debug(  # Zmieniono na debug
             f"Removing {len(uids_to_remove_from_observed_completion)} UIDs from observed completion durations set."
         )
         observed_executiontotal_durations_uids.difference_update(
             uids_to_remove_from_observed_completion
         )
-    # --- Koniec nowej logiki czyszczenia ---
 
     end_time_cycle = time.time()
     duration_cycle = end_time_cycle - start_time_cycle
     logging.info(
-        f"Unified metrics collection cycle finished. Processed {processed_count} unique job UIDs seen this cycle (Errors: {error_count}). Cycle duration: {duration_cycle:.2f}s"
+        f"Unified metrics collection cycle finished. Processed {processed_count} jobs resulting in metrics. Errors encountered for {error_count} objects. Total UIDs seen this cycle: {len(current_job_uids_processed)}. Cycle duration: {duration_cycle:.2f}s"
     )
 
 

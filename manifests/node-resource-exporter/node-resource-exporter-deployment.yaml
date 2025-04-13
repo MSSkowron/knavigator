@@ -12,6 +12,12 @@ rules:
   - apiGroups: [""] # Core API group
     resources: ["nodes", "pods"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch.volcano.sh"]
+    resources: ["jobs"]
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -50,7 +56,7 @@ spec:
       serviceAccountName: node-resource-exporter # Zmieniona nazwa
       containers:
         - name: exporter
-          image: mateuszskowron21/node-resource-exporter:v1.4
+          image: mateuszskowron21/node-resource-exporter:v1.5
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
