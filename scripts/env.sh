@@ -135,11 +135,11 @@ grafana:
     enabled: true
   resources:
     requests:
-      cpu: "1000m"
-      memory: "2048Mi"
-    limits:
       cpu: "1500m"
       memory: "2048Mi"
+    limits:
+      cpu: "2000m"
+      memory: "4096Mi"
 alertmanager:
   enabled: false
 nodeExporter:
@@ -161,11 +161,11 @@ prometheus:
     podMonitorNamespaceSelector: {}
     resources:
         requests:
-          cpu: "1000m"
-          memory: "2048Mi"
-        limits:
           cpu: "1500m"
           memory: "2048Mi"
+        limits:
+          cpu: "2000m"
+          memory: "4096Mi"
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -173,7 +173,7 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 10Gi
+              storage: 20Gi
 EOF
 
     log_info "Waiting for ${helm_release_name} pods to become ready in namespace ${namespace}..."
