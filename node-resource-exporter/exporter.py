@@ -136,18 +136,19 @@ cluster_unscheduled_pods_count = Gauge(
 
 
 def parse_resource_quantity(quantity_str):
-    """Parsuje string zasobu K8s (np. '10Gi', '500m', '1') na wartość numeryczną.
+    """Parsuje string zasobu K8s (np. '10Gi', '500m', '1', '0.5') na wartość numeryczną.
     Zwraca:
-    - float dla CPU (cores)
+    - float dla CPU (cores), także jeśli podano bez 'm' (np. '0.5')
     - int dla pamięci (bytes)
-    - int dla innych (np. GPU, pods)
+    - int dla innych (np. GPU, pods), jeśli podano jako liczba całkowita bez sufiksu.
     """
     if not quantity_str:
         return 0
 
-    quantity_str = str(quantity_str)  # Upewnij się, że to string
+    # Upewnij się, że to string, obsłuż przypadki gdy K8s API zwraca int/float
+    quantity_str = str(quantity_str)
 
-    # Memory Suffixes (Binary - Ki, Mi, Gi, Ti, Pi, Ei)
+    # Memory Suffixes (Binary - Ki, Mi, Gi, Ti, Pi, Ei and Decimal - K, M, G, T, P, E)
     memory_multipliers = {
         "Ki": 1024,
         "Mi": 1024**2,
@@ -160,36 +161,59 @@ def parse_resource_quantity(quantity_str):
         "G": 1000**3,
         "T": 1000**4,
         "P": 1000**5,
-        "E": 1000**6,  # Decimal (mniej typowe dla mem, ale dla spójności)
+        "E": 1000**6,
     }
     # CPU Suffix (milli)
     cpu_milli_match = re.match(r"^(\d+)m$", quantity_str)
     if cpu_milli_match:
+        # Zawsze zwracaj float dla miliCPU
         return float(cpu_milli_match.group(1)) / 1000.0
 
-    # Generic Suffix Match
+    # Generic Suffix Match (obejmuje liczby całkowite i zmiennoprzecinkowe)
+    # Grupa 1: Cała liczba (np. "10", "0.5")
+    # Grupa 2: Opcjonalna część dziesiętna z kropką (np. ".5")
+    # Grupa 3: Opcjonalny sufiks (np. "Gi", "K")
     match = re.match(r"^(\d+(\.\d+)?)([A-Za-z]+)?$", quantity_str)
     if not match:
-        logging.warning(f"Could not parse resource quantity: '{quantity_str}'")
-        return 0
+        try:
+            return int(quantity_str)
+        except ValueError:
+            logging.warning(f"Could not parse resource quantity: '{quantity_str}'")
+            return 0
 
-    value = float(match.group(1))
+    value_str = match.group(1)
+    decimal_part = match.group(2)
     suffix = match.group(3)
+
+    try:
+        value = float(value_str)
+    except ValueError:
+        logging.warning(
+            f"Could not convert value part '{value_str}' to float in quantity '{quantity_str}'"
+        )
+        return 0
 
     if suffix:
         multiplier = memory_multipliers.get(suffix)
         if multiplier:
-            # Memory or Decimal unit - treat as integer bytes
             return int(value * multiplier)
         else:
             logging.warning(
-                f"Unknown resource suffix '{suffix}' in quantity '{quantity_str}'"
+                f"Unknown resource suffix '{suffix}' in quantity '{quantity_str}'. Assuming integer count."
             )
-            # Treat as plain integer if suffix is unknown but value exists (e.g., GPU count '1')
-            return int(value)
+            if decimal_part:
+                logging.warning(
+                    f"Returning float value {value} for quantity '{quantity_str}' with unknown suffix."
+                )
+                return value
+            else:
+                return int(value)
+
     else:
-        # No suffix - likely CPU core count, GPU count, or Pod count
-        return int(value)
+        if decimal_part:
+            return value
+        else:
+            return int(value)
 
 
 def get_node_labels(node_metadata):
@@ -313,28 +337,78 @@ def collect_node_metrics(
         containers = getattr(pod.spec, "containers", []) or []
         init_containers = getattr(pod.spec, "init_containers", []) or []
 
-        for container in containers + init_containers:
+        # --- Obliczanie efektywnych żądań dla Poda ---
+        pod_effective_cpu_request = 0.0
+        pod_effective_memory_request = 0
+        pod_effective_gpu_request = 0
+
+        # 1. Oblicz sumę żądań dla głównych kontenerów
+        regular_containers_cpu_sum = 0.0
+        regular_containers_memory_sum = 0
+        regular_containers_gpu_sum = 0
+        for container in containers:
             requests = getattr(container.resources, "requests", None) or {}
             if requests:
-                node_simulated_requests[node_name]["cpu"] += parse_resource_quantity(
+                regular_containers_cpu_sum += parse_resource_quantity(
                     requests.get("cpu", "0")
                 )
-                node_simulated_requests[node_name]["memory"] += parse_resource_quantity(
+                regular_containers_memory_sum += parse_resource_quantity(
                     requests.get("memory", "0")
                 )
-
                 gpu_req_str = "0"
                 for gpu_key in KNOWN_GPU_KEYS:
                     _req = requests.get(gpu_key)
                     if _req and _req != "0":
                         gpu_req_str = _req
                         break
-                node_simulated_requests[node_name]["gpu"] += parse_resource_quantity(
-                    gpu_req_str
+                regular_containers_gpu_sum += parse_resource_quantity(gpu_req_str)
+
+        # 2. Znajdź maksymalne żądanie wśród init-kontenerów
+        max_init_container_cpu = 0.0
+        max_init_container_memory = 0
+        max_init_container_gpu = 0
+        for container in init_containers:
+            requests = getattr(container.resources, "requests", None) or {}
+            if requests:
+                current_init_cpu = parse_resource_quantity(requests.get("cpu", "0"))
+                current_init_memory = parse_resource_quantity(
+                    requests.get("memory", "0")
                 )
 
+                current_init_gpu = 0
+                gpu_req_str = "0"
+                for gpu_key in KNOWN_GPU_KEYS:
+                    _req = requests.get(gpu_key)
+                    if _req and _req != "0":
+                        gpu_req_str = _req
+                        break
+                current_init_gpu = parse_resource_quantity(gpu_req_str)
+
+                max_init_container_cpu = max(max_init_container_cpu, current_init_cpu)
+                max_init_container_memory = max(
+                    max_init_container_memory, current_init_memory
+                )
+                max_init_container_gpu = max(max_init_container_gpu, current_init_gpu)
+
+        # 3. Oblicz efektywne żądanie dla Poda jako maximum(suma_glownych, max_init)
+        pod_effective_cpu_request = max(
+            regular_containers_cpu_sum, max_init_container_cpu
+        )
+        pod_effective_memory_request = max(
+            regular_containers_memory_sum, max_init_container_memory
+        )
+        pod_effective_gpu_request = max(
+            regular_containers_gpu_sum, max_init_container_gpu
+        )
+
+        # --- Dodaj efektywne żądania Poda do sumy dla węzła ---
+        node_simulated_requests[node_name]["cpu"] += pod_effective_cpu_request
+        node_simulated_requests[node_name]["memory"] += pod_effective_memory_request
+        node_simulated_requests[node_name]["gpu"] += pod_effective_gpu_request
+        # ----------------------------------------------------------
+
     logging.debug(
-        f"Aggregated pod requests for {len(node_simulated_requests)} nodes from {pod_count} scheduled pods."
+        f"Aggregated EFFECTIVE pod requests for {len(node_simulated_requests)} nodes from {pod_count} scheduled pods."
     )
     logging.info(f"Found {unscheduled_pod_count} unscheduled (Pending, no node) pods.")
 

@@ -56,7 +56,7 @@ spec:
       serviceAccountName: node-resource-exporter # Zmieniona nazwa
       containers:
         - name: exporter
-          image: mateuszskowron21/node-resource-exporter:v1.5
+          image: mateuszskowron21/node-resource-exporter:v1.7
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
@@ -70,11 +70,11 @@ spec:
               value: "DEBUG"
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 1000m
+              memory: 1024Mi
             limits:
-              cpu: 500m
-              memory: 512Mi # Może potrzebować więcej pamięci przy dużej liczbie podów
+              cpu: 2000m
+              memory: 2048Mi
 ---
 apiVersion: v1
 kind: Service
