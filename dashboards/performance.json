@@ -106,7 +106,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 8,
         "w": 8,
         "x": 0,
         "y": 1
@@ -147,7 +147,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "mode": "palette-classic"
           },
           "mappings": [],
           "thresholds": {
@@ -167,28 +167,58 @@
               }
             ]
           },
-          "unit": "cores"
+          "unit": "cores",
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 8,
         "w": 8,
         "x": 8,
         "y": 1
       },
       "id": 14,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["mean"],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "textMode": "auto"
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
@@ -203,8 +233,8 @@
           "refId": "A"
         }
       ],
-      "title": "Avg Scheduler CPU Usage",
-      "type": "stat"
+      "title": "Scheduler CPU Usage",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -215,7 +245,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "mode": "palette-classic"
           },
           "decimals": 2,
           "mappings": [],
@@ -236,28 +266,58 @@
               }
             ]
           },
-          "unit": "bytes"
+          "unit": "bytes",
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 8,
         "w": 8,
         "x": 16,
         "y": 1
       },
       "id": 15,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "textMode": "auto"
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
@@ -272,8 +332,8 @@
           "refId": "A"
         }
       ],
-      "title": "Current Scheduler Memory Usage",
-      "type": "stat"
+      "title": "Scheduler Memory Usage",
+      "type": "timeseries"
     },
     {
       "collapsed": false,

@@ -133,6 +133,13 @@ grafana:
   adminPassword: 'admin'
   persistence:
     enabled: true
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2048Mi"
+    limits:
+      cpu: "1500m"
+      memory: "2560Mi"
 alertmanager:
   enabled: false
 nodeExporter:
@@ -152,6 +159,13 @@ prometheus:
     podMonitorSelector: {}
     serviceMonitorNamespaceSelector: {}
     podMonitorNamespaceSelector: {}
+    resources:
+        requests:
+          cpu: "1000m"
+          memory: "2048Mi"
+        limits:
+          cpu: "2000m"
+          memory: "4096Mi"
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -192,7 +206,7 @@ deploy_unified_job_exporter() {
         log_error "Unified Job Exporter deployment manifest not found at: ${deployment_manifest}"
         return 1
     fi
-     if [[ ! -f "${sm_manifest}" ]]; then
+    if [[ ! -f "${sm_manifest}" ]]; then
         log_error "Unified Job Exporter ServiceMonitor manifest not found at: ${sm_manifest}"
         return 1
     fi
@@ -204,15 +218,15 @@ deploy_unified_job_exporter() {
     fi
 
     log_info "Applying Unified Job Exporter ServiceMonitor manifest (${sm_manifest})..."
-     if ! kubectl apply -f "${sm_manifest}"; then
+    if ! kubectl apply -f "${sm_manifest}"; then
         log_error "Failed to apply Unified Job Exporter ServiceMonitor manifest."
         log_warning "ServiceMonitor might not be picked up immediately if Prometheus Operator is not ready yet."
     fi
 
     log_info "Waiting for ${deployment_name} deployment to become available in namespace ${namespace}..."
     if ! kubectl -n ${namespace} wait --for=condition=available deployment/"${deployment_name}" --timeout=600s; then
-       log_error "${deployment_name} deployment did not become available in time."
-       return 1
+        log_error "${deployment_name} deployment did not become available in time."
+        return 1
     fi
 
     log_success "Unified Job Metrics Exporter deployment complete."
@@ -231,7 +245,7 @@ deploy_node_resource_exporter() {
         log_error "Node Resource Exporter deployment manifest not found at: ${deployment_manifest}"
         return 1
     fi
-     if [[ ! -f "${sm_manifest}" ]]; then
+    if [[ ! -f "${sm_manifest}" ]]; then
         log_error "Node Resource Exporter ServiceMonitor manifest not found at: ${sm_manifest}"
         return 1
     fi
@@ -243,7 +257,7 @@ deploy_node_resource_exporter() {
     fi
 
     log_info "Applying Node Resource Exporter ServiceMonitor manifest (${sm_manifest})..."
-     if ! kubectl apply -f "${sm_manifest}"; then
+    if ! kubectl apply -f "${sm_manifest}"; then
         log_error "Failed to apply Node Resource Exporter ServiceMonitor manifest."
         # Nie musi to być błąd krytyczny, jeśli ServiceMonitor zostanie zastosowany później
         log_warning "ServiceMonitor might not be picked up immediately if Prometheus Operator is not ready yet or CRDs are missing."
@@ -251,10 +265,10 @@ deploy_node_resource_exporter() {
 
     log_info "Waiting for ${deployment_name} deployment to become available in namespace ${namespace}..."
     if ! kubectl -n ${namespace} wait --for=condition=available deployment/"${deployment_name}" --timeout=600s; then
-       log_error "${deployment_name} deployment did not become available in time."
-       # Nie zwracaj błędu, aby reszta skryptu mogła kontynuować, ale zaloguj błąd
-       log_error "Node Resource Exporter might not be running correctly."
-       return 1 # Zwróć błąd, deployment jest kluczowy
+        log_error "${deployment_name} deployment did not become available in time."
+        # Nie zwracaj błędu, aby reszta skryptu mogła kontynuować, ale zaloguj błąd
+        log_error "Node Resource Exporter might not be running correctly."
+        return 1 # Zwróć błąd, deployment jest kluczowy
     fi
 
     log_success "Node Resource Exporter deployment complete."
@@ -357,7 +371,7 @@ deploy_kueue() {
         if [ "$enable_topology_aware" = true ]; then
             log_info "Topology Aware Scheduling has been enabled."
         fi
-         if [ "$enable_local_queue_metrics" = true ]; then
+        if [ "$enable_local_queue_metrics" = true ]; then
             log_info "LocalQueueMetrics has been enabled."
         fi
     else

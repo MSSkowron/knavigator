@@ -38,7 +38,7 @@ readonly KIND_CLUSTER_NAME="kind" # Define cluster name once
 
 # Default target allocatable resources for the Kind node.
 # These values might be adjusted downwards if the host doesn't have enough capacity.
-readonly TARGET_CPU="10"
+readonly TARGET_CPU="12"
 readonly TARGET_MEMORY_GIB="16"
 # --- End Global Configuration ---
 
