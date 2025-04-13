@@ -30,7 +30,7 @@ observed_executiontotal_durations_uids = set()
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
-LABELS = ["job_name", "namespace", "uid", "job_kind"]
+LABELS = ["job_name", "namespace", "uid", "job_kind", "queue"]
 COMPLETION_LABELS = LABELS + ["status"]
 
 unified_job_created_timestamp_seconds = Gauge(
@@ -279,25 +279,77 @@ def process_job(job_obj):
             namespace = metadata_dict.get("namespace")
             uid = metadata_dict.get("uid")
             creation_time_input = metadata_dict.get("creationTimestamp")
+            metadata = metadata_dict
         else:
             logging.warning(
                 f"{log_prefix} Skipping unknown job object type or missing apiVersion: {type(job_obj)}"
             )
             return None
 
-        log_prefix = f"[process_job][{namespace}/{name}({uid[:8]})]"  # Bardziej szczegółowy prefiks
+        log_prefix = f"[process_job][{namespace}/{name}({uid[:8]})]"
 
         if not all([name, namespace, uid]):
             logging.warning(f"{log_prefix} Job missing essential metadata.")
             return None
+
+        queue_name = "<unknown>"  # Domyślna wartość
+
+        if job_kind == "VolcanoJob":
+            try:
+                queue_name = spec_data.get("queue", "<none>")
+                if not queue_name:
+                    queue_name = "<none>"
+            except Exception as e:
+                logging.warning(
+                    f"{log_prefix} Failed to extract queue from VolcanoJob spec: {e}"
+                )
+                queue_name = "<error>"
+        elif job_kind == "Job":
+            try:
+                job_labels = {}
+                if isinstance(metadata, kubernetes.client.V1ObjectMeta):
+                    job_labels = metadata.labels or {}
+                elif isinstance(metadata, dict):  # Dla VolcanoJob
+                    job_labels = metadata.get("labels", {}) or {}
+
+                # 1. Sprawdź etykietę Kueue
+                kueue_queue = job_labels.get("kueue.x-k8s.io/queue-name")
+                if kueue_queue:
+                    queue_name = kueue_queue
+                    logging.debug(f"{log_prefix} Found Kueue queue label: {queue_name}")
+                else:
+                    # 2. Sprawdź etykietę YuniKorn
+                    yunikorn_queue = job_labels.get("queue")
+                    if yunikorn_queue:
+                        queue_name = yunikorn_queue
+                        logging.debug(
+                            f"{log_prefix} Found YuniKorn queue label: {queue_name}"
+                        )
+                    else:
+                        # 3. Fallback - brak znanej etykiety kolejki
+                        queue_name = "<k8s-job-no-queue>"
+                        logging.debug(
+                            f"{log_prefix} No known queue label (Kueue/YuniKorn) found."
+                        )
+
+            except Exception as e:
+                logging.warning(
+                    f"{log_prefix} Failed to extract labels for queue from K8s Job metadata: {e}"
+                )
+                queue_name = "<error>"
+
+        logging.debug(f"{log_prefix} Determined queue: {queue_name}")
 
         base_labels = {
             "job_name": name,
             "namespace": namespace,
             "uid": uid,
             "job_kind": job_kind,
+            "queue": queue_name,
         }
-        logging.debug(f"{log_prefix} Processing start. Kind: {job_kind}")
+        logging.debug(
+            f"{log_prefix} Processing start. Kind: {job_kind}, Queue: {queue_name}"
+        )
 
         # --- Timestamps i Status ---
         creation_time_dt = parse_timestamp(creation_time_input)
