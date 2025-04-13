@@ -293,6 +293,7 @@ deploy_kueue() {
     kueue_type=${kueue_type:-1}
 
     # Install the main Kueue components
+    log_info "Installing Kueue base manifests..."
     kubectl apply --server-side -f "https://github.com/kubernetes-sigs/kueue/releases/download/${KUEUE_VERSION}/manifests.yaml"
 
     # Install Prometheus metrics scraping configuration
@@ -304,36 +305,68 @@ deploy_kueue() {
     kubectl -n kueue-system patch deployment kueue-controller-manager \
         --patch-file="${REPO_HOME}/charts/overrides/kwok-affinity-deployment-patch.yaml"
 
-    # Validate configuration to ensure webhook is properly setup
-    log_info "Waiting for Kueue controller manager to be ready..."
+    # Validate configuration to ensure webhook is properly setup before patching
+    log_info "Waiting for Kueue controller manager to be ready before applying feature gates..."
     wait_for_pods "kueue-system" 1
     kubectl -n kueue-system wait --for=condition=available deployment/kueue-controller-manager --timeout=600s
 
-    # If user selected Topology Aware Scheduling, apply the patch
-    if [ "$kueue_type" = "2" ]; then
-        log_info "Enabling Topology Aware Scheduling feature gate..."
-        kubectl -n kueue-system patch deployment kueue-controller-manager \
-            --type='json' \
-            -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=TopologyAwareScheduling=true"}]'
+    local feature_gates_to_enable=() # Array to hold feature gates
+    local enable_topology_aware=false
+    local enable_local_queue_metrics=true
 
-        # Wait for the patched deployment to become available
-        log_info "Waiting for the patched controller manager to be ready..."
-        kubectl -n kueue-system rollout status deployment/kueue-controller-manager --timeout=600s
+    if [ "$kueue_type" = "2" ]; then
+        enable_topology_aware=true
+        feature_gates_to_enable+=("TopologyAwareScheduling=true")
+        log_info "Will enable TopologyAwareScheduling feature gate."
     fi
 
-    # Verify the installation by checking if controller manager is running
+    if [ "$enable_local_queue_metrics" = true ]; then
+        feature_gates_to_enable+=("LocalQueueMetrics=true")
+        log_info "Will enable LocalQueueMetrics feature gate."
+    fi
+
+    if [ ${#feature_gates_to_enable[@]} -gt 0 ]; then
+        # Join the array elements with a comma
+        local feature_gates_string
+        feature_gates_string=$(printf ",%s" "${feature_gates_to_enable[@]}")
+        feature_gates_string=${feature_gates_string:1} # Remove leading comma
+
+        local feature_gate_arg="--feature-gates=${feature_gates_string}"
+        log_info "Applying feature gates patch with argument: ${feature_gate_arg}"
+
+        # Use JSON patch to add the feature gate argument
+        # Note the careful quoting to handle the variable inside the JSON string
+        kubectl -n kueue-system patch deployment kueue-controller-manager \
+            --type='json' \
+            -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "'"${feature_gate_arg}"'"}]'
+
+        # Wait for the patched deployment to become available
+        log_info "Waiting for the patched controller manager with feature gates to be ready..."
+        kubectl -n kueue-system rollout status deployment/kueue-controller-manager --timeout=600s
+        log_info "Controller manager rollout complete after patching."
+    else
+        log_info "No additional feature gates selected for enablement."
+        # No need to wait again if no patch was applied
+    fi
+
+    # Final verification after all potential patches
+    log_info "Verifying final Kueue deployment status..."
     if kubectl -n kueue-system get pods -l control-plane=controller-manager | grep -q Running; then
         log_success "Kueue deployment complete"
 
-        if [ "$kueue_type" = "2" ]; then
-            log_info "Topology Aware Scheduling has been enabled"
+        if [ "$enable_topology_aware" = true ]; then
+            log_info "Topology Aware Scheduling has been enabled."
+        fi
+         if [ "$enable_local_queue_metrics" = true ]; then
+            log_info "LocalQueueMetrics has been enabled."
         fi
     else
-        log_error "Kueue deployment failed - controller manager is not running"
+        log_error "Kueue deployment failed - controller manager is not running after potential patching."
         return 1
     fi
 
-    log_info "Kueue metrics are available at the /metrics endpoint of the controller-manager"
+    log_info "Kueue metrics are available at the /metrics endpoint of the controller-manager pod."
+    log_info "Use 'kubectl port-forward -n kueue-system svc/kueue-controller-manager-metrics-service 8080' to access them."
 }
 
 deploy_volcano() {
