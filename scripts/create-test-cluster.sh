@@ -194,7 +194,7 @@ nodes:
     # Also set eviction thresholds based on the *target* memory
     # Kubelet reserves this amount *in addition* to systemReserved/kubeReserved
     evictionHard:
-      memory.available: "256Mi" # Evict when free memory drops below 256Mi
+      memory.available: "128Mi" # Evict when free memory drops below 128Mi
       nodefs.available: "10%"   # Standard disk usage thresholds
       imagefs.available: "15%"
 EOF

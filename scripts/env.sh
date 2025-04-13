@@ -139,7 +139,7 @@ grafana:
       memory: "2048Mi"
     limits:
       cpu: "1500m"
-      memory: "2560Mi"
+      memory: "2048Mi"
 alertmanager:
   enabled: false
 nodeExporter:
@@ -164,8 +164,8 @@ prometheus:
           cpu: "1000m"
           memory: "2048Mi"
         limits:
-          cpu: "2000m"
-          memory: "4096Mi"
+          cpu: "1500m"
+          memory: "2048Mi"
     storageSpec:
       volumeClaimTemplate:
         spec:
