@@ -6,7 +6,13 @@ from datetime import datetime, timezone
 import kubernetes
 import kubernetes.client
 from dateutil.parser import isoparse
-from prometheus_client import REGISTRY, CollectorRegistry, Gauge, start_http_server
+from prometheus_client import (
+    REGISTRY,
+    CollectorRegistry,
+    Gauge,
+    Histogram,
+    start_http_server,
+)
 
 # --- Konfiguracja ---
 LISTEN_PORT = int(os.environ.get("LISTEN_PORT", 8000))
@@ -19,6 +25,8 @@ logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(mes
 # --- Globalne Zmienne ---
 volcano_start_times_cache = {}
 previously_exported_completion_metrics = {}
+observed_wait_times_uids = set()
+observed_executiontotal_durations_uids = set()
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
@@ -78,6 +86,60 @@ unified_job_status_phase = Gauge(
     "Current phase of the Job (Pending=0, Running=1, Succeeded=2, Failed=3, ...)",
     LABELS,
     registry=REGISTRY,
+)
+
+WAIT_DURATION_BUCKETS = [
+    0.1,
+    1.0,
+    5.0,
+    15.0,
+    30.0,
+    60.0,
+    120.0,
+    300.0,
+    600.0,
+    1800.0,
+    3600.0,
+    float("inf"),
+]
+
+unified_job_wait_duration_seconds_histogram = Histogram(
+    "unified_job_wait_duration_seconds_histogram",
+    "Histogram of time duration between creation and start of the job in seconds",
+    ["job_kind"],
+    registry=REGISTRY,
+    buckets=WAIT_DURATION_BUCKETS,
+)
+
+DURATION_BUCKETS = [
+    0.1,
+    1.0,
+    5.0,
+    15.0,
+    30.0,
+    60.0,
+    120.0,
+    300.0,
+    600.0,
+    1800.0,
+    3600.0,
+    float("inf"),
+]
+
+unified_job_execution_duration_seconds_histogram = Histogram(
+    "unified_job_execution_duration_seconds_histogram",
+    "Histogram of time duration between start and completion/failure of the job in seconds",
+    ["job_kind", "status"],
+    registry=REGISTRY,
+    buckets=DURATION_BUCKETS,
+)
+
+unified_job_total_duration_seconds_histogram = Histogram(
+    "unified_job_total_duration_seconds_histogram",
+    "Histogram of time duration between creation and completion/failure of the job in seconds",
+    ["job_kind", "status"],
+    registry=REGISTRY,
+    buckets=DURATION_BUCKETS,
 )
 
 
@@ -185,6 +247,8 @@ def get_volcano_start_time(uid, conditions_list):
 def process_job(job_obj):
     """Przetwarza pojedynczy obiekt Job (K8s lub Volcano) i eksportuje metryki."""
     global previously_exported_completion_metrics
+    global observed_wait_times_uids
+    global observed_executiontotal_durations_uids
     uid = None
     name = None
     namespace = None
@@ -358,10 +422,27 @@ def process_job(job_obj):
                         f"{log_prefix} Negative wait duration calculated ({wait_duration}), setting to 0."
                     )
                     wait_duration = 0
-                logging.debug(f"{log_prefix} Exporting wait_duration: {wait_duration}")
+
+                logging.debug(
+                    f"{log_prefix} Exporting wait_duration GAUGE: {wait_duration}"
+                )
                 unified_job_wait_duration_seconds.labels(**base_labels).set(
                     wait_duration
                 )
+
+                # --- Obserwacja dla Histogramu (tylko raz) ---
+                if uid not in observed_wait_times_uids:
+                    logging.debug(
+                        f"{log_prefix} Observing wait_duration HISTOGRAM ({wait_duration}) for the first time."
+                    )
+                    unified_job_wait_duration_seconds_histogram.labels(
+                        job_kind=job_kind
+                    ).observe(wait_duration)
+                    observed_wait_times_uids.add(uid)
+                else:
+                    logging.debug(
+                        f"{log_prefix} Wait duration HISTOGRAM already observed for this UID."
+                    )
             else:
                 logging.debug(
                     f"{log_prefix} Cannot calculate wait_duration, missing creation_time_dt."
@@ -376,9 +457,12 @@ def process_job(job_obj):
             unified_job_completion_timestamp_seconds.labels(**completion_labels).set(
                 ts_val
             )
-            previously_exported_completion_metrics.setdefault(uid, set()).add(
-                "completion"
-            )
+
+            # Usunięcie flagowania w previously_exported... - histogram zajmie się unikalnością obserwacji
+            # previously_exported_completion_metrics.setdefault(uid, set()).add("completion")
+
+            execution_duration = None
+            total_duration = None
 
             if start_time_dt:
                 execution_duration = (
@@ -390,14 +474,12 @@ def process_job(job_obj):
                     )
                     execution_duration = 0
                 logging.debug(
-                    f"{log_prefix} Exporting execution_duration (status={final_status}): {execution_duration}"
+                    f"{log_prefix} Exporting execution_duration GAUGE (status={final_status}): {execution_duration}"
                 )
                 unified_job_execution_duration_seconds.labels(**completion_labels).set(
                     execution_duration
                 )
-                previously_exported_completion_metrics.setdefault(uid, set()).add(
-                    "duration_exec"
-                )
+                # previously_exported_completion_metrics.setdefault(uid, set()).add("duration_exec")
             else:
                 logging.debug(
                     f"{log_prefix} Cannot calculate execution_duration, missing start_time_dt."
@@ -411,17 +493,52 @@ def process_job(job_obj):
                     )
                     total_duration = 0
                 logging.debug(
-                    f"{log_prefix} Exporting total_duration (status={final_status}): {total_duration}"
+                    f"{log_prefix} Exporting total_duration GAUGE (status={final_status}): {total_duration}"
                 )
                 unified_job_total_duration_seconds.labels(**completion_labels).set(
                     total_duration
                 )
-                previously_exported_completion_metrics.setdefault(uid, set()).add(
-                    "duration_total"
-                )
+                # previously_exported_completion_metrics.setdefault(uid, set()).add("duration_total")
             else:
                 logging.debug(
                     f"{log_prefix} Cannot calculate total_duration, missing creation_time_dt."
+                )
+
+            # --- Obserwacja dla Histogramów Czasów Trwania (tylko raz) ---
+            if uid not in observed_executiontotal_durations_uids:
+                logging.debug(
+                    f"{log_prefix} Observing completion duration HISTOGRAMS for the first time (status={final_status})."
+                )
+                hist_duration_labels = {"job_kind": job_kind, "status": final_status}
+
+                if execution_duration is not None:
+                    unified_job_execution_duration_seconds_histogram.labels(
+                        **hist_duration_labels
+                    ).observe(execution_duration)
+                    logging.debug(
+                        f"{log_prefix} Observed execution_duration: {execution_duration}"
+                    )
+                else:
+                    logging.debug(
+                        f"{log_prefix} Cannot observe execution_duration histogram, value is None."
+                    )
+
+                if total_duration is not None:
+                    unified_job_total_duration_seconds_histogram.labels(
+                        **hist_duration_labels
+                    ).observe(total_duration)
+                    logging.debug(
+                        f"{log_prefix} Observed total_duration: {total_duration}"
+                    )
+                else:
+                    logging.debug(
+                        f"{log_prefix} Cannot observe total_duration histogram, value is None."
+                    )
+
+                observed_executiontotal_durations_uids.add(uid)
+            else:
+                logging.debug(
+                    f"{log_prefix} Completion duration HISTOGRAMS already observed for this UID."
                 )
 
         phase_value = JOB_STATUS_MAP.get(current_phase_str, JOB_STATUS_MAP["Unknown"])
@@ -455,6 +572,8 @@ def collect_metrics(
     """Pobiera zadania K8s i Volcano, przetwarza je i aktualizuje metryki."""
     start_time_cycle = time.time()
     global volcano_start_times_cache, previously_exported_completion_metrics
+    global observed_wait_times_uids
+    global observed_executiontotal_durations_uids
     current_job_uids_processed = set()  # UIDy przetworzone w tym cyklu
     metrics_to_remove_candidates = previously_exported_completion_metrics.copy()
     previously_exported_completion_metrics.clear()
@@ -566,10 +685,34 @@ def collect_metrics(
         for uid in volcano_uids_to_remove_from_cache:
             volcano_start_times_cache.pop(uid, None)
 
+    # --- Czyszczenie Zbioru Zaobserwowanych Czasów Oczekiwania ---
+    uids_to_remove_from_observed = observed_wait_times_uids - current_job_uids_processed
+    if uids_to_remove_from_observed:
+        logging.info(
+            f"Removing {len(uids_to_remove_from_observed)} UIDs from observed wait times set."
+        )
+        logging.debug(
+            f"UIDs to remove from observed set: {list(uids_to_remove_from_observed)}"
+        )
+        observed_wait_times_uids.difference_update(uids_to_remove_from_observed)
+
+    # --- NOWA LOGIKA: Czyszczenie Zbioru Zaobserwowanych Czasów Zakończenia ---
+    uids_to_remove_from_observed_completion = (
+        observed_executiontotal_durations_uids - current_job_uids_processed
+    )
+    if uids_to_remove_from_observed_completion:
+        logging.info(
+            f"Removing {len(uids_to_remove_from_observed_completion)} UIDs from observed completion durations set."
+        )
+        observed_executiontotal_durations_uids.difference_update(
+            uids_to_remove_from_observed_completion
+        )
+    # --- Koniec nowej logiki czyszczenia ---
+
     end_time_cycle = time.time()
     duration_cycle = end_time_cycle - start_time_cycle
     logging.info(
-        f"Unified metrics collection cycle finished. Processed {processed_count} unique job UIDs (Errors: {error_count}). Cycle duration: {duration_cycle:.2f}s"
+        f"Unified metrics collection cycle finished. Processed {processed_count} unique job UIDs seen this cycle (Errors: {error_count}). Cycle duration: {duration_cycle:.2f}s"
     )
 
 
