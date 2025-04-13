@@ -1,0 +1,1545 @@
+Name:               kind-control-plane
+Roles:              control-plane
+Labels:             beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=kind-control-plane
+                    kubernetes.io/os=linux
+                    node-role.kubernetes.io/control-plane=
+Annotations:        kubeadm.alpha.kubernetes.io/cri-socket: unix:///run/containerd/containerd.sock
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Sun, 13 Apr 2025 10:57:26 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kind-control-plane
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:49 +0200
+Conditions:
+  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----             ------  -----------------                 ------------------                ------                       -------
+  MemoryPressure   False   Sun, 13 Apr 2025 13:56:17 +0200   Sun, 13 Apr 2025 10:57:25 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure     False   Sun, 13 Apr 2025 13:56:17 +0200   Sun, 13 Apr 2025 10:57:25 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure      False   Sun, 13 Apr 2025 13:56:17 +0200   Sun, 13 Apr 2025 10:57:25 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready            True    Sun, 13 Apr 2025 13:56:17 +0200   Sun, 13 Apr 2025 10:57:45 +0200   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  172.18.0.2
+  Hostname:    kind-control-plane
+Capacity:
+  cpu:                12
+  ephemeral-storage:  1055762868Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  memory:             49335720Ki
+  pods:               110
+Allocatable:
+  cpu:                8
+  ephemeral-storage:  972991057538
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  memory:             16567720Ki
+  pods:               110
+System Info:
+  Machine ID:                 72dfd00de25c41cda177546916ce2772
+  System UUID:                72dfd00de25c41cda177546916ce2772
+  Boot ID:                    a4d02624-1ce7-43a4-b8f5-f95b24779c20
+  Kernel Version:             5.15.90.1-microsoft-standard-WSL2-g4aeb7776ebf6
+  OS Image:                   Debian GNU/Linux 12 (bookworm)
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  containerd://1.7.15
+  Kubelet Version:            v1.30.0
+  Kube-Proxy Version:         v1.30.0
+PodCIDR:                      10.244.0.0/24
+PodCIDRs:                     10.244.0.0/24
+ProviderID:                   kind://docker/kind/kind-control-plane
+Non-terminated Pods:          (17 in total)
+  Namespace                   Name                                                        CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                                                        ------------  ----------  ---------------  -------------  ---
+  kube-system                 coredns-7db6d8ff4d-ks498                                    100m (1%)     0 (0%)      70Mi (0%)        170Mi (1%)     3h3m
+  kube-system                 coredns-7db6d8ff4d-lsrdr                                    100m (1%)     0 (0%)      70Mi (0%)        170Mi (1%)     3h3m
+  kube-system                 etcd-kind-control-plane                                     100m (1%)     0 (0%)      100Mi (0%)       0 (0%)         3h3m
+  kube-system                 kindnet-shlcc                                               100m (1%)     100m (1%)   50Mi (0%)        50Mi (0%)      3h3m
+  kube-system                 kube-apiserver-kind-control-plane                           250m (3%)     0 (0%)      0 (0%)           0 (0%)         3h3m
+  kube-system                 kube-controller-manager-kind-control-plane                  200m (2%)     0 (0%)      0 (0%)           0 (0%)         3h3m
+  kube-system                 kube-proxy-8lpbp                                            0 (0%)        0 (0%)      0 (0%)           0 (0%)         3h3m
+  kube-system                 kube-scheduler-kind-control-plane                           100m (1%)     0 (0%)      0 (0%)           0 (0%)         3h3m
+  kube-system                 kwok-controller-5bdf8c64d8-2pxs7                            0 (0%)        0 (0%)      0 (0%)           0 (0%)         3h1m
+  kueue-system                kueue-controller-manager-5b4dd5d9-9jz7p                     500m (6%)     500m (6%)   512Mi (3%)       512Mi (3%)     12m
+  local-path-storage          local-path-provisioner-988d74bc-7xwxp                       0 (0%)        0 (0%)      0 (0%)           0 (0%)         3h3m
+  monitoring                  kube-prometheus-stack-grafana-7b4bcf9c95-z2lwv              0 (0%)        0 (0%)      0 (0%)           0 (0%)         3h2m
+  monitoring                  kube-prometheus-stack-kube-state-metrics-8b7b784f4-2s8g4    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3h2m
+  monitoring                  kube-prometheus-stack-operator-6d55cf94cb-xjdt8             0 (0%)        0 (0%)      0 (0%)           0 (0%)         3h2m
+  monitoring                  node-resource-exporter-7dbbd85868-6l6xd                     100m (1%)     500m (6%)   128Mi (0%)       512Mi (3%)     15m
+  monitoring                  prometheus-kube-prometheus-stack-prometheus-0               0 (0%)        0 (0%)      0 (0%)           0 (0%)         3h2m
+  monitoring                  unified-job-exporter-894d5cb56-dzx2g                        100m (1%)     500m (6%)   128Mi (0%)       256Mi (1%)     16m
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests     Limits
+  --------           --------     ------
+  cpu                1650m (20%)  1600m (20%)
+  memory             1058Mi (6%)  1670Mi (10%)
+  ephemeral-storage  0 (0%)       0 (0%)
+  hugepages-1Gi      0 (0%)       0 (0%)
+  hugepages-2Mi      0 (0%)       0 (0%)
+Events:              <none>
+
+
+Name:               n1
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n1
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw11
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw21
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             node.kubernetes.io/unschedulable:NoSchedule
+Unschedulable:      true
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:44 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.97.0/24
+PodCIDRs:                     10.244.97.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-x4jjq       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      3s
+  kube-system                 kube-proxy-f8fkr    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n1 event: Registered Node n1 in Controller
+
+
+Name:               n10
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n10
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw15
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw23
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:46 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.106.0/24
+PodCIDRs:                     10.244.106.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-6f527       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      28s
+  kube-system                 kube-proxy-8khdk    0 (0%)        0 (0%)      0 (0%)           0 (0%)         28s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n10 event: Registered Node n10 in Controller
+
+
+Name:               n11
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n11
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw16
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw23
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             node.kubernetes.io/unschedulable:NoSchedule
+Unschedulable:      true
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:53 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:25 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:25 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:25 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:25 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:25 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.107.0/24
+PodCIDRs:                     10.244.107.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-tks7z       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      26s
+  kube-system                 kube-proxy-zx9p2    0 (0%)        0 (0%)      0 (0%)           0 (0%)         27s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n11 event: Registered Node n11 in Controller
+
+
+Name:               n12
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n12
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw16
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw23
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             node.kubernetes.io/unschedulable:NoSchedule
+Unschedulable:      true
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:46 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.108.0/24
+PodCIDRs:                     10.244.108.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-w9vfm       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      25s
+  kube-system                 kube-proxy-22clx    0 (0%)        0 (0%)      0 (0%)           0 (0%)         27s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n12 event: Registered Node n12 in Controller
+
+
+Name:               n13
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n13
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw17
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw24
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:46 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:28 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:28 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:28 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:28 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:28 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.109.0/24
+PodCIDRs:                     10.244.109.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-wsl9z       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      26s
+  kube-system                 kube-proxy-24vdp    0 (0%)        0 (0%)      0 (0%)           0 (0%)         26s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n13 event: Registered Node n13 in Controller
+
+
+Name:               n14
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n14
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw17
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw24
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             node.kubernetes.io/unschedulable:NoSchedule
+Unschedulable:      true
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:45 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.110.0/24
+PodCIDRs:                     10.244.110.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-82xjx       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      28s
+  kube-system                 kube-proxy-54z6f    0 (0%)        0 (0%)      0 (0%)           0 (0%)         25s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n14 event: Registered Node n14 in Controller
+
+
+Name:               n15
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n15
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw18
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw24
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:47 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:24 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.111.0/24
+PodCIDRs:                     10.244.111.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-9bgz2       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      27s
+  kube-system                 kube-proxy-z45cb    0 (0%)        0 (0%)      0 (0%)           0 (0%)         28s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n15 event: Registered Node n15 in Controller
+
+
+Name:               n16
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n16
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw18
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw24
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             node.kubernetes.io/unschedulable:NoSchedule
+Unschedulable:      true
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:54 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:22 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.112.0/24
+PodCIDRs:                     10.244.112.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-vf9n6       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      24s
+  kube-system                 kube-proxy-l8cn9    0 (0%)        0 (0%)      0 (0%)           0 (0%)         24s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n16 event: Registered Node n16 in Controller
+
+
+Name:               n2
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n2
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw11
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw21
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:45 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:27 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:27 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:27 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:27 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:27 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.98.0/24
+PodCIDRs:                     10.244.98.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-57gkl       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      3s
+  kube-system                 kube-proxy-k6khn    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n2 event: Registered Node n2 in Controller
+
+
+Name:               n3
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n3
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw12
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw21
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             node.kubernetes.io/unschedulable:NoSchedule
+Unschedulable:      true
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:44 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:31 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:31 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:31 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:31 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:31 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.99.0/24
+PodCIDRs:                     10.244.99.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-rmgbl       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      3s
+  kube-system                 kube-proxy-xhwl6    0 (0%)        0 (0%)      0 (0%)           0 (0%)         4s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n3 event: Registered Node n3 in Controller
+
+
+Name:               n4
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n4
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw12
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw21
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:54 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.100.0/24
+PodCIDRs:                     10.244.100.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-j6mjc       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      2s
+  kube-system                 kube-proxy-w64bq    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n4 event: Registered Node n4 in Controller
+
+
+Name:               n5
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n5
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw13
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw22
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    ta-optimal=true
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:53 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:26 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.101.0/24
+PodCIDRs:                     10.244.101.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-jnhjh       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      1s
+  kube-system                 kube-proxy-kbzwq    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n5 event: Registered Node n5 in Controller
+
+
+Name:               n6
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n6
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw13
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw22
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             node.kubernetes.io/unschedulable:NoSchedule
+Unschedulable:      true
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:45 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:23 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:23 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:23 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:23 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:23 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.102.0/24
+PodCIDRs:                     10.244.102.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-4n8rz       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      1s
+  kube-system                 kube-proxy-8ztgm    0 (0%)        0 (0%)      0 (0%)           0 (0%)         2s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n6 event: Registered Node n6 in Controller
+
+
+Name:               n7
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n7
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw14
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw22
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    ta-optimal=true
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:46 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:30 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:30 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:30 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:30 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:30 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.103.0/24
+PodCIDRs:                     10.244.103.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-b6bb4       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      2s
+  kube-system                 kube-proxy-zvlwk    0 (0%)        0 (0%)      0 (0%)           0 (0%)         1s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n7 event: Registered Node n7 in Controller
+
+
+Name:               n8
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n8
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw14
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw22
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    ta-optimal=true
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:45 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:29 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.104.0/24
+PodCIDRs:                     10.244.104.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-jd4qg       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      0s
+  kube-system                 kube-proxy-6jmpb    0 (0%)        0 (0%)      0 (0%)           0 (0%)         30s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n8 event: Registered Node n8 in Controller
+
+
+Name:               n9
+Roles:              agent
+Labels:             app.kubernetes.io/managed-by=Helm
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=n9
+                    kubernetes.io/os=linux
+                    kubernetes.io/role=agent
+                    network.topology.kubernetes.io/block=sw15
+                    network.topology.kubernetes.io/datacenter=sw31
+                    network.topology.kubernetes.io/spine=sw23
+                    node-role.kubernetes.io/agent=
+                    nvidia.com/gpu.count=8
+                    nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB
+                    nvidia.com/mlnxnics=16
+                    type=kwok
+Annotations:        kwok.x-k8s.io/node: fake
+                    meta.helm.sh/release-name: virtual-nodes
+                    meta.helm.sh/release-namespace: default
+                    node.alpha.kubernetes.io/ttl: 0
+CreationTimestamp:  Sun, 13 Apr 2025 13:48:20 +0200
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  kwok-controller-5bdf8c64d8-2pxs7_9c98859b-8738-4fb6-b5a2-26989ceb505e
+  AcquireTime:     <unset>
+  RenewTime:       Sun, 13 Apr 2025 14:00:55 +0200
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  Ready                True    Sun, 13 Apr 2025 13:58:21 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletReady                 kubelet is posting ready status
+  MemoryPressure       False   Sun, 13 Apr 2025 13:58:21 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sun, 13 Apr 2025 13:58:21 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sun, 13 Apr 2025 13:58:21 +0200   Sun, 13 Apr 2025 13:48:20 +0200   KubeletHasSufficientPID      kubelet has sufficient PID available
+  NetworkUnavailable   False   Sun, 13 Apr 2025 13:58:21 +0200   Sun, 13 Apr 2025 13:48:20 +0200   RouteCreated                 RouteController created a route
+Addresses:
+  InternalIP:  10.244.0.15
+Capacity:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+Allocatable:
+  cpu:                  256
+  ephemeral-storage:    30Ti
+  hugepages-1Gi:        0
+  hugepages-2Mi:        0
+  memory:               2Ti
+  nvidia.com/gpu:       8
+  nvidia.com/mlnxnics:  16
+  pods:                 110
+System Info:
+  Machine ID:                 
+  System UUID:                
+  Boot ID:                    
+  Kernel Version:             
+  OS Image:                   
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  
+  Kubelet Version:            fake
+  Kube-Proxy Version:         fake
+PodCIDR:                      10.244.105.0/24
+PodCIDRs:                     10.244.105.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                ------------  ----------  ---------------  -------------  ---
+  kube-system                 kindnet-4x2rz       100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      0s
+  kube-system                 kube-proxy-zf782    0 (0%)        0 (0%)      0 (0%)           0 (0%)         2s
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource             Requests   Limits
+  --------             --------   ------
+  cpu                  100m (0%)  100m (0%)
+  memory               50Mi (0%)  50Mi (0%)
+  ephemeral-storage    0 (0%)     0 (0%)
+  hugepages-1Gi        0 (0%)     0 (0%)
+  hugepages-2Mi        0 (0%)     0 (0%)
+  nvidia.com/gpu       0          0
+  nvidia.com/mlnxnics  0          0
+Events:
+  Type    Reason          Age   From             Message
+  ----    ------          ----  ----             -------
+  Normal  RegisteredNode  12m   node-controller  Node n9 event: Registered Node n9 in Controller

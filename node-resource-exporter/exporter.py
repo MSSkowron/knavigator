@@ -20,16 +20,24 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
 
+KNOWN_GPU_KEYS = [
+    "nvidia.com/gpu",
+    "amd.com/gpu",
+    "intel.com/gpu",
+    # "example.com/gpu", # Przykład
+]
+
 # --- Definicje Metryk ---
 # Użyj nowej, dedykowanej registry
 NODE_REGISTRY = CollectorRegistry()
 NODE_LABELS = [
     "node_name",
-    "instance_type",
-    "zone",
-    "region",
+    "hostname",
+    "datacenter",
+    "spine",
+    "block",
     "is_kwok",
-]  # Dodatkowe etykiety węzła
+]
 
 # --- Metryki Pojemności (Capacity) ---
 node_capacity_cpu_cores = Gauge(
@@ -52,7 +60,7 @@ node_capacity_pods = Gauge(
 )
 node_capacity_gpu_cards = Gauge(
     "node_capacity_gpu_cards",
-    "Total GPU capacity of the node (nvidia.com/gpu)",
+    "Total GPU capacity of the node (e.g., nvidia.com/gpu, amd.com/gpu)",
     NODE_LABELS,
     registry=NODE_REGISTRY,
 )
@@ -78,7 +86,7 @@ node_allocatable_pods = Gauge(
 )
 node_allocatable_gpu_cards = Gauge(
     "node_allocatable_gpu_cards",
-    "Allocatable GPU resources of the node (nvidia.com/gpu)",
+    "Allocatable GPU resources of the node (e.g., nvidia.com/gpu, amd.com/gpu)",
     NODE_LABELS,
     registry=NODE_REGISTRY,
 )
@@ -104,7 +112,7 @@ node_simulated_pod_count = Gauge(
 )
 node_simulated_usage_gpu_cards = Gauge(
     "node_simulated_usage_gpu_cards",
-    "Simulated GPU usage based on sum of pod requests (nvidia.com/gpu)",
+    "Simulated GPU usage based on sum of pod requests for known GPU types",
     NODE_LABELS,
     registry=NODE_REGISTRY,
 )
@@ -114,6 +122,13 @@ node_status_ready = Gauge(
     "node_status_ready",
     "Readiness status of the node (1 if Ready, 0 otherwise)",
     NODE_LABELS,
+    registry=NODE_REGISTRY,
+)
+
+# --- Metryka Nieschedulowanych Podów ---
+cluster_unscheduled_pods_count = Gauge(
+    "cluster_unscheduled_pods_count",
+    "Number of pods in Pending phase without an assigned node",
     registry=NODE_REGISTRY,
 )
 
@@ -178,13 +193,15 @@ def parse_resource_quantity(quantity_str):
 
 
 def get_node_labels(node_metadata):
-    """Ekstrahuje standardowe etykiety węzła."""
-    labels = getattr(node_metadata, "labels", {}) or {}  # Handle None
-    # Standardowe etykiety topologii (mogą nie istnieć)
-    instance_type = labels.get("node.kubernetes.io/instance-type", "unknown")
-    zone = labels.get("topology.kubernetes.io/zone", "unknown")
-    region = labels.get("topology.kubernetes.io/region", "unknown")
-    return instance_type, zone, region
+    """Ekstrahuje niestandardowe etykiety topologii węzła."""
+    labels = getattr(node_metadata, "labels", {}) or {}
+
+    hostname = labels.get("kubernetes.io/hostname", "unknown")
+    datacenter = labels.get("network.topology.kubernetes.io/datacenter", "unknown")
+    spine = labels.get("network.topology.kubernetes.io/spine", "unknown")
+    block = labels.get("network.topology.kubernetes.io/block", "unknown")
+
+    return hostname, datacenter, spine, block
 
 
 def is_kwok_node(node):
@@ -246,18 +263,22 @@ def collect_node_metrics(
         logging.error(f"Unexpected error fetching Nodes: {e}", exc_info=True)
         return  # Nieoczekiwany błąd również uniemożliwia kontynuację
 
-    # --- Pobieranie Podów (tylko te, które mają przypisany węzeł i nie są zakończone) ---
+    # --- Pobieranie Podów ---
     try:
-        logging.debug("Fetching Pods (all namespaces, with nodeName, non-terminal)...")
+        logging.debug("Fetching Pods (all namespaces, non-terminal)...")
         # Filtrujemy po stronie API, aby zmniejszyć ilość danych
-        field_selector = 'spec.nodeName!="",status.phase!=Succeeded,status.phase!=Failed,status.phase!=Unknown'
+        field_selector = (
+            "status.phase!=Succeeded,status.phase!=Failed,status.phase!=Unknown"
+        )
         pods_response = core_v1_api.list_pod_for_all_namespaces(
             watch=False,
-            timeout_seconds=120,  # Daj więcej czasu na pobranie podów
+            timeout_seconds=120,
             field_selector=field_selector,
         )
         pods_list = pods_response.items
-        logging.info(f"Fetched {len(pods_list)} non-terminal Pods with assigned nodes.")
+        logging.info(
+            f"Fetched {len(pods_list)} non-terminal Pods (including unscheduled)."
+        )
     except kubernetes.client.ApiException as e:
         logging.error(f"API error fetching Pods: {e.reason}", exc_info=True)
         if e.status == 401:
@@ -278,11 +299,12 @@ def collect_node_metrics(
         lambda: {"cpu": 0.0, "memory": 0, "gpu": 0, "pods": 0}
     )
     pod_count = 0
+    unscheduled_pod_count = 0
     for pod in pods_list:
         node_name = getattr(pod.spec, "node_name", None)
-        pod_phase = getattr(pod.status, "phase", "Unknown")
 
         if not node_name:
+            unscheduled_pod_count += 1
             continue
 
         node_simulated_requests[node_name]["pods"] += 1
@@ -300,17 +322,21 @@ def collect_node_metrics(
                 node_simulated_requests[node_name]["memory"] += parse_resource_quantity(
                     requests.get("memory", "0")
                 )
-                gpu_req = requests.get("nvidia.com/gpu", "0")
-                if gpu_req == "0":
-                    gpu_req = requests.get("amd.com/gpu", "0")
-                    # Można dodać więcej typów GPU jeśli trzeba
+
+                gpu_req_str = "0"
+                for gpu_key in KNOWN_GPU_KEYS:
+                    _req = requests.get(gpu_key)
+                    if _req and _req != "0":
+                        gpu_req_str = _req
+                        break
                 node_simulated_requests[node_name]["gpu"] += parse_resource_quantity(
-                    gpu_req
+                    gpu_req_str
                 )
 
     logging.debug(
-        f"Aggregated pod requests for {len(node_simulated_requests)} nodes from {pod_count} pods."
+        f"Aggregated pod requests for {len(node_simulated_requests)} nodes from {pod_count} scheduled pods."
     )
+    logging.info(f"Found {unscheduled_pod_count} unscheduled (Pending, no node) pods.")
 
     # --- Eksport Metryk dla Każdego Węzła ---
     processed_node_names = set()
@@ -324,13 +350,14 @@ def collect_node_metrics(
         log_prefix = f"[Node: {node_name}]"
         logging.debug(f"{log_prefix} Processing...")
 
-        instance_type, zone, region = get_node_labels(node.metadata)
+        hostname, datacenter, spine, block = get_node_labels(node.metadata)
         is_kwok = is_kwok_node(node)
         labels = {
             "node_name": node_name,
-            "instance_type": instance_type,
-            "zone": zone,
-            "region": region,
+            "hostname": hostname,
+            "datacenter": datacenter,
+            "spine": spine,
+            "block": block,
             "is_kwok": str(is_kwok).lower(),
         }
 
@@ -342,26 +369,46 @@ def collect_node_metrics(
         cap_cpu = parse_resource_quantity(capacity.get("cpu"))
         cap_mem = parse_resource_quantity(capacity.get("memory"))
         cap_pods = parse_resource_quantity(capacity.get("pods"))
-        cap_gpu = parse_resource_quantity(capacity.get("nvidia.com/gpu", "0"))
+
+        cap_gpu_str = "0"
+        found_gpu_key = None
+        for gpu_key in KNOWN_GPU_KEYS:
+            _cap = capacity.get(gpu_key)
+            if _cap is not None:
+                cap_gpu_str = _cap
+                found_gpu_key = gpu_key
+                break
+        cap_gpu = parse_resource_quantity(cap_gpu_str)
+
         node_capacity_cpu_cores.labels(**labels).set(cap_cpu)
         node_capacity_memory_bytes.labels(**labels).set(cap_mem)
         node_capacity_pods.labels(**labels).set(cap_pods)
         node_capacity_gpu_cards.labels(**labels).set(cap_gpu)
         logging.debug(
-            f"{log_prefix} Capacity - CPU: {cap_cpu}, Mem: {cap_mem}, Pods: {cap_pods}, GPU: {cap_gpu}"
+            f"{log_prefix} Capacity - CPU: {cap_cpu}, Mem: {cap_mem}, Pods: {cap_pods}, GPU ({found_gpu_key or 'none'}): {cap_gpu}"
         )
 
         allocatable = getattr(node.status, "allocatable", {}) or {}
         alloc_cpu = parse_resource_quantity(allocatable.get("cpu"))
         alloc_mem = parse_resource_quantity(allocatable.get("memory"))
         alloc_pods = parse_resource_quantity(allocatable.get("pods"))
-        alloc_gpu = parse_resource_quantity(allocatable.get("nvidia.com/gpu", "0"))
+
+        alloc_gpu_str = "0"
+        found_alloc_gpu_key = None
+        for gpu_key in KNOWN_GPU_KEYS:
+            _alloc = allocatable.get(gpu_key)
+            if _alloc is not None:
+                alloc_gpu_str = _alloc
+                found_alloc_gpu_key = gpu_key
+                break
+        alloc_gpu = parse_resource_quantity(alloc_gpu_str)
+
         node_allocatable_cpu_cores.labels(**labels).set(alloc_cpu)
         node_allocatable_memory_bytes.labels(**labels).set(alloc_mem)
         node_allocatable_pods.labels(**labels).set(alloc_pods)
         node_allocatable_gpu_cards.labels(**labels).set(alloc_gpu)
         logging.debug(
-            f"{log_prefix} Allocatable - CPU: {alloc_cpu}, Mem: {alloc_mem}, Pods: {alloc_pods}, GPU: {alloc_gpu}"
+            f"{log_prefix} Allocatable - CPU: {alloc_cpu}, Mem: {alloc_mem}, Pods: {alloc_pods}, GPU ({found_alloc_gpu_key or 'none'}): {alloc_gpu}"
         )
 
         sim_usage = node_simulated_requests.get(
@@ -376,6 +423,9 @@ def collect_node_metrics(
         )
 
         logging.debug(f"{log_prefix} Processing finished.")
+
+    # --- Ustaw Metrykę Nieschedulowanych Podów ---
+    cluster_unscheduled_pods_count.set(unscheduled_pod_count)
 
     # --- Czyszczenie starych metryk (polegamy na Prometheusie) ---
 

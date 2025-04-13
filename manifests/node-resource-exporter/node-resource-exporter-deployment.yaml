@@ -50,7 +50,7 @@ spec:
       serviceAccountName: node-resource-exporter # Zmieniona nazwa
       containers:
         - name: exporter
-          image: mateuszskowron21/node-resource-exporter:v1.1
+          image: mateuszskowron21/node-resource-exporter:v1.4
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
