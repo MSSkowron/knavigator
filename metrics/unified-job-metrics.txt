@@ -1,0 +1,151 @@
+1. Metryki typu Gauge
+
+Metryki typu Gauge przechowują wartość liczbową, która może zarówno rosnąć, jak i maleć – są wykorzystywane do monitorowania stanów czasowych, liczników lub dynamicznych wartości.
+
+1.1. unified_job_created_timestamp_seconds
+
+Opis: Przechowuje znacznik czasu (timestamp) utworzenia Job’a (zarówno standardowego K8s, jak i Volcano).
+
+Typ: Gauge
+
+Etykiety: ["unified_job_name", "unified_job_namespace", "unified_job_uid", "unified_job_kind", "unified_job_queue"]
+
+Uwagi: Wartość ustawiana jest jako wynik konwersji daty stworzenia (timestamp) do liczby sekund od epoki (epoch). Ta metryka pozwala stwierdzić, kiedy obiekt Job został utworzony.
+
+1.2. unified_job_start_timestamp_seconds
+
+Opis: Określa znacznik czasu (timestamp), kiedy Job po raz pierwszy rozpoczął działanie (start).
+
+Typ: Gauge
+
+Etykiety: ["unified_job_name", "unified_job_namespace", "unified_job_uid", "unified_job_kind", "unified_job_queue"]
+
+Uwagi: Metryka służy do określenia momentu rozpoczęcia wykonywania Job’a, a z różnicy między wartością tej metryki a metryką utworzenia można wyliczyć czas oczekiwania na start.
+
+1.3. unified_job_completion_timestamp_seconds
+
+Opis: Rejestruje znacznik czasu ukończenia lub niepowodzenia Job’a.
+
+Typ: Gauge
+
+Etykiety: ["unified_job_name", "unified_job_namespace", "unified_job_uid", "unified_job_kind", "unified_job_queue", "unified_job_status"]
+
+Uwagi: Dzięki dodatkowej etykiecie unified_job_status (np. Succeeded, Failed) można łatwo rozróżnić zakończone z powodzeniem zadania od tych, które zakończyły się błędem.
+
+1.4. unified_job_wait_duration_seconds
+
+Opis: Mierzy czas oczekiwania w sekundach, czyli okres między utworzeniem a rozpoczęciem wykonywania Job’a.
+
+Typ: Gauge
+
+Etykiety: ["unified_job_name", "unified_job_namespace", "unified_job_uid", "unified_job_kind", "unified_job_queue"]
+
+Uwagi: Wartość ta jest wyliczana jako różnica między czasem startu a czasem utworzenia. W przypadku ujemnej wartości (co nie powinno mieć miejsca) następuje korekta do zera.
+
+1.5. unified_job_execution_duration_seconds
+
+Opis: Określa czas trwania wykonywania Job’a, mierzony od momentu rozpoczęcia działania do momentu zakończenia (sukces lub błąd).
+
+Typ: Gauge
+
+Etykiety: ["unified_job_name", "unified_job_namespace", "unified_job_uid", "unified_job_kind", "unified_job_queue", "unified_job_status"]
+
+Uwagi: Pozwala zbadać, jak długo trwała praca zadania. Jest używana przy porównywaniu efektywności wykonywania jobów, a jej wartość jest liczona tylko wtedy, gdy dostępne są zarówno start, jak i czas zakończenia.
+
+1.6. unified_job_total_duration_seconds
+
+Opis: Mierzy całkowity czas życia Job’a, czyli okres od momentu utworzenia do zakończenia (sukces lub błąd).
+
+Typ: Gauge
+
+Etykiety: ["unified_job_name", "unified_job_namespace", "unified_job_uid", "unified_job_kind", "unified_job_queue", "unified_job_status"]
+
+Uwagi: Dzięki tej metryce można ocenić łączny czas przetwarzania danego zadania, co może być przydatne do analiz historycznych i optymalizacji.
+
+1.7. unified_job_status_phase
+
+Opis: Reprezentuje bieżący stan (fazę) Job’a, gdzie wartości liczbowe odpowiadają konkretnym statusom (np. Pending=0, Running=1, Succeeded=2, Failed=3 itd.).
+
+Typ: Gauge
+
+Etykiety: ["unified_job_name", "unified_job_namespace", "unified_job_uid", "unified_job_kind", "unified_job_queue"]
+
+Uwagi: Wartość numeryczna jest ustalana na podstawie słownika JOB_STATUS_MAP, który mapuje stany (np. "Pending", "Running", "Succeeded" itd.) na liczby. To ułatwia tworzenie zapytań w Prometheusie dotyczących aktualnego statusu Job’a.
+
+1.8. unified_job_concurrency_count
+
+Opis: Liczy liczbę jobów w danej fazie dla konkretnej kolejki (unified_job_queue) i typu joba (unified_job_kind).
+
+Typ: Gauge
+
+Etykiety: ["unified_job_queue", "unified_job_phase", "unified_job_kind"]
+
+Uwagi: Metryka jest aktualizowana przy każdej iteracji zbierania metryk i pomaga monitorować obciążenie oraz aktualną liczbę jobów w określonych stanach per kolejka i typ.
+
+2. Metryki typu Histogram
+
+Histogramy umożliwiają zbieranie rozkładu wartości (np. czasów trwania) poprzez obserwację, ile razy wartość mieści się w określonym przedziale (bucket).
+
+2.1. unified_job_wait_duration_seconds_histogram
+
+Opis: Histogram przedstawiający rozkład czasu oczekiwania (od utworzenia do startu) Job’a.
+
+Typ: Histogram
+
+Etykiety: ["unified_job_kind"]
+
+Buckety: [0.1, 1.0, 5.0, 15.0, 30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0, +inf]
+
+Uwagi: Metryka obserwuje czas oczekiwania tylko raz dla danego UID joba (aby uniknąć wielokrotnych obserwacji). Dzięki zdefiniowanym bucketom, histogram pozwala ocenić, w których przedziałach czasowych najczęściej występują opóźnienia, agregując dane po typie Joba (unified_job_kind).
+
+2.2. unified_job_execution_duration_seconds_histogram
+
+Opis: Histogram rejestrujący rozkład czasów trwania wykonania Job’a (od startu do zakończenia).
+
+Typ: Histogram
+
+Etykiety: ["unified_job_kind", "unified_job_status"]
+
+Buckety: [0.1, 1.0, 5.0, 15.0, 30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0, +inf]
+
+Uwagi: Metryka umożliwia analizę, jakie czasy trwania mają zadania w zależności od ich statusu (unified_job_status, np. Succeeded vs Failed) oraz rodzaju (unified_job_kind, np. Job vs VolcanoJob).
+
+2.3. unified_job_total_duration_seconds_histogram
+
+Opis: Histogram przedstawiający rozkład całkowitych czasów życia Job’a (od utworzenia do zakończenia).
+
+Typ: Histogram
+
+Etykiety: ["unified_job_kind", "unified_job_status"]
+
+Buckety: [0.1, 1.0, 5.0, 15.0, 30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0, +inf]
+
+Uwagi: Pozwala ocenić ogólny czas przetwarzania jobów, niezależnie od ewentualnego czasu oczekiwania osobno czy czasu wykonania – wartości histogramu są agregowane dla różnych kategorii typów (unified_job_kind) i statusów (unified_job_status) jobów.
+
+3. Dodatkowe elementy
+
+3.1. JOB_STATUS_MAP
+
+Opis: Słownik, który mapuje opisywane stany Job’a na wartości liczbowe. Przykładowo:
+
+"Pending": 0
+
+"Running": 1
+
+"Succeeded": 2
+
+"Failed": 3
+
+"Completed": 2 (alias dla Succeeded)
+
+"Terminating": 4
+
+"Terminated": 5
+
+"Aborting": 6
+
+"Aborted": 7
+
+"Unknown": -1
+
+Uwagi: Mimo że nie jest to metryka Prometheus, słownik ten jest wykorzystywany do ustalania wartości metryki unified_job_status_phase.

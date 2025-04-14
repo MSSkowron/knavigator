@@ -32,43 +32,49 @@ previous_concurrency_keys = set()
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
-LABELS = ["job_name", "namespace", "uid", "job_kind", "queue"]
-COMPLETION_LABELS = LABELS + ["status"]
+BASE_LABEL_NAMES = [
+    "unified_job_name",
+    "unified_job_namespace",
+    "unified_job_uid",
+    "unified_job_kind",
+    "unified_job_queue",
+]
+COMPLETION_LABEL_NAMES = BASE_LABEL_NAMES + ["unified_job_status"]
 
 unified_job_created_timestamp_seconds = Gauge(
     "unified_job_created_timestamp_seconds",
     "Timestamp when the Job (K8s or Volcano) was created",
-    LABELS,
+    BASE_LABEL_NAMES,
     registry=REGISTRY,
 )
 unified_job_start_timestamp_seconds = Gauge(
     "unified_job_start_timestamp_seconds",
     "Timestamp when the Job first started running",
-    LABELS,
+    BASE_LABEL_NAMES,
     registry=REGISTRY,
 )
 unified_job_completion_timestamp_seconds = Gauge(
     "unified_job_completion_timestamp_seconds",
     "Timestamp when the Job completed or failed",
-    COMPLETION_LABELS,
+    COMPLETION_LABEL_NAMES,
     registry=REGISTRY,
 )
 unified_job_wait_duration_seconds = Gauge(
     "unified_job_wait_duration_seconds",
     "Time duration between creation and start of the job in seconds",
-    LABELS,
+    BASE_LABEL_NAMES,
     registry=REGISTRY,
 )
 unified_job_execution_duration_seconds = Gauge(
     "unified_job_execution_duration_seconds",
     "Time duration between start and completion/failure of the job in seconds",
-    COMPLETION_LABELS,
+    COMPLETION_LABEL_NAMES,
     registry=REGISTRY,
 )
 unified_job_total_duration_seconds = Gauge(
     "unified_job_total_duration_seconds",
     "Time duration between creation and completion/failure of the job in seconds",
-    COMPLETION_LABELS,
+    COMPLETION_LABEL_NAMES,
     registry=REGISTRY,
 )
 JOB_STATUS_MAP = {
@@ -86,14 +92,14 @@ JOB_STATUS_MAP = {
 unified_job_status_phase = Gauge(
     "unified_job_status_phase",
     "Current phase of the Job (Pending=0, Running=1, Succeeded=2, Failed=3, ...)",
-    LABELS,
+    BASE_LABEL_NAMES,
     registry=REGISTRY,
 )
 
 unified_job_concurrency_count = Gauge(
     "unified_job_concurrency_count",
     "Number of jobs in a specific phase per queue and job kind.",
-    ["queue", "phase", "job_kind"],
+    ["unified_job_queue", "unified_job_phase", "unified_job_kind"],
     registry=REGISTRY,
 )
 
@@ -115,7 +121,7 @@ WAIT_DURATION_BUCKETS = [
 unified_job_wait_duration_seconds_histogram = Histogram(
     "unified_job_wait_duration_seconds_histogram",
     "Histogram of time duration between creation and start of the job in seconds",
-    ["job_kind"],
+    ["unified_job_kind"],
     registry=REGISTRY,
     buckets=WAIT_DURATION_BUCKETS,
 )
@@ -138,7 +144,7 @@ DURATION_BUCKETS = [
 unified_job_execution_duration_seconds_histogram = Histogram(
     "unified_job_execution_duration_seconds_histogram",
     "Histogram of time duration between start and completion/failure of the job in seconds",
-    ["job_kind", "status"],
+    ["unified_job_kind", "unified_job_status"],
     registry=REGISTRY,
     buckets=DURATION_BUCKETS,
 )
@@ -146,7 +152,7 @@ unified_job_execution_duration_seconds_histogram = Histogram(
 unified_job_total_duration_seconds_histogram = Histogram(
     "unified_job_total_duration_seconds_histogram",
     "Histogram of time duration between creation and completion/failure of the job in seconds",
-    ["job_kind", "status"],
+    ["unified_job_kind", "unified_job_status"],
     registry=REGISTRY,
     buckets=DURATION_BUCKETS,
 )
@@ -350,11 +356,11 @@ def process_job(job_obj):
         logging.debug(f"{log_prefix} Determined queue: {queue_name}")
 
         base_labels = {
-            "job_name": name,
-            "namespace": namespace,
-            "uid": uid,
-            "job_kind": job_kind,
-            "queue": queue_name,
+            "unified_job_name": name,
+            "unified_job_namespace": namespace,
+            "unified_job_uid": uid,
+            "unified_job_kind": job_kind,
+            "unified_job_queue": queue_name,
         }
         logging.debug(
             f"{log_prefix} Processing start. Kind: {job_kind}, Queue: {queue_name}"
@@ -497,7 +503,7 @@ def process_job(job_obj):
                         f"{log_prefix} Observing wait_duration HISTOGRAM ({wait_duration}) for the first time."
                     )
                     unified_job_wait_duration_seconds_histogram.labels(
-                        job_kind=job_kind
+                        unified_job_kind=job_kind
                     ).observe(wait_duration)
                     observed_wait_times_uids.add(uid)
                 else:
@@ -510,7 +516,7 @@ def process_job(job_obj):
                 )
 
         if completion_time_dt and final_status:
-            completion_labels = {**base_labels, "status": final_status}
+            completion_labels = {**base_labels, "unified_job_status": final_status}
             ts_val = completion_time_dt.timestamp()
             logging.debug(
                 f"{log_prefix} Exporting completion_timestamp (status={final_status}): {ts_val}"
@@ -570,7 +576,10 @@ def process_job(job_obj):
                 logging.debug(
                     f"{log_prefix} Observing completion duration HISTOGRAMS for the first time (status={final_status})."
                 )
-                hist_duration_labels = {"job_kind": job_kind, "status": final_status}
+                hist_duration_labels = {
+                    "unified_job_kind": job_kind,
+                    "unified_job_status": final_status,
+                }
 
                 if execution_duration is not None:
                     unified_job_execution_duration_seconds_histogram.labels(
@@ -775,7 +784,9 @@ def collect_metrics(
         try:
             # Zakładamy, że metryka unified_job_concurrency_count jest zdefiniowana globalnie
             unified_job_concurrency_count.labels(
-                queue=queue, phase=phase, job_kind=kind
+                unified_job_queue=queue,
+                unified_job_phase=phase,
+                unified_job_kind=kind,
             ).set(count)
             logging.debug(
                 f"Set unified_job_concurrency_count{{queue='{queue}', phase='{phase}', job_kind='{kind}'}} = {count}"
@@ -794,7 +805,9 @@ def collect_metrics(
         for queue, phase, kind in stale_keys:
             try:
                 unified_job_concurrency_count.labels(
-                    queue=queue, phase=phase, job_kind=kind
+                    unified_job_queue=queue,
+                    unified_job_phase=phase,
+                    unified_job_kind=kind,
                 ).set(0)
                 logging.debug(
                     f"Zeroed out unified_job_concurrency_count{{queue='{queue}', phase='{phase}', job_kind='{kind}'}}"

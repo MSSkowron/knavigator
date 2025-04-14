@@ -1,0 +1,76 @@
+1. Metryki związane z kolejkami (Queue Metrics)
+yunikorn_perf_benchmark_queue_resource (gauge)
+Opis: Metryka zasobów kolejki, wskazująca wartości: guaranteed, max, allocated, pending, preempting.
+
+yunikorn_queue_app (gauge)
+Opis: Metryka aplikacji kolejki. Pokazuje stany: new, accepted, rejected, running, failing, failed, resuming, completing, completed.
+
+yunikorn_queue_resource (gauge)
+Opis: Metryka zasobów kolejki – taka sama jak powyżej.
+
+yunikorn_root_perf_benchmark_queue_app (gauge)
+Opis: Podobna do yunikorn_queue_app, ale przypuszczalnie dla innego poziomu (np. korzeniowego).
+
+yunikorn_root_perf_benchmark_queue_resource (gauge)
+Opis: Analogiczna do yunikorn_perf_benchmark_queue_resource dla korzeniowych kolejek.
+
+yunikorn_root_queue_resource (gauge)
+Opis: Kolejna odmiana metryki zasobów kolejki dla korzeniowych kolejek.
+
+2. Metryki związane z działaniem schedulera (Scheduler Metrics)
+yunikorn_scheduler_application_submission_total (counter)
+Opis: Łączna liczba zgłoszeń aplikacji. Stan zgłoszenia obejmuje: new, accepted, rejected.
+
+yunikorn_scheduler_application_total (gauge)
+Opis: Łączna liczba aplikacji, z podziałem na stany: running, resuming, failing, completing, completed, failed.
+
+yunikorn_scheduler_container_allocation_attempt_total (counter)
+Opis: Łączna liczba prób przydzielania kontenerów. Stan próby obejmuje: allocated, rejected, error, released.
+
+yunikorn_scheduler_scheduling_latency_milliseconds_bucket / _count / _sum (histogram)
+Opis: Opóźnienie głównej pętli harmonogramowania wyrażone w milisekundach.
+
+yunikorn_scheduler_node (gauge)
+Opis: Liczba węzłów (node) – rozróżnienie na stany: active i failed.
+
+yunikorn_scheduler_node_sorting_latency_milliseconds_bucket / _count / _sum (histogram)
+Opis: Opóźnienie sortowania węzłów w milisekundach.
+
+yunikorn_scheduler_trynode_latency_milliseconds_bucket / _count / _sum (histogram)
+Opis: Opóźnienie sprawdzania warunków węzła (np. sprawdzanie warunków rozmieszczenia) przy próbach alokacji kontenerów.
+
+yunikorn_scheduler_trypreemption_latency_milliseconds_bucket / _count / _sum (histogram)
+Opis: Opóźnienie sprawdzania warunków preempcji przy próbach alokacji kontenerów.
+
+Dodatkowo, dostępne są metryki dotyczące zużycia zasobów przez węzły, takie jak:
+
+yunikorn_scheduler_memory_node_usage_total (gauge)
+
+yunikorn_scheduler_ephemeral_storage_node_usage_total (gauge)
+
+yunikorn_scheduler_nvidia_com_gpu_node_usage_total (gauge)
+
+yunikorn_scheduler_nvidia_com_mlnxnics_node_usage_total (gauge)
+
+yunikorn_scheduler_pods_node_usage_total (gauge)
+
+yunikorn_scheduler_vcore_node_usage_total (gauge)
+
+3. Metryki runtime (Go Runtime Metrics)
+yunikorn_runtime_go_alloc_bysize_free_bucket, _count, _sum (histogram)
+Opis: Statystyki Go związane z liczbą zwolnionych obiektów sterty w danych klasach rozmiaru.
+
+yunikorn_runtime_go_alloc_bysize_malloc_bucket, _count, _sum (histogram)
+Opis: Statystyki alokacji – liczba przydzielonych obiektów w poszczególnych rozmiarach.
+
+yunikorn_runtime_go_alloc_bysize_maxsize_bucket, _count, _sum (histogram)
+Opis: Maksymalny rozmiar bajtowy dla danej klasy.
+
+yunikorn_runtime_go_generic (gauge)
+Opis: Metryki związane z generics w Go.
+
+yunikorn_runtime_go_mem_stats (gauge)
+Opis: Ogólne statystyki pamięci z Go.
+
+yunikorn_runtime_go_pause_end, yunikorn_runtime_go_pause_ns (gauge)
+Opis: Metryki związane z pauzami GC (PauseEnd, PauseNs).

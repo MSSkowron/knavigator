@@ -522,8 +522,8 @@
       },
       "targets": [
         {
-          "expr": "avg(unified_job_wait_duration_seconds{exported_namespace=~\"$namespace\"}) by (job_kind)",
-          "legendFormat": "Avg Wait Time - {{ job_kind }}",
+          "expr": "avg(unified_job_wait_duration_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_kind)",
+          "legendFormat": "Avg Wait Time - {{ unified_job_kind }}",
           "range": true,
           "refId": "A",
           "datasource": {
@@ -532,8 +532,8 @@
           }
         },
         {
-          "expr": "avg(unified_job_execution_duration_seconds{exported_namespace=~\"$namespace\", status=~\"Succeeded|Failed\"}) by (job_kind)",
-          "legendFormat": "Avg Execution Time - {{ job_kind }}",
+          "expr": "avg(unified_job_execution_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_kind)",
+          "legendFormat": "Avg Execution Time - {{ unified_job_kind }}",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -542,8 +542,8 @@
           }
         },
         {
-          "expr": "avg(unified_job_total_duration_seconds{exported_namespace=~\"$namespace\", status=~\"Succeeded|Failed\"}) by (job_kind)",
-          "legendFormat": "Avg Total Time - {{ job_kind }}",
+          "expr": "avg(unified_job_total_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_kind)",
+          "legendFormat": "Avg Total Time - {{ unified_job_kind }}",
           "range": true,
           "refId": "C",
           "datasource": {
@@ -630,8 +630,8 @@
       },
       "targets": [
         {
-          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 1) by (job_kind))",
-          "legendFormat": "Running - {{ job_kind }}",
+          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_kind))",
+          "legendFormat": "Running - {{ unified_job_kind }}",
           "range": true,
           "refId": "A",
           "datasource": {
@@ -640,8 +640,8 @@
           }
         },
         {
-          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 2) by (job_kind))",
-          "legendFormat": "Succeeded - {{ job_kind }}",
+          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_kind))",
+          "legendFormat": "Succeeded - {{ unified_job_kind }}",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -650,8 +650,8 @@
           }
         },
         {
-          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 3) by (job_kind))",
-          "legendFormat": "Failed - {{ job_kind }}",
+          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_kind))",
+          "legendFormat": "Failed - {{ unified_job_kind }}",
           "range": true,
           "refId": "C",
           "datasource": {
@@ -660,8 +660,8 @@
           }
         },
         {
-          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 0) by (job_kind))",
-          "legendFormat": "Pending - {{ job_kind }}",
+          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_kind))",
+          "legendFormat": "Pending - {{ unified_job_kind }}",
           "range": true,
           "refId": "D",
           "datasource": {
@@ -936,15 +936,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{job_kind=~\"Job|VolcanoJob\"}[5m])) by (job_kind) / sum(rate(unified_job_wait_duration_seconds_histogram_count{job_kind=~\"Job|VolcanoJob\"}[5m])) by (job_kind)",
-          "legendFormat": "Avg Wait Time - {{ job_kind }}",
+          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (unified_job_kind) / sum(rate(unified_job_wait_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (unified_job_kind)",
+          "legendFormat": "Avg Wait Time - {{ unified_job_kind }}",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{job_kind=~\"Job|VolcanoJob\"}[5m])) by (le, job_kind))",
-          "legendFormat": "P95 Wait Time - {{ job_kind }}",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (le, unified_job_kind))",
+          "legendFormat": "P95 Wait Time - {{ unified_job_kind }}",
           "range": true,
           "refId": "B"
         }
@@ -1025,15 +1025,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_execution_duration_seconds_histogram_sum{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status) / sum(rate(unified_job_execution_duration_seconds_histogram_count{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status)",
-          "legendFormat": "Avg Exec Time - {{ job_kind }} ({{ status }})",
+          "expr": "sum(rate(unified_job_execution_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status) / sum(rate(unified_job_execution_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status)",
+          "legendFormat": "Avg Exec Time - {{ unified_job_kind }} ({{ unified_job_status }})",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_execution_duration_seconds_histogram_bucket{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (le, job_kind, status))",
-          "legendFormat": "P95 Exec Time - {{ job_kind }} ({{ status }})",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_execution_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_kind, unified_job_status))",
+          "legendFormat": "P95 Exec Time - {{ unified_job_kind }} ({{ unified_job_status }})",
           "range": true,
           "refId": "B"
         }
@@ -1114,15 +1114,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_total_duration_seconds_histogram_sum{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status) / sum(rate(unified_job_total_duration_seconds_histogram_count{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status)",
-          "legendFormat": "Avg Total Time - {{ job_kind }} ({{ status }})",
+          "expr": "sum(rate(unified_job_total_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status) / sum(rate(unified_job_total_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status)",
+          "legendFormat": "Avg Total Time - {{ unified_job_kind }} ({{ unified_job_status }})",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_total_duration_seconds_histogram_bucket{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (le, job_kind, status))",
-          "legendFormat": "P95 Total Time - {{ job_kind }} ({{ status }})",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_total_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_kind, unified_job_status))",
+          "legendFormat": "P95 Total Time - {{ unified_job_kind }} ({{ unified_job_status }})",
           "range": true,
           "refId": "B"
         }
@@ -1201,8 +1201,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum by (phase) (unified_job_concurrency_count{phase!=\"\",queue!=\"\"})",
-          "legendFormat": "{{phase}}",
+          "expr": "sum by (unified_job_phase) (unified_job_concurrency_count{unified_job_phase!=\"\",unified_job_queue!=\"\"})",
+          "legendFormat": "{{unified_job_phase}}",
           "range": true,
           "refId": "A"
         }
@@ -1266,8 +1266,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum by (queue,phase) (unified_job_concurrency_count{queue!=\"\",phase!=\"\"})",
-          "legendFormat": "{{queue}} - {{phase}}",
+          "expr": "sum by (unified_job_queue,unified_job_phase ) (unified_job_concurrency_count{unified_job_queue!=\"\",unified_job_phase !=\"\"})",
+          "legendFormat": "{{unified_job_queue}} - {{unified_job_phase }}",
           "range": true,
           "refId": "A"
         }

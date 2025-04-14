@@ -1,0 +1,197 @@
+volcano_action_scheduling_latency_milliseconds_bucket
+
+Typ: histogram
+
+Opis: Action scheduling latency in milliseconds
+
+volcano_action_scheduling_latency_milliseconds_count
+
+Typ: histogram
+
+Opis: Action scheduling latency in milliseconds
+
+volcano_action_scheduling_latency_milliseconds_sum
+
+Typ: histogram
+
+Opis: Action scheduling latency in milliseconds
+
+volcano_e2e_job_scheduling_duration
+
+Typ: gauge
+
+Opis: E2E job scheduling duration
+
+volcano_e2e_job_scheduling_last_time
+
+Typ: gauge
+
+Opis: E2E job scheduling last time
+
+volcano_e2e_job_scheduling_latency_milliseconds_bucket
+
+Typ: histogram
+
+Opis: E2e job scheduling latency in milliseconds
+
+volcano_e2e_job_scheduling_latency_milliseconds_count
+
+Typ: histogram
+
+Opis: E2e job scheduling latency in milliseconds
+
+volcano_e2e_job_scheduling_latency_milliseconds_sum
+
+Typ: histogram
+
+Opis: E2e job scheduling latency in milliseconds
+
+volcano_e2e_job_scheduling_start_time
+
+Typ: gauge
+
+Opis: E2E job scheduling start time
+
+volcano_e2e_scheduling_latency_milliseconds_bucket
+
+Typ: histogram
+
+Opis: E2e scheduling latency in milliseconds (scheduling algorithm + binding)
+
+volcano_e2e_scheduling_latency_milliseconds_count
+
+Typ: histogram
+
+Opis: E2e scheduling latency in milliseconds (scheduling algorithm + binding)
+
+volcano_e2e_scheduling_latency_milliseconds_sum
+
+Typ: histogram
+
+Opis: E2e scheduling latency in milliseconds (scheduling algorithm + binding)
+
+volcano_job_retry_counts
+
+Typ: counter
+
+Opis: Number of retry counts for one job
+
+volcano_job_share
+
+Typ: gauge
+
+Opis: Share for one job
+
+volcano_plugin_scheduling_latency_milliseconds_bucket
+
+Typ: histogram
+
+Opis: Plugin scheduling latency in milliseconds
+
+volcano_plugin_scheduling_latency_milliseconds_count
+
+Typ: histogram
+
+Opis: Plugin scheduling latency in milliseconds
+
+volcano_plugin_scheduling_latency_milliseconds_sum
+
+Typ: histogram
+
+Opis: Plugin scheduling latency in milliseconds
+
+volcano_pod_preemption_victims
+
+Typ: gauge
+
+Opis: Number of selected preemption victims
+
+volcano_queue_allocated_memory_bytes
+
+Typ: gauge
+
+Opis: Allocated memory for one queue
+
+volcano_queue_allocated_milli_cpu
+
+Typ: gauge
+
+Opis: Allocated CPU count for one queue
+
+volcano_queue_deserved_memory_bytes
+
+Typ: gauge
+
+Opis: Deserved memory for one queue
+
+volcano_queue_deserved_milli_cpu
+
+Typ: gauge
+
+Opis: Deserved CPU count for one queue
+
+volcano_queue_overused
+
+Typ: gauge
+
+Opis: If one queue is overused
+
+volcano_queue_request_memory_bytes
+
+Typ: gauge
+
+Opis: Request memory for one queue
+
+volcano_queue_request_milli_cpu
+
+Typ: gauge
+
+Opis: Request CPU count for one queue
+
+volcano_queue_share
+
+Typ: gauge
+
+Opis: Share for one queue
+
+volcano_queue_weight
+
+Typ: gauge
+
+Opis: Weight for one queue
+
+volcano_task_scheduling_latency_milliseconds_bucket
+
+Typ: histogram
+
+Opis: Task scheduling latency in milliseconds
+
+volcano_task_scheduling_latency_milliseconds_count
+
+Typ: histogram
+
+Opis: Task scheduling latency in milliseconds
+
+volcano_task_scheduling_latency_milliseconds_sum
+
+Typ: histogram
+
+Opis: Task scheduling latency in milliseconds
+
+volcano_total_preemption_attempts
+
+Typ: counter
+
+Opis: Total preemption attempts in the cluster till now
+
+volcano_unschedule_job_count
+
+Typ: unknown
+
+Opis: unknown
+
+volcano_unschedule_task_count
+
+Typ: (brak określonego typu)
+
+Opis: (brak opisu)

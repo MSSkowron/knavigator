@@ -136,10 +136,10 @@ grafana:
   resources:
     requests:
       cpu: "1500m"
-      memory: "2048Mi"
+      memory: "4096Mi"
     limits:
       cpu: "2000m"
-      memory: "4096Mi"
+      memory: "6144Mi"
 alertmanager:
   enabled: false
 nodeExporter:
@@ -162,10 +162,10 @@ prometheus:
     resources:
         requests:
           cpu: "1500m"
-          memory: "2048Mi"
+          memory: "4096Mi"
         limits:
           cpu: "2000m"
-          memory: "4096Mi"
+          memory: "6144Mi"
     storageSpec:
       volumeClaimTemplate:
         spec:

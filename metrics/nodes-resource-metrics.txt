@@ -1,0 +1,159 @@
+1. Metryki typu Gauge
+
+Metryki typu Gauge przechowują wartość liczbową, która może zarówno rosnąć, jak i maleć. W tym eksporterze są używane do monitorowania pojemności, zasobów alokowalnych, symulowanego użycia oraz statusu węzłów i podów.
+
+1.1. Metryki Pojemności Węzła (Capacity)
+
+Te metryki reprezentują całkowite zasoby dostępne na danym węźle, niezależnie od tego, ile z nich jest zarezerwowane dla systemu czy kubeletu.
+
+1.1.1. node_capacity_cpu_cores
+
+Opis: Całkowita pojemność CPU węzła wyrażona w rdzeniach (cores).
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Odczytywana z pola status.capacity.cpu obiektu Node. Etykiety hostname, datacenter, spine, block pochodzą z etykiet węzła, a is_kwok wskazuje, czy węzeł jest zarządzany przez KWOK.
+
+1.1.2. node_capacity_memory_bytes
+
+Opis: Całkowita pojemność pamięci węzła wyrażona w bajtach.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Odczytywana z pola status.capacity.memory obiektu Node. Wartości jak '10Gi' są konwertowane na bajty.
+
+1.1.3. node_capacity_pods
+
+Opis: Maksymalna liczba podów, jaką węzeł może obsłużyć.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Odczytywana z pola status.capacity.pods obiektu Node.
+
+1.1.4. node_capacity_gpu_cards
+
+Opis: Całkowita pojemność GPU węzła (liczba kart).
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Wartość jest pobierana z status.capacity dla pierwszego pasującego klucza z listy KNOWN_GPU_KEYS (np. nvidia.com/gpu, amd.com/gpu). Jeśli żaden znany klucz GPU nie zostanie znaleziony, wartość wynosi 0.
+
+1.2. Metryki Zasobów Alokowalnych Węzła (Allocatable)
+
+Te metryki reprezentują zasoby węzła dostępne dla podów użytkownika, po odjęciu zasobów zarezerwowanych dla systemu operacyjnego i komponentów Kubernetes (jak kubelet, container runtime).
+
+1.2.1. node_allocatable_cpu_cores
+
+Opis: Alokowalne zasoby CPU węzła wyrażone w rdzeniach (cores).
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Odczytywana z pola status.allocatable.cpu obiektu Node.
+
+1.2.2. node_allocatable_memory_bytes
+
+Opis: Alokowalne zasoby pamięci węzła wyrażone w bajtach.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Odczytywana z pola status.allocatable.memory obiektu Node.
+
+1.2.3. node_allocatable_pods
+
+Opis: Liczba podów, które mogą zostać uruchomione na węźle (po uwzględnieniu rezerwacji systemowych).
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Odczytywana z pola status.allocatable.pods obiektu Node.
+
+1.2.4. node_allocatable_gpu_cards
+
+Opis: Alokowalne zasoby GPU węzła (liczba kart).
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Wartość jest pobierana z status.allocatable dla pierwszego pasującego klucza z listy KNOWN_GPU_KEYS. Jeśli żaden znany klucz GPU nie zostanie znaleziony, wartość wynosi 0.
+
+1.3. Metryki Symulowanego Wykorzystania Węzła (Simulated Usage)
+
+Te metryki reprezentują sumę żądań (requests) zasobów przez wszystkie nieterminalne pody (inne niż Succeeded, Failed, Unknown) uruchomione na danym węźle. Nie jest to rzeczywiste użycie zasobów, a jedynie suma tego, co pody zadeklarowały, że potrzebują. Uwzględnia logikę efektywnych żądań dla initContainers (maximum z sumy żądań kontenerów głównych i maksimum żądań kontenerów init).
+
+1.3.1. node_simulated_usage_cpu_cores
+
+Opis: Symulowane wykorzystanie CPU węzła bazujące na sumie żądań CPU (spec.containers[*].resources.requests.cpu oraz spec.initContainers[*].resources.requests.cpu) podów na tym węźle, wyrażone w rdzeniach.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Agreguje efektywne żądania CPU wszystkich nieterminalnych podów przypisanych do węzła.
+
+1.3.2. node_simulated_usage_memory_bytes
+
+Opis: Symulowane wykorzystanie pamięci węzła bazujące na sumie żądań pamięci (spec.containers[*].resources.requests.memory oraz spec.initContainers[*].resources.requests.memory) podów na tym węźle, wyrażone w bajtach.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Agreguje efektywne żądania pamięci wszystkich nieterminalnych podów przypisanych do węzła.
+
+1.3.3. node_simulated_pod_count
+
+Opis: Liczba nieterminalnych podów (innych niż Succeeded, Failed, Unknown) aktualnie przypisanych do węzła.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Zlicza pody z listy pobranej z API, które mają ustawione spec.nodeName na ten węzeł.
+
+1.3.4. node_simulated_usage_gpu_cards
+
+Opis: Symulowane wykorzystanie GPU węzła bazujące na sumie żądań GPU (dla znanych kluczy jak nvidia.com/gpu, amd.com/gpu itd.) podów na tym węźle.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Agreguje efektywne żądania GPU (dla kluczy z KNOWN_GPU_KEYS) wszystkich nieterminalnych podów przypisanych do węzła.
+
+1.4. Metryka Statusu Węzła
+
+1.4.1. node_status_ready
+
+Opis: Status gotowości węzła.
+
+Typ: Gauge
+
+Etykiety: ["node_name", "hostname", "datacenter", "spine", "block", "is_kwok"]
+
+Uwagi: Przyjmuje wartość 1, jeśli warunek Ready w status.conditions ma status True, w przeciwnym razie 0.
+
+1.5. Metryka Klasterowa (Cluster-wide)
+
+1.5.1. cluster_unscheduled_pods_count
+
+Opis: Liczba podów w całym klastrze, które są w fazie Pending i nie mają przypisanego żadnego węzła (spec.nodeName jest pusty).
+
+Typ: Gauge
+
+Etykiety: Brak
+
+Uwagi: Jest to metryka globalna dla klastra, wskazująca na liczbę podów oczekujących na decyzję schedulera.
