@@ -98,8 +98,12 @@ unified_job_status_phase = Gauge(
 
 unified_job_concurrency_count = Gauge(
     "unified_job_concurrency_count",
-    "Number of jobs in a specific phase per queue and job kind.",
-    ["unified_job_queue", "unified_job_phase", "unified_job_kind"],
+    "Number of jobs in a specific phase per queue and namespace.",
+    [
+        "unified_job_queue",
+        "unified_job_phase",
+        "unified_job_namespace",
+    ],
     registry=REGISTRY,
 )
 
@@ -624,6 +628,7 @@ def process_job(job_obj):
             "queue": queue_name,
             "phase": current_phase_str,
             "job_kind": job_kind,
+            "namespace": namespace,
         }
 
     except Exception as e:
@@ -754,8 +759,8 @@ def collect_metrics(
                 # --- Zliczanie dla unified_job_concurrency_count ---
                 queue = process_result.get("queue", "<error_in_result>")
                 phase = process_result.get("phase", "Unknown")  # Używamy stringa fazy
-                kind = process_result.get("job_kind", "Unknown")
-                concurrency_key = (queue, phase, kind)
+                namespace = process_result.get("namespace", "<error_in_result>")
+                concurrency_key = (queue, phase, namespace)
                 current_phase_counts[concurrency_key] += 1
                 current_concurrency_keys.add(concurrency_key)
                 # --- Koniec zliczania ---
@@ -777,24 +782,24 @@ def collect_metrics(
 
     # --- Ustawianie metryki unified_job_concurrency_count ---
     logging.debug(
-        f"Setting concurrency counts. Found {len(current_phase_counts)} (queue, phase, kind) combinations."
+        f"Setting concurrency counts. Found {len(current_phase_counts)} (queue, phase, namespace) combinations."
     )
     # Ustaw wartości dla kombinacji znalezionych w tym cyklu
-    for (queue, phase, kind), count in current_phase_counts.items():
+    for (queue, phase, namespace), count in current_phase_counts.items():
         try:
             # Zakładamy, że metryka unified_job_concurrency_count jest zdefiniowana globalnie
             unified_job_concurrency_count.labels(
                 unified_job_queue=queue,
                 unified_job_phase=phase,
-                unified_job_kind=kind,
+                unified_job_namespace=namespace,
             ).set(count)
             logging.debug(
-                f"Set unified_job_concurrency_count{{queue='{queue}', phase='{phase}', job_kind='{kind}'}} = {count}"
+                f"Set unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}} = {count}"
             )
         except Exception as e:
             # Logujemy błąd, ale kontynuujemy, aby nie przerwać całego cyklu
             logging.error(
-                f"Failed to set concurrency count for {queue}/{phase}/{kind}: {e}",
+                f"Failed to set concurrency count for {queue}/{phase}/{namespace}: {e}",
                 exc_info=True,
             )
 
@@ -802,20 +807,20 @@ def collect_metrics(
     stale_keys = previous_concurrency_keys - current_concurrency_keys
     if stale_keys:
         logging.info(f"Zeroing out {len(stale_keys)} stale concurrency count metrics.")
-        for queue, phase, kind in stale_keys:
+        for queue, phase, namespace in stale_keys:
             try:
                 unified_job_concurrency_count.labels(
                     unified_job_queue=queue,
                     unified_job_phase=phase,
-                    unified_job_kind=kind,
+                    unified_job_namespace=namespace,
                 ).set(0)
                 logging.debug(
-                    f"Zeroed out unified_job_concurrency_count{{queue='{queue}', phase='{phase}', job_kind='{kind}'}}"
+                    f"Zeroed out unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}}"
                 )
             except Exception as e:
                 # Logujemy błąd, ale kontynuujemy
                 logging.error(
-                    f"Failed to zero out stale concurrency count for {queue}/{phase}/{kind}: {e}",
+                    f"Failed to zero out stale concurrency count for {queue}/{phase}/{namespace}: {e}",
                     exc_info=True,
                 )
 
