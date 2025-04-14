@@ -522,8 +522,8 @@
       },
       "targets": [
         {
-          "expr": "avg(unified_job_wait_duration_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_kind)",
-          "legendFormat": "Avg Wait Time - {{ unified_job_kind }}",
+          "expr": "avg(unified_job_wait_duration_seconds{exported_namespace=~\"$namespace\"}) by (job_kind)",
+          "legendFormat": "Avg Wait Time - {{ job_kind }}",
           "range": true,
           "refId": "A",
           "datasource": {
@@ -532,8 +532,8 @@
           }
         },
         {
-          "expr": "avg(unified_job_execution_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_kind)",
-          "legendFormat": "Avg Execution Time - {{ unified_job_kind }}",
+          "expr": "avg(unified_job_execution_duration_seconds{exported_namespace=~\"$namespace\", status=~\"Succeeded|Failed\"}) by (job_kind)",
+          "legendFormat": "Avg Execution Time - {{ job_kind }}",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -542,8 +542,8 @@
           }
         },
         {
-          "expr": "avg(unified_job_total_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_kind)",
-          "legendFormat": "Avg Total Time - {{ unified_job_kind }}",
+          "expr": "avg(unified_job_total_duration_seconds{exported_namespace=~\"$namespace\", status=~\"Succeeded|Failed\"}) by (job_kind)",
+          "legendFormat": "Avg Total Time - {{ job_kind }}",
           "range": true,
           "refId": "C",
           "datasource": {
@@ -630,8 +630,8 @@
       },
       "targets": [
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_kind))",
-          "legendFormat": "Running - {{ unified_job_kind }}",
+          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 1) by (job_kind))",
+          "legendFormat": "Running - {{ job_kind }}",
           "range": true,
           "refId": "A",
           "datasource": {
@@ -640,8 +640,8 @@
           }
         },
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_kind))",
-          "legendFormat": "Succeeded - {{ unified_job_kind }}",
+          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 2) by (job_kind))",
+          "legendFormat": "Succeeded - {{ job_kind }}",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -650,8 +650,8 @@
           }
         },
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_kind))",
-          "legendFormat": "Failed - {{ unified_job_kind }}",
+          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 3) by (job_kind))",
+          "legendFormat": "Failed - {{ job_kind }}",
           "range": true,
           "refId": "C",
           "datasource": {
@@ -660,8 +660,8 @@
           }
         },
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_kind))",
-          "legendFormat": "Pending - {{ unified_job_kind }}",
+          "expr": "sum by (job_kind) (count(unified_job_status_phase{exported_namespace=~\"$namespace\"} == 0) by (job_kind))",
+          "legendFormat": "Pending - {{ job_kind }}",
           "range": true,
           "refId": "D",
           "datasource": {
@@ -936,15 +936,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (unified_job_kind) / sum(rate(unified_job_wait_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (unified_job_kind)",
-          "legendFormat": "Avg Wait Time - {{ unified_job_kind }}",
+          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{job_kind=~\"Job|VolcanoJob\"}[5m])) by (job_kind) / sum(rate(unified_job_wait_duration_seconds_histogram_count{job_kind=~\"Job|VolcanoJob\"}[5m])) by (job_kind)",
+          "legendFormat": "Avg Wait Time - {{ job_kind }}",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (le, unified_job_kind))",
-          "legendFormat": "P95 Wait Time - {{ unified_job_kind }}",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{job_kind=~\"Job|VolcanoJob\"}[5m])) by (le, job_kind))",
+          "legendFormat": "P95 Wait Time - {{ job_kind }}",
           "range": true,
           "refId": "B"
         }
@@ -1025,15 +1025,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_execution_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status) / sum(rate(unified_job_execution_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status)",
-          "legendFormat": "Avg Exec Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "sum(rate(unified_job_execution_duration_seconds_histogram_sum{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status) / sum(rate(unified_job_execution_duration_seconds_histogram_count{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status)",
+          "legendFormat": "Avg Exec Time - {{ job_kind }} ({{ status }})",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_execution_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_kind, unified_job_status))",
-          "legendFormat": "P95 Exec Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_execution_duration_seconds_histogram_bucket{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (le, job_kind, status))",
+          "legendFormat": "P95 Exec Time - {{ job_kind }} ({{ status }})",
           "range": true,
           "refId": "B"
         }
@@ -1114,15 +1114,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_total_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status) / sum(rate(unified_job_total_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status)",
-          "legendFormat": "Avg Total Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "sum(rate(unified_job_total_duration_seconds_histogram_sum{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status) / sum(rate(unified_job_total_duration_seconds_histogram_count{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (job_kind, status)",
+          "legendFormat": "Avg Total Time - {{ job_kind }} ({{ status }})",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_total_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_kind, unified_job_status))",
-          "legendFormat": "P95 Total Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_total_duration_seconds_histogram_bucket{job_kind=~\"Job|VolcanoJob\", status=~\"Succeeded|Failed\"}[5m])) by (le, job_kind, status))",
+          "legendFormat": "P95 Total Time - {{ job_kind }} ({{ status }})",
           "range": true,
           "refId": "B"
         }
@@ -1137,149 +1137,6 @@
         "w": 24,
         "x": 0,
         "y": 26
-      },
-      "id": 200,
-      "panels": [],
-      "title": "Performance: Job Concurrency (Unified Metrics)",
-      "type": "row"
-    },
-    {
-      "id": 2000,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 27
-      },
-      "type": "timeseries",
-      "title": "Job Concurrency by Phase (Unified)",
-      "description": "Number of jobs (K8s & Volcano) currently in each phase, stacked. Based on unified exporter metric 'unified_job_concurrency_count'.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 30,
-            "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
-            "thresholdsStyle": { "mode": "off" }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": ["lastNotNull", "max", "sum"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum by (unified_job_phase) (unified_job_concurrency_count{unified_job_phase!=\"\",unified_job_queue!=\"\"})",
-          "legendFormat": "{{unified_job_phase}}",
-          "range": true,
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 2001,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 27
-      },
-      "type": "timeseries",
-      "title": "Job Concurrency by Queue (Unified)",
-      "description": "Number of jobs (K8s & Volcano) currently active per queue, stacked. Based on unified exporter metric 'unified_job_concurrency_count'.",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 30,
-            "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
-            "thresholdsStyle": { "mode": "off" }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": ["lastNotNull", "max", "sum"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum by (unified_job_queue,unified_job_phase ) (unified_job_concurrency_count{unified_job_queue!=\"\",unified_job_phase !=\"\"})",
-          "legendFormat": "{{unified_job_queue}} - {{unified_job_phase }}",
-          "range": true,
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 35
       },
       "id": 80,
       "panels": [],
@@ -1326,7 +1183,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 36
+        "y": 27
       },
       "id": 82,
       "options": {
@@ -1396,7 +1253,7 @@
         "h": 6,
         "w": 6,
         "x": 6,
-        "y": 36
+        "y": 27
       },
       "id": 84,
       "options": {
@@ -1466,7 +1323,7 @@
         "h": 6,
         "w": 6,
         "x": 12,
-        "y": 36
+        "y": 27
       },
       "id": 85,
       "options": {
@@ -1555,7 +1412,7 @@
         "h": 6,
         "w": 6,
         "x": 18,
-        "y": 36
+        "y": 27
       },
       "id": 86,
       "options": {
@@ -1739,7 +1596,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 33
       },
       "id": 87,
       "options": {
@@ -1805,7 +1662,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 41
       },
       "id": 90,
       "panels": [],
@@ -1971,7 +1828,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 51
+        "y": 42
       },
       "id": 94,
       "options": {
@@ -2149,7 +2006,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 51
+        "y": 42
       },
       "id": 92,
       "options": {
@@ -2203,7 +2060,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 61
+        "y": 52
       },
       "id": 95,
       "options": {
@@ -2261,7 +2118,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 61
+        "y": 52
       },
       "id": 96,
       "options": {
@@ -2353,7 +2210,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 69
+        "y": 60
       },
       "id": 97,
       "options": {
@@ -2464,7 +2321,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 69
+        "y": 60
       },
       "id": 99,
       "options": {
@@ -2529,7 +2386,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 77
+        "y": 68
       },
       "id": 98,
       "options": {
@@ -2574,7 +2431,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 85
+        "y": 76
       },
       "id": 1000,
       "panels": [],
@@ -2587,7 +2444,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 86
+        "y": 77
       },
       "title": "Node Simulated CPU Usage (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2695,7 +2552,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 86
+        "y": 77
       },
       "title": "Node Simulated Memory Usage (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2803,7 +2660,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 86
+        "y": 77
       },
       "title": "Node Simulated GPU Usage (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0 if no GPUs requested or available.",
@@ -2911,7 +2768,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 85
       },
       "id": 40,
       "panels": [],
@@ -2985,7 +2842,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 95
+        "y": 86
       },
       "id": 14,
       "options": {
@@ -3084,7 +2941,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 95
+        "y": 86
       },
       "id": 15,
       "options": {
@@ -3182,7 +3039,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 103
+        "y": 94
       },
       "id": 41,
       "legend": {
@@ -3340,7 +3197,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 103
+        "y": 94
       },
       "id": 42,
       "legend": {
@@ -3437,7 +3294,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 111
+        "y": 102
       },
       "id": 600,
       "panels": [
@@ -3447,7 +3304,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 112
+            "y": 103
           },
           "title": "$scheduler: Pending/Inadmissible Count",
           "description": "Shows scheduler-specific pending/inadmissible counts (filtered by namespace). Kueue: Workloads by status. Volcano: Pending pods (via KSM + label filter), Unscheduled tasks. YuniKorn: Apps in 'new' state. Check Prometheus if 'No data'. NOTE: Kueue LocalQueue metrics require the 'LocalQueueMetrics' feature gate.",
@@ -3553,7 +3410,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 112
+            "y": 103
           },
           "title": "$scheduler: Scheduling/Admission Latency (P95)",
           "description": "P95 internal scheduling/admission latency reported by the specific scheduler (namespace filter applied). Kueue: Admission Wait Time (creation to admission). Volcano: E2E Scheduling Latency (ms -> s). YuniKorn: Main Scheduling Loop Latency (ms -> s). Check Prometheus if 'No data'.",
@@ -3635,7 +3492,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 112
+            "y": 103
           },
           "title": "$scheduler: Attempts/Retries/Allocations (rate/s)",
           "description": "Rate of relevant actions per second by the specific scheduler (namespace filter applied). Kueue: Admission attempts by result. Volcano: Scheduled task rate (proxy), Job retry rate. YuniKorn: Container allocation attempts by state. Check Prometheus if 'No data'.",
@@ -3717,7 +3574,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 120
+            "y": 111
           },
           "title": "$scheduler: Queue Resource Usage (CPU)",
           "description": "Scheduler-specific view of CPU allocation/usage per queue. Kueue: Usage from admitted active workloads. Volcano: Allocated milli CPU. YuniKorn: Allocated vcores. (Namespace filter applied). Check Prometheus if 'No data'.",
@@ -3806,7 +3663,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 120
+            "y": 111
           },
           "title": "$scheduler: Queue Resource Usage (Memory)",
           "description": "Scheduler-specific view of Memory allocation/usage per queue. Kueue: Usage from admitted active workloads. Volcano: Allocated memory bytes. YuniKorn: Allocated memory bytes. (Namespace filter applied). Check Prometheus if 'No data'.",
@@ -3895,7 +3752,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 120
+            "y": 111
           },
           "title": "$scheduler: Preemption/Node Activity",
           "description": "Scheduler-specific view of preemption or node-related scheduling activity. Volcano: Preemption attempts/victims. YuniKorn: Node sorting latency, try-node latency, try-preemption latency. (Namespace filter applied). Check Prometheus if 'No data'.",
@@ -4124,11 +3981,11 @@
     "to": "now"
   },
   "timepicker": {
-    "refresh_intervals": ["5s", "10s", "15s", "30s", "1m", "5m"]
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
   },
   "timezone": "browser",
   "title": "knavigator - Performance",
   "uid": "knavigator-performance",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }
