@@ -2388,77 +2388,12 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Number of worker nodes (excludes control plane) with simulated utilization (pod requests / allocatable) exceeding 80% for CPU or Memory.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "short",
-          "decimals": 0,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15,
-            "axisPlacement": "left",
-            "drawStyle": "line"
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 69
-      },
-      "id": 98,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": ["lastNotNull"]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "count( (node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) > 0.80 )",
-          "legendFormat": "Nodes >80% CPU Usage",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "count( (node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) > 0.80 )",
-          "legendFormat": "Nodes >80% Memory Usage",
-          "refId": "B"
-        }
-      ],
-      "title": "Saturated Nodes Count (>80% Usage)",
-      "type": "timeseries"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 69
       },
       "id": 1000,
       "panels": [],
@@ -2471,7 +2406,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 78
+        "y": 70
       },
       "title": "Selected Nodes CPU Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2579,7 +2514,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 78
+        "y": 70
       },
       "title": "Selected Nodes Memory Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2687,7 +2622,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 78
+        "y": 70
       },
       "title": "Selected Nodes GPU Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0 if no GPUs requested or available.",
@@ -2795,7 +2730,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 86
+        "y": 78
       },
       "title": "Selected Nodes CPU Usage (%) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) as a percentage of allocatable CPU across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2913,7 +2848,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 86
+        "y": 78
       },
       "title": "Selected Nodes Memory Usage (%) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) as a percentage of allocatable Memory across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -3031,7 +2966,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 86
+        "y": 78
       },
       "title": "Selected Nodes GPU Usage (%) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) as a percentage of allocatable GPUs across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0% if no GPUs requested or allocatable.",
@@ -3202,7 +3137,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 94
+        "y": 86
       },
       "id": 2201,
       "options": {
@@ -3290,7 +3225,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 94
+        "y": 86
       },
       "id": 2202,
       "options": {
@@ -3378,7 +3313,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 94
+        "y": 86
       },
       "id": 2203,
       "options": {
@@ -3474,7 +3409,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 102
+        "y": 94
       },
       "id": 2101,
       "options": {
@@ -3570,7 +3505,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 102
+        "y": 94
       },
       "id": 2102,
       "options": {
@@ -3666,7 +3601,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 102
+        "y": 94
       },
       "id": 2103,
       "options": {
@@ -3701,7 +3636,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 110
+        "y": 102
       },
       "id": 40,
       "panels": [],
@@ -3775,7 +3710,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 111
+        "y": 103
       },
       "id": 14,
       "options": {
@@ -3874,7 +3809,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 111
+        "y": 103
       },
       "id": 15,
       "options": {
@@ -3972,7 +3907,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 119
+        "y": 111
       },
       "id": 41,
       "legend": {
@@ -4130,7 +4065,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 119
+        "y": 111
       },
       "id": 42,
       "legend": {
@@ -4359,6 +4294,6 @@
   "timezone": "browser",
   "title": "knavigator - Performance",
   "uid": "knavigator-performance",
-  "version": 6,
+  "version": 7,
   "weekStart": ""
 }
