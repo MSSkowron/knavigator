@@ -2180,7 +2180,7 @@
           "refId": "A"
         }
       ],
-      "title": "Pod Distribution per Node",
+      "title": "Jobs Pod Distribution per Node",
       "type": "timeseries"
     },
     {

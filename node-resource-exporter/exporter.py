@@ -287,6 +287,15 @@ def collect_node_metrics(
         logging.error(f"Unexpected error fetching Nodes: {e}", exc_info=True)
         return  # Nieoczekiwany błąd również uniemożliwia kontynuację
 
+    # --- Identyfikacja węzłów KWOK ---
+    kwok_node_names = set()
+    for node in nodes_list:
+        if is_kwok_node(node):
+            node_name = getattr(node.metadata, "name", None)
+            if node_name:
+                kwok_node_names.add(node_name)
+    logging.info(f"Identified {len(kwok_node_names)} KWOK nodes: {kwok_node_names}")
+
     # --- Pobieranie Podów ---
     try:
         logging.debug("Fetching Pods (all namespaces, non-terminal)...")
@@ -322,10 +331,57 @@ def collect_node_metrics(
     node_simulated_requests = defaultdict(
         lambda: {"cpu": 0.0, "memory": 0, "gpu": 0, "pods": 0}
     )
+    kindnet_requests_on_node = defaultdict(lambda: {"cpu": 0.0, "memory": 0})
+
     pod_count = 0
     unscheduled_pod_count = 0
+    processed_infra_pods = 0
+
     for pod in pods_list:
         node_name = getattr(pod.spec, "node_name", None)
+        pod_name = getattr(pod.metadata, "name", "")
+        pod_namespace = getattr(pod.metadata, "namespace", "")
+
+        # --- Sprawdzenie i pominięcie podów infra na węzłach KWOK ---
+        is_infra_pod_on_kwok_node = False
+        if node_name in kwok_node_names:
+            if pod_namespace == "kube-system":
+                if pod_name.startswith("kube-proxy-"):
+                    logging.debug(
+                        f"[KWOK Node: {node_name}] Ignoring infra pod (kube-proxy): {pod_namespace}/{pod_name}"
+                    )
+                    is_infra_pod_on_kwok_node = True
+                    processed_infra_pods += 1
+                elif pod_name.startswith("kindnet-"):
+                    logging.debug(
+                        f"[KWOK Node: {node_name}] Ignoring infra pod (kindnet): {pod_namespace}/{pod_name}"
+                    )
+                    is_infra_pod_on_kwok_node = True
+                    processed_infra_pods += 1
+                    # Zapisz żądania kindnet tylko jeśli jest na węźle KWOK
+                    kindnet_cpu_req = 0.0
+                    kindnet_mem_req = 0
+                    all_containers = (getattr(pod.spec, "containers", []) or []) + (
+                        getattr(pod.spec, "init_containers", []) or []
+                    )
+                    for container in all_containers:
+                        requests = getattr(container.resources, "requests", None) or {}
+                        kindnet_cpu_req += parse_resource_quantity(
+                            requests.get("cpu", "0")
+                        )
+                        kindnet_mem_req += parse_resource_quantity(
+                            requests.get("memory", "0")
+                        )
+
+                    # Zapisz żądania tylko dla węzła KWOK
+                    kindnet_requests_on_node[node_name]["cpu"] += kindnet_cpu_req
+                    kindnet_requests_on_node[node_name]["memory"] += kindnet_mem_req
+                    logging.debug(
+                        f"[KWOK Node: {node_name}] Recorded kindnet requests: CPU={kindnet_cpu_req}, Mem={kindnet_mem_req}. Total for node now: {kindnet_requests_on_node[node_name]}"  # Dodano kontekst węzła
+                    )
+
+        if is_infra_pod_on_kwok_node:
+            continue
 
         if not node_name:
             unscheduled_pod_count += 1
@@ -408,7 +464,9 @@ def collect_node_metrics(
         # ----------------------------------------------------------
 
     logging.debug(
-        f"Aggregated EFFECTIVE pod requests for {len(node_simulated_requests)} nodes from {pod_count} scheduled pods."
+        f"Aggregated EFFECTIVE pod requests for {len(node_simulated_requests)} nodes "
+        f"from {pod_count} scheduled non-infrastructure pods."
+        f" Ignored {processed_infra_pods} infrastructure pods (kube-proxy/kindnet)."
     )
     logging.info(f"Found {unscheduled_pod_count} unscheduled (Pending, no node) pods.")
 
@@ -440,9 +498,9 @@ def collect_node_metrics(
         logging.debug(f"{log_prefix} Status Ready: {ready_status}")
 
         capacity = getattr(node.status, "capacity", {}) or {}
-        cap_cpu = parse_resource_quantity(capacity.get("cpu"))
-        cap_mem = parse_resource_quantity(capacity.get("memory"))
-        cap_pods = parse_resource_quantity(capacity.get("pods"))
+        original_cap_cpu = parse_resource_quantity(capacity.get("cpu", "0"))
+        original_cap_mem = parse_resource_quantity(capacity.get("memory", "0"))
+        cap_pods = parse_resource_quantity(capacity.get("pods", "0"))
 
         cap_gpu_str = "0"
         found_gpu_key = None
@@ -454,18 +512,49 @@ def collect_node_metrics(
                 break
         cap_gpu = parse_resource_quantity(cap_gpu_str)
 
-        node_capacity_cpu_cores.labels(**labels).set(cap_cpu)
-        node_capacity_memory_bytes.labels(**labels).set(cap_mem)
-        node_capacity_pods.labels(**labels).set(cap_pods)
-        node_capacity_gpu_cards.labels(**labels).set(cap_gpu)
+        report_cap_cpu = original_cap_cpu
+        report_cap_mem = original_cap_mem
+        report_cap_pods = cap_pods
+        report_cap_gpu = cap_gpu
+
+        is_current_node_kwok = node_name in kwok_node_names
+        if is_current_node_kwok:
+            kindnet_reqs = kindnet_requests_on_node.get(
+                node_name,
+                {"cpu": 0.0, "memory": 0},
+            )
+            cpu_to_subtract = kindnet_reqs["cpu"]
+            mem_to_subtract = kindnet_reqs["memory"]
+
+            adjusted_cap_cpu = max(0.0, original_cap_cpu - cpu_to_subtract)
+            adjusted_cap_mem = max(0, original_cap_mem - mem_to_subtract)
+
+            report_cap_cpu = adjusted_cap_cpu
+            report_cap_mem = adjusted_cap_mem
+
+            logging.debug(
+                f"{log_prefix} Capacity (Original from K8s API) - CPU: {original_cap_cpu}, Mem: {original_cap_mem}, Pods: {report_cap_pods}"
+            )
+            if cpu_to_subtract > 0 or mem_to_subtract > 0:
+                logging.debug(
+                    f"{log_prefix} [KWOK Node] Subtracting Kindnet requests from Capacity - CPU: {cpu_to_subtract}, Mem: {mem_to_subtract}"
+                )
+        # else: # Dla węzłów nie-KWOK nie robimy nic, używamy oryginalnych wartości
+
+        node_capacity_cpu_cores.labels(**labels).set(report_cap_cpu)
+        node_capacity_memory_bytes.labels(**labels).set(report_cap_mem)
+        node_capacity_pods.labels(**labels).set(report_cap_pods)
+        node_capacity_gpu_cards.labels(**labels).set(report_cap_gpu)
+
         logging.debug(
-            f"{log_prefix} Capacity - CPU: {cap_cpu}, Mem: {cap_mem}, Pods: {cap_pods}, GPU ({found_gpu_key or 'none'}): {cap_gpu}"
+            f"{log_prefix} Capacity (Reported by exporter{' - Adjusted for Kindnet' if is_current_node_kwok and (cpu_to_subtract > 0 or mem_to_subtract > 0) else ''}) "
+            f"- CPU: {report_cap_cpu}, Mem: {report_cap_mem}, Pods: {report_cap_pods}, GPU ({found_gpu_key or 'none'}): {report_cap_gpu}"
         )
 
         allocatable = getattr(node.status, "allocatable", {}) or {}
-        alloc_cpu = parse_resource_quantity(allocatable.get("cpu"))
-        alloc_mem = parse_resource_quantity(allocatable.get("memory"))
-        alloc_pods = parse_resource_quantity(allocatable.get("pods"))
+        original_alloc_cpu = parse_resource_quantity(allocatable.get("cpu", "0"))
+        original_alloc_mem = parse_resource_quantity(allocatable.get("memory", "0"))
+        original_alloc_pods = parse_resource_quantity(allocatable.get("pods", "0"))
 
         alloc_gpu_str = "0"
         found_alloc_gpu_key = None
@@ -477,12 +566,41 @@ def collect_node_metrics(
                 break
         alloc_gpu = parse_resource_quantity(alloc_gpu_str)
 
-        node_allocatable_cpu_cores.labels(**labels).set(alloc_cpu)
-        node_allocatable_memory_bytes.labels(**labels).set(alloc_mem)
-        node_allocatable_pods.labels(**labels).set(alloc_pods)
-        node_allocatable_gpu_cards.labels(**labels).set(alloc_gpu)
+        report_alloc_cpu = original_alloc_cpu
+        report_alloc_mem = original_alloc_mem
+        report_alloc_pods = original_alloc_pods
+        report_alloc_gpu = alloc_gpu
+
+        if is_current_node_kwok:
+            kindnet_reqs = kindnet_requests_on_node.get(
+                node_name, {"cpu": 0.0, "memory": 0}
+            )
+            cpu_to_subtract = kindnet_reqs["cpu"]
+            mem_to_subtract = kindnet_reqs["memory"]
+
+            adjusted_alloc_cpu = max(0.0, original_alloc_cpu - cpu_to_subtract)
+            adjusted_alloc_mem = max(0, original_alloc_mem - mem_to_subtract)
+
+            report_alloc_cpu = adjusted_alloc_cpu
+            report_alloc_mem = adjusted_alloc_mem
+
+            logging.debug(
+                f"{log_prefix} Allocatable (Original from K8s API) - CPU: {original_alloc_cpu}, Mem: {original_alloc_mem}, Pods: {report_alloc_pods}"
+            )
+            if cpu_to_subtract > 0 or mem_to_subtract > 0:
+                logging.debug(
+                    f"{log_prefix} [KWOK Node] Subtracting Kindnet requests from Allocatable - CPU: {cpu_to_subtract}, Mem: {mem_to_subtract}"
+                )
+        # else: # Dla węzłów nie-KWOK nie robimy nic, używamy oryginalnych wartości
+
+        node_allocatable_cpu_cores.labels(**labels).set(report_alloc_cpu)
+        node_allocatable_memory_bytes.labels(**labels).set(report_alloc_mem)
+        node_allocatable_pods.labels(**labels).set(report_alloc_pods)
+        node_allocatable_gpu_cards.labels(**labels).set(report_alloc_gpu)
+
         logging.debug(
-            f"{log_prefix} Allocatable - CPU: {alloc_cpu}, Mem: {alloc_mem}, Pods: {alloc_pods}, GPU ({found_alloc_gpu_key or 'none'}): {alloc_gpu}"
+            f"{log_prefix} Allocatable (Reported by exporter{' - Adjusted for Kindnet' if is_current_node_kwok and (cpu_to_subtract > 0 or mem_to_subtract > 0) else ''}) "
+            f"- CPU: {report_alloc_cpu}, Mem: {report_alloc_mem}, Pods: {report_alloc_pods}, GPU ({found_alloc_gpu_key or 'none'}): {report_alloc_gpu}"
         )
 
         sim_usage = node_simulated_requests.get(
@@ -492,8 +610,10 @@ def collect_node_metrics(
         node_simulated_usage_memory_bytes.labels(**labels).set(sim_usage["memory"])
         node_simulated_usage_gpu_cards.labels(**labels).set(sim_usage["gpu"])
         node_simulated_pod_count.labels(**labels).set(sim_usage["pods"])
+
         logging.debug(
-            f"{log_prefix} Simulated Usage - CPU: {sim_usage['cpu']}, Mem: {sim_usage['memory']}, GPU: {sim_usage['gpu']}, Pods: {sim_usage['pods']}"
+            f"{log_prefix} Simulated Usage ({'non-infra pods only' if is_current_node_kwok else 'all non-terminal pods'}) "
+            f"- CPU: {sim_usage['cpu']}, Mem: {sim_usage['memory']}, GPU: {sim_usage['gpu']}, Pods: {sim_usage['pods']}"
         )
 
         logging.debug(f"{log_prefix} Processing finished.")
