@@ -860,7 +860,7 @@
           "refId": "D"
         }
       ],
-      "title": "Pod Phases Over Time",
+      "title": "Pod Phases",
       "type": "timeseries"
     },
     {
@@ -881,7 +881,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -970,7 +970,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -1059,7 +1059,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -1267,7 +1267,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "expr": "sum by (unified_job_queue,unified_job_phase ) (unified_job_concurrency_count{unified_job_queue!=\"\",unified_job_phase !=\"\"})",
-          "legendFormat": "{{unified_job_queue}} - {{unified_job_phase }}",
+          "legendFormat": "{{unified_job_phase }} - {{unified_job_queue}}",
           "range": true,
           "refId": "A"
         }
@@ -2589,7 +2589,7 @@
         "x": 0,
         "y": 86
       },
-      "title": "Node Simulated CPU Usage (Avg/Min/Max)",
+      "title": "Selected Nodes CPU Usage (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
       "type": "timeseries",
       "datasource": {
@@ -2697,7 +2697,7 @@
         "x": 8,
         "y": 86
       },
-      "title": "Node Simulated Memory Usage (Avg/Min/Max)",
+      "title": "Selected Nodes Memory Usage (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
       "type": "timeseries",
       "datasource": {
@@ -2805,7 +2805,7 @@
         "x": 16,
         "y": 86
       },
-      "title": "Node Simulated GPU Usage (Avg/Min/Max)",
+      "title": "Selected Nodes GPU Usage (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0 if no GPUs requested or available.",
       "type": "timeseries",
       "datasource": {
@@ -2983,8 +2983,8 @@
           "showLegend": true
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -2998,7 +2998,7 @@
           }
         }
       ],
-      "title": "Node CPU Usage % (selected nodes)",
+      "title": "Node CPU Usage %",
       "type": "timeseries"
     },
     {
@@ -3079,8 +3079,8 @@
           "showLegend": true
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -3094,7 +3094,7 @@
           }
         }
       ],
-      "title": "Node Memory Usage % (selected nodes)",
+      "title": "Node Memory Usage %",
       "type": "timeseries"
     },
     {
@@ -3175,8 +3175,8 @@
           "showLegend": true
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -3190,7 +3190,7 @@
           }
         }
       ],
-      "title": "Node GPU Usage % (selected nodes)",
+      "title": "Node GPU Usage %",
       "type": "timeseries"
     },
     {
