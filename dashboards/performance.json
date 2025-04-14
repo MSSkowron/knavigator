@@ -472,7 +472,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -522,8 +522,8 @@
       },
       "targets": [
         {
-          "expr": "avg(unified_job_wait_duration_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_kind)",
-          "legendFormat": "Avg Wait Time - {{ unified_job_kind }}",
+          "expr": "avg(unified_job_wait_duration_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace)",
+          "legendFormat": "Avg Wait Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "A",
           "datasource": {
@@ -532,8 +532,8 @@
           }
         },
         {
-          "expr": "avg(unified_job_execution_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_kind)",
-          "legendFormat": "Avg Execution Time - {{ unified_job_kind }}",
+          "expr": "avg(unified_job_execution_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "legendFormat": "Avg Execution Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -542,8 +542,8 @@
           }
         },
         {
-          "expr": "avg(unified_job_total_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_kind)",
-          "legendFormat": "Avg Total Time - {{ unified_job_kind }}",
+          "expr": "avg(unified_job_total_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "legendFormat": "Avg Total Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "C",
           "datasource": {
@@ -580,7 +580,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 20,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -597,7 +597,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -630,8 +630,8 @@
       },
       "targets": [
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_kind))",
-          "legendFormat": "Running - {{ unified_job_kind }}",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_namespace))",
+          "legendFormat": "Running - {{ unified_job_namespace }}",
           "range": true,
           "refId": "A",
           "datasource": {
@@ -640,8 +640,8 @@
           }
         },
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_kind))",
-          "legendFormat": "Succeeded - {{ unified_job_kind }}",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_namespace))",
+          "legendFormat": "Succeeded - {{ unified_job_namespace }}",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -650,8 +650,8 @@
           }
         },
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_kind))",
-          "legendFormat": "Failed - {{ unified_job_kind }}",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_namespace))",
+          "legendFormat": "Failed - {{ unified_job_namespace }}",
           "range": true,
           "refId": "C",
           "datasource": {
@@ -660,8 +660,8 @@
           }
         },
         {
-          "expr": "sum by (unified_job_kind) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_kind))",
-          "legendFormat": "Pending - {{ unified_job_kind }}",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_namespace))",
+          "legendFormat": "Pending - {{ unified_job_namespace }}",
           "range": true,
           "refId": "D",
           "datasource": {
@@ -689,7 +689,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 20,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -706,7 +706,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -796,7 +796,7 @@
       "id": 303,
       "options": {
         "legend": {
-          "calcs": ["lastNotNull", "max"],
+          "calcs": ["mean", "max", "lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -814,9 +814,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_status_phase{phase=\"Pending\", namespace=~\"$namespace\"})",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Pending\", namespace=~\"$namespace\"})",
           "instant": false,
-          "legendFormat": "Pending",
+          "legendFormat": "Pending - {{namespace}}",
           "range": true,
           "refId": "A"
         },
@@ -826,10 +826,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_status_phase{phase=\"Running\", namespace=~\"$namespace\"})",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Running\", namespace=~\"$namespace\"})",
           "hide": false,
           "instant": false,
-          "legendFormat": "Running",
+          "legendFormat": "Running - {{namespace}}",
           "range": true,
           "refId": "B"
         },
@@ -839,10 +839,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_status_phase{phase=\"Succeeded\", namespace=~\"$namespace\"})",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Succeeded\", namespace=~\"$namespace\"})",
           "hide": false,
           "instant": false,
-          "legendFormat": "Succeeded",
+          "legendFormat": "Succeeded - {{namespace}}",
           "range": true,
           "refId": "C"
         },
@@ -852,15 +852,15 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_status_phase{phase=\"Failed\", namespace=~\"$namespace\"})",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Failed\", namespace=~\"$namespace\"})",
           "hide": false,
           "instant": false,
-          "legendFormat": "Failed",
+          "legendFormat": "Failed - {{namespace}}",
           "range": true,
           "refId": "D"
         }
       ],
-      "title": "Pod Phases Over Time (Stacked)",
+      "title": "Pod Phases Over Time",
       "type": "timeseries"
     },
     {
