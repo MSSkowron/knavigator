@@ -2473,7 +2473,7 @@
         "x": 0,
         "y": 78
       },
-      "title": "Selected Nodes CPU Usage (Avg/Min/Max)",
+      "title": "Selected Nodes CPU Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
       "type": "timeseries",
       "datasource": {
@@ -2530,7 +2530,7 @@
       },
       "options": {
         "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
+          "calcs": ["mean", "max"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -2581,7 +2581,7 @@
         "x": 8,
         "y": 78
       },
-      "title": "Selected Nodes Memory Usage (Avg/Min/Max)",
+      "title": "Selected Nodes Memory Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
       "type": "timeseries",
       "datasource": {
@@ -2638,7 +2638,7 @@
       },
       "options": {
         "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
+          "calcs": ["mean", "max"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -2689,7 +2689,7 @@
         "x": 16,
         "y": 78
       },
-      "title": "Selected Nodes GPU Usage (Avg/Min/Max)",
+      "title": "Selected Nodes GPU Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0 if no GPUs requested or available.",
       "type": "timeseries",
       "datasource": {
@@ -2746,7 +2746,7 @@
       },
       "options": {
         "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
+          "calcs": ["mean", "max"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -2780,6 +2780,360 @@
         {
           "expr": "max(node_simulated_usage_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) or vector(0)",
           "legendFormat": "Max GPU Usage",
+          "range": true,
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1101,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 86
+      },
+      "title": "Selected Nodes CPU Usage (%) (Avg/Min/Max)",
+      "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) as a percentage of allocatable CPU across selected nodes (use $node variable). Based on node-resource-exporter.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "avg( (node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Avg CPU Usage %",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "min( (node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Min CPU Usage %",
+          "range": true,
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max( (node_simulated_usage_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_cpu_cores{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Max CPU Usage %",
+          "range": true,
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1102,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 86
+      },
+      "title": "Selected Nodes Memory Usage (%) (Avg/Min/Max)",
+      "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) as a percentage of allocatable Memory across selected nodes (use $node variable). Based on node-resource-exporter.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "avg( (node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Avg Memory Usage %",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "min( (node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Min Memory Usage %",
+          "range": true,
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max( (node_simulated_usage_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_memory_bytes{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )",
+          "legendFormat": "Max Memory Usage %",
+          "range": true,
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 1103,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 86
+      },
+      "title": "Selected Nodes GPU Usage (%) (Avg/Min/Max)",
+      "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) as a percentage of allocatable GPUs across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0% if no GPUs requested or allocatable.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(avg( (node_simulated_usage_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )) or vector(0)",
+          "legendFormat": "Avg GPU Usage %",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "(min( (node_simulated_usage_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )) or vector(0)",
+          "legendFormat": "Min GPU Usage %",
+          "range": true,
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "(max( (node_simulated_usage_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"} / node_allocatable_gpu_cards{node_name=~\"$node\", node_name!~\"kind-control-plane\"}) * 100 )) or vector(0)",
+          "legendFormat": "Max GPU Usage %",
           "range": true,
           "refId": "C",
           "datasource": {
@@ -2848,7 +3202,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 86
+        "y": 94
       },
       "id": 2201,
       "options": {
@@ -2874,7 +3228,7 @@
           }
         }
       ],
-      "title": "Node CPU Usage (Absolute)",
+      "title": "Per Node CPU Usage (Absolute)",
       "type": "timeseries"
     },
     {
@@ -2936,7 +3290,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 86
+        "y": 94
       },
       "id": 2202,
       "options": {
@@ -2962,7 +3316,7 @@
           }
         }
       ],
-      "title": "Node Memory Usage (Absolute)",
+      "title": "Per Node Memory Usage (Absolute)",
       "type": "timeseries"
     },
     {
@@ -3024,7 +3378,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 86
+        "y": 94
       },
       "id": 2203,
       "options": {
@@ -3050,7 +3404,7 @@
           }
         }
       ],
-      "title": "Node GPU Usage (Absolute)",
+      "title": "Per Node GPU Usage (Absolute)",
       "type": "timeseries"
     },
     {
@@ -3120,7 +3474,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 94
+        "y": 102
       },
       "id": 2101,
       "options": {
@@ -3146,7 +3500,7 @@
           }
         }
       ],
-      "title": "Node CPU Usage (%)",
+      "title": "Per Node CPU Usage (%)",
       "type": "timeseries"
     },
     {
@@ -3216,7 +3570,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 94
+        "y": 102
       },
       "id": 2102,
       "options": {
@@ -3242,7 +3596,7 @@
           }
         }
       ],
-      "title": "Node Memory Usage (%)",
+      "title": "Per Node Memory Usage (%)",
       "type": "timeseries"
     },
     {
@@ -3312,7 +3666,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 94
+        "y": 102
       },
       "id": 2103,
       "options": {
@@ -3338,7 +3692,7 @@
           }
         }
       ],
-      "title": "Node GPU Usage (%)",
+      "title": "Per Node GPU Usage (%)",
       "type": "timeseries"
     },
     {
@@ -3347,7 +3701,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 102
+        "y": 110
       },
       "id": 40,
       "panels": [],
@@ -3421,7 +3775,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 103
+        "y": 111
       },
       "id": 14,
       "options": {
@@ -3520,7 +3874,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 103
+        "y": 111
       },
       "id": 15,
       "options": {
@@ -3618,7 +3972,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 111
+        "y": 119
       },
       "id": 41,
       "legend": {
@@ -3776,7 +4130,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 111
+        "y": 119
       },
       "id": 42,
       "legend": {
@@ -4005,6 +4359,6 @@
   "timezone": "browser",
   "title": "knavigator - Performance",
   "uid": "knavigator-performance",
-  "version": 4,
+  "version": 7,
   "weekStart": ""
 }
