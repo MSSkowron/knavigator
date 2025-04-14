@@ -868,7 +868,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Average and P95 Job Wait Duration (Created to Start) based on unified exporter histogram.",
+      "description": "Average and P95 Job Wait Duration (Created to Start) based on unified exporter histogram, grouped by namespace.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -936,15 +936,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (unified_job_kind) / sum(rate(unified_job_wait_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (unified_job_kind)",
-          "legendFormat": "Avg Wait Time - {{ unified_job_kind }}",
+          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace) / sum(rate(unified_job_wait_duration_seconds_histogram_count{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace)",
+          "legendFormat": "Avg Wait Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\"}[5m])) by (le, unified_job_kind))",
-          "legendFormat": "P95 Wait Time - {{ unified_job_kind }}",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{unified_job_namespace=~\"$namespace\"}[5m])) by (le, unified_job_namespace))",
+          "legendFormat": "P95 Wait Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "B"
         }
@@ -957,7 +957,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Average and P95 Job Execution Duration (Start to Completion) based on unified exporter histogram. Includes Succeeded and Failed jobs.",
+      "description": "Average and P95 Job Execution Duration (Start to Completion) based on unified exporter histogram, grouped by namespace and status. Includes Succeeded and Failed jobs.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1025,15 +1025,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_execution_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status) / sum(rate(unified_job_execution_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status)",
-          "legendFormat": "Avg Exec Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "sum(rate(unified_job_execution_duration_seconds_histogram_sum{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_namespace, unified_job_status) / sum(rate(unified_job_execution_duration_seconds_histogram_count{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_namespace, unified_job_status)",
+          "legendFormat": "Avg Exec Time - {{ unified_job_namespace }} ({{ unified_job_status }})",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_execution_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_kind, unified_job_status))",
-          "legendFormat": "P95 Exec Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_execution_duration_seconds_histogram_bucket{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_namespace, unified_job_status))",
+          "legendFormat": "P95 Exec Time - {{ unified_job_namespace }} ({{ unified_job_status }})",
           "range": true,
           "refId": "B"
         }
@@ -1046,7 +1046,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Average and P95 Job Total Duration (Created to Completion) based on unified exporter histogram. Includes Succeeded and Failed jobs.",
+      "description": "Average and P95 Job Total Duration (Created to Completion) based on unified exporter histogram, grouped by namespace and status. Includes Succeeded and Failed jobs.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1114,15 +1114,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_total_duration_seconds_histogram_sum{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status) / sum(rate(unified_job_total_duration_seconds_histogram_count{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_kind, unified_job_status)",
-          "legendFormat": "Avg Total Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "sum(rate(unified_job_total_duration_seconds_histogram_sum{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_namespace, unified_job_status) / sum(rate(unified_job_total_duration_seconds_histogram_count{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (unified_job_namespace, unified_job_status)",
+          "legendFormat": "Avg Total Time - {{ unified_job_namespace }} ({{ unified_job_status }})",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_total_duration_seconds_histogram_bucket{unified_job_kind=~\"Job|VolcanoJob\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_kind, unified_job_status))",
-          "legendFormat": "P95 Total Time - {{ unified_job_kind }} ({{ unified_job_status }})",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_total_duration_seconds_histogram_bucket{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}[5m])) by (le, unified_job_namespace, unified_job_status))",
+          "legendFormat": "P95 Total Time - {{ unified_job_namespace }} ({{ unified_job_status }})",
           "range": true,
           "refId": "B"
         }
@@ -1152,7 +1152,7 @@
         "y": 27
       },
       "type": "timeseries",
-      "title": "Job Concurrency by Phase (Unified)",
+      "title": "Job Concurrency by Phase",
       "description": "Number of jobs (K8s & Volcano) currently in each phase, stacked. Based on unified exporter metric 'unified_job_concurrency_count'.",
       "datasource": {
         "type": "prometheus",
@@ -1168,7 +1168,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 30,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
             "lineInterpolation": "linear",
@@ -1177,7 +1177,7 @@
             "scaleDistribution": { "type": "linear" },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
+            "stacking": { "group": "A", "mode": "none" },
             "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],
@@ -1217,7 +1217,7 @@
         "y": 27
       },
       "type": "timeseries",
-      "title": "Job Concurrency by Queue (Unified)",
+      "title": "Job Concurrency by Queue",
       "description": "Number of jobs (K8s & Volcano) currently active per queue, stacked. Based on unified exporter metric 'unified_job_concurrency_count'.",
       "datasource": {
         "type": "prometheus",
@@ -1233,7 +1233,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 30,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
             "lineInterpolation": "linear",
@@ -1242,7 +1242,7 @@
             "scaleDistribution": { "type": "linear" },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
+            "stacking": { "group": "A", "mode": "none" },
             "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],

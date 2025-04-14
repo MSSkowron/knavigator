@@ -121,7 +121,7 @@ WAIT_DURATION_BUCKETS = [
 unified_job_wait_duration_seconds_histogram = Histogram(
     "unified_job_wait_duration_seconds_histogram",
     "Histogram of time duration between creation and start of the job in seconds",
-    ["unified_job_kind"],
+    ["unified_job_namespace"],
     registry=REGISTRY,
     buckets=WAIT_DURATION_BUCKETS,
 )
@@ -144,7 +144,7 @@ DURATION_BUCKETS = [
 unified_job_execution_duration_seconds_histogram = Histogram(
     "unified_job_execution_duration_seconds_histogram",
     "Histogram of time duration between start and completion/failure of the job in seconds",
-    ["unified_job_kind", "unified_job_status"],
+    ["unified_job_namespace", "unified_job_status"],
     registry=REGISTRY,
     buckets=DURATION_BUCKETS,
 )
@@ -152,7 +152,7 @@ unified_job_execution_duration_seconds_histogram = Histogram(
 unified_job_total_duration_seconds_histogram = Histogram(
     "unified_job_total_duration_seconds_histogram",
     "Histogram of time duration between creation and completion/failure of the job in seconds",
-    ["unified_job_kind", "unified_job_status"],
+    ["unified_job_namespace", "unified_job_status"],
     registry=REGISTRY,
     buckets=DURATION_BUCKETS,
 )
@@ -503,7 +503,7 @@ def process_job(job_obj):
                         f"{log_prefix} Observing wait_duration HISTOGRAM ({wait_duration}) for the first time."
                     )
                     unified_job_wait_duration_seconds_histogram.labels(
-                        unified_job_kind=job_kind
+                        unified_job_namespace=namespace
                     ).observe(wait_duration)
                     observed_wait_times_uids.add(uid)
                 else:
@@ -577,7 +577,7 @@ def process_job(job_obj):
                     f"{log_prefix} Observing completion duration HISTOGRAMS for the first time (status={final_status})."
                 )
                 hist_duration_labels = {
-                    "unified_job_kind": job_kind,
+                    "unified_job_namespace": namespace,
                     "unified_job_status": final_status,
                 }
 
