@@ -453,8 +453,8 @@
         "x": 0,
         "y": 10
       },
-      "title": "Average Job Times",
-      "description": "Average times for Jobs (K8s & Volcano) based on unified exporter metrics, filtered by job namespace. Wait Time: Created to Start. Execution Time: Start to Completion. Total Time: Created to Completion.",
+      "title": "Job Times (Min/Avg/Max per Namespace)",
+      "description": "Minimum, Average, and Maximum times for Jobs (K8s & Volcano) based on unified exporter gauge metrics, filtered by job namespace. Wait Time: Created to Start. Execution Time: Start to Completion (Succeeded/Failed). Total Time: Created to Completion (Succeeded/Failed).",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -510,7 +510,7 @@
       },
       "options": {
         "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
+          "calcs": ["lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -533,7 +533,7 @@
         },
         {
           "expr": "avg(unified_job_execution_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
-          "legendFormat": "Avg Execution Time - {{ unified_job_namespace }}",
+          "legendFormat": "Avg Exec Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "B",
           "datasource": {
@@ -550,6 +550,163 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           }
+        },
+        {
+          "expr": "min(unified_job_wait_duration_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace)",
+          "legendFormat": "Min Wait Time - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "min(unified_job_execution_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "legendFormat": "Min Exec Time - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "min(unified_job_total_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "legendFormat": "Min Total Time - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max(unified_job_wait_duration_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace)",
+          "legendFormat": "Max Wait Time - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "G",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max(unified_job_execution_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "legendFormat": "Max Exec Time - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "H",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "max(unified_job_total_duration_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "legendFormat": "Max Total Time - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "I",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
+      "id": 304,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 10
+      },
+      "title": "Job Completion Timestamps (First/Last per Namespace)",
+      "description": "Timestamp of the first and last job completion (Succeeded or Failed) within the selected time range, grouped by namespace. Uses unified exporter gauge metric.",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsISO",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "unified_job_namespace" },
+            "properties": [
+              { "id": "displayName", "value": "Namespace" },
+              { "id": "unit", "value": "string" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value #A" },
+            "properties": [
+              { "id": "displayName", "value": "First Completion Time" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value #B" },
+            "properties": [
+              { "id": "displayName", "value": "Last Completion Time" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Last Completion Time", "desc": true }],
+        "footer": {
+          "show": false
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "min(unified_job_completion_timestamp_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "First Completion",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "max(unified_job_completion_timestamp_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "Last Completion",
+          "refId": "B"
+        }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #A": false,
+              "Value #B": false,
+              "unified_job_namespace": false
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "First Completion Time",
+              "Value #B": "Last Completion Time",
+              "unified_job_namespace": "Namespace"
+            }
+          }
         }
       ]
     },
@@ -558,10 +715,10 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 8,
+        "x": 16,
         "y": 10
       },
-      "title": "Job Status Count",
+      "title": "Job Status Count (Phase per Namespace)",
       "description": "Number of Jobs (K8s & Volcano) in different states based on unified exporter metrics (filtered by job namespace and kind). Uses numeric phase mapping.",
       "type": "timeseries",
       "datasource": {
@@ -790,8 +947,8 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 16,
-        "y": 10
+        "x": 0,
+        "y": 18
       },
       "id": 303,
       "options": {
@@ -860,96 +1017,7 @@
           "refId": "D"
         }
       ],
-      "title": "Pod Phases",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Average and P95 Job Wait Duration (Created to Start) based on unified exporter histogram, grouped by namespace.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 18
-      },
-      "id": 704,
-      "options": {
-        "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.0.0",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace) / sum(rate(unified_job_wait_duration_seconds_histogram_count{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace)",
-          "legendFormat": "Avg Wait Time - {{ unified_job_namespace }}",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{unified_job_namespace=~\"$namespace\"}[5m])) by (le, unified_job_namespace))",
-          "legendFormat": "P95 Wait Time - {{ unified_job_namespace }}",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Job Wait Duration (Histogram)",
+      "title": "Pod Phases (Phase per Namespace)",
       "type": "timeseries"
     },
     {
@@ -4294,6 +4362,6 @@
   "timezone": "browser",
   "title": "knavigator - Performance",
   "uid": "knavigator-performance",
-  "version": 7,
+  "version": 8,
   "weekStart": ""
 }
