@@ -5,11 +5,11 @@
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/mytests/templates/nodes/nodes-cleanup.yaml
 ```
 ```bash
-  kubectl delete jobs.batch.volcano.sh --all
   kubectl delete queue big-queue
   kubectl delete queue queue-a
   kubectl delete queue queue-b
   kubectl delete queue queue-c
+  kubectl delete jobs.batch.volcano.sh --all
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/mytests/templates/nodes/nodes-cleanup.yaml
   
 ```
