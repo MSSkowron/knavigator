@@ -786,7 +786,7 @@
       "id": 304,
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
       "title": "Job Event Timestamps (First/Last per Namespace)",
-      "description": "Timestamp of the first/last job start and completion (Succeeded or Failed) within the selected time range, grouped by namespace. Uses unified exporter gauge metrics.",
+      "description": "Timestamp of the first/last job start and completion (Succeeded or Failed) within the selected time range, grouped by namespace. Uses unified exporter gauge metrics. Timestamps converted and formatted.",
       "type": "table",
       "datasource": {
         "type": "prometheus",
@@ -842,7 +842,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "min(unified_job_completion_timestamp_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "expr": "min(unified_job_completion_timestamp_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "First Completion",
@@ -850,7 +850,7 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "max(unified_job_completion_timestamp_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace)",
+          "expr": "max(unified_job_completion_timestamp_seconds{unified_job_namespace=~\"$namespace\", unified_job_status=~\"Succeeded|Failed\"}) by (unified_job_namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "Last Completion",
@@ -858,7 +858,7 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "min(unified_job_start_timestamp_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace)",
+          "expr": "min(unified_job_start_timestamp_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "First Start",
@@ -866,7 +866,7 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "max(unified_job_start_timestamp_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace)",
+          "expr": "max(unified_job_start_timestamp_seconds{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "Last Start",
@@ -874,17 +874,15 @@
         }
       ],
       "transformations": [
-        { "id": "merge", "options": {} },
+        {
+          "id": "merge",
+          "options": {}
+        },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Time": true,
-              "Value #A": false,
-              "Value #B": false,
-              "Value #C": false,
-              "Value #D": false,
-              "unified_job_namespace": false
+              "Time": true
             },
             "indexByName": {
               "unified_job_namespace": 0,
@@ -894,12 +892,24 @@
               "Value #B": 4
             },
             "renameByName": {
-              "Value #A": "First Completion Time",
-              "Value #B": "Last Completion Time",
+              "unified_job_namespace": "Namespace",
               "Value #C": "First Start Time",
               "Value #D": "Last Start Time",
-              "unified_job_namespace": "Namespace"
+              "Value #A": "First Completion Time",
+              "Value #B": "Last Completion Time"
             }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "fields": {},
+            "conversions": [
+              { "targetField": "First Start Time",      "destinationType": "time", "dateFormat": "Epoch (ms)" },
+              { "targetField": "Last Start Time",       "destinationType": "time", "dateFormat": "Epoch (ms)" },
+              { "targetField": "First Completion Time", "destinationType": "time", "dateFormat": "Epoch (ms)" },
+              { "targetField": "Last Completion Time",  "destinationType": "time", "dateFormat": "Epoch (ms)" }
+            ]
           }
         }
       ]
@@ -913,7 +923,7 @@
         "y": 27
       },
       "title": "Pod Event Timestamps (First/Last per Namespace)",
-      "description": "Timestamp of the first/last pod start and completion (based on KSM metrics like kube_pod_start_time and kube_pod_completion_time) within the selected time range, grouped by namespace.",
+      "description": "Timestamp of the first/last pod start and completion (based on KSM metrics) within the selected time range, grouped by namespace. Timestamps converted and formatted.",
       "type": "table",
       "datasource": {
         "type": "prometheus",
@@ -975,7 +985,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "min(kube_pod_start_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace)",
+          "expr": "min(kube_pod_start_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "First Pod Start",
@@ -983,7 +993,7 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "max(kube_pod_start_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace)",
+          "expr": "max(kube_pod_start_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "Last Pod Start",
@@ -991,8 +1001,7 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-
-          "expr": "min(kube_pod_completion_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace)",
+          "expr": "min(kube_pod_completion_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "First Pod Completion",
@@ -1000,8 +1009,7 @@
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-
-          "expr": "max(kube_pod_completion_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace)",
+          "expr": "max(kube_pod_completion_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
           "legendFormat": "Last Pod Completion",
@@ -1009,7 +1017,10 @@
         }
       ],
       "transformations": [
-        { "id": "merge", "options": {} },
+        {
+          "id": "merge",
+          "options": {}
+        },
         {
           "id": "organize",
           "options": {
@@ -1035,6 +1046,18 @@
               "Value #D": "Last Pod Completion Time",
               "namespace": "Namespace"
             }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "fields": {},
+            "conversions": [
+              { "targetField": "First Pod Start Time",      "destinationType": "time", "dateFormat": "Epoch (ms)" },
+              { "targetField": "Last Pod Start Time",       "destinationType": "time", "dateFormat": "Epoch (ms)" },
+              { "targetField": "First Pod Completion Time", "destinationType": "time", "dateFormat": "Epoch (ms)" },
+              { "targetField": "Last Pod Completion Time",  "destinationType": "time", "dateFormat": "Epoch (ms)" }
+            ]
           }
         }
       ]
