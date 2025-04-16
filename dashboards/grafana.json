@@ -1283,8 +1283,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "knavigator - Kubernetes Pods Scheduling metrics",
-  "uid": "ee3uye536gbggd",
+  "title": "knavigator - Grafana",
+  "uid": "knavigator-grafana",
   "version": 1,
   "weekStart": ""
 }
