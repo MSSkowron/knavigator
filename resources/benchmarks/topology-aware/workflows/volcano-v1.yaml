@@ -593,9 +593,7 @@ tasks:
       params:
         namespace: default
         replicas: 3
-        minAvailable: 3
         queue: default
-        image: ubuntu
         cpu: 16
         memory: 32Gi
         gpu: 8
@@ -636,9 +634,7 @@ tasks:
       params:
         namespace: default
         replicas: 3
-        minAvailable: 3
         queue: default
-        image: ubuntu
         cpu: 16
         memory: 32Gi
         gpu: 8

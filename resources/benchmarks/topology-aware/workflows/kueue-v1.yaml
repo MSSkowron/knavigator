@@ -543,7 +543,6 @@ tasks:
         queueName: "topology-local-queue"
         replicas: 3
         completionMode: Indexed
-        image: ubuntu
         cpu: 16
         memory: 32Gi
         gpu: 8
@@ -585,7 +584,6 @@ tasks:
         queueName: "topology-local-queue"
         replicas: 3
         completionMode: Indexed
-        image: ubuntu
         cpu: 16
         memory: 32Gi
         gpu: 8

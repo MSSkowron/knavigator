@@ -143,10 +143,8 @@ tasks:
       count: 50
       params:
         namespace: tenant-a
-        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -163,10 +161,8 @@ tasks:
       count: 50
       params:
         namespace: tenant-b
-        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -183,10 +179,8 @@ tasks:
       count: 50
       params:
         namespace: tenant-c
-        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -204,10 +198,8 @@ tasks:
       count: 30
       params:
         namespace: tenant-a
-        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -224,10 +216,8 @@ tasks:
       count: 30
       params:
         namespace: tenant-b
-        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -244,10 +234,8 @@ tasks:
       count: 30
       params:
         namespace: tenant-c
-        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -265,10 +253,8 @@ tasks:
       count: 10
       params:
         namespace: tenant-a
-        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -285,10 +271,8 @@ tasks:
       count: 10
       params:
         namespace: tenant-b
-        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"
@@ -305,10 +289,8 @@ tasks:
       count: 10
       params:
         namespace: tenant-c
-        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
-        image: ubuntu
         cpu: 1000m
         memory: 1000Mi
         ttl: "5m"

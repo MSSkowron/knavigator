@@ -488,7 +488,6 @@ tasks:
         queueName: "topology-local-queue"
         replicas: 3
         completionMode: Indexed
-        image: ubuntu
         cpu: 2
         memory: 2Gi
         gpu: 6 # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
@@ -535,7 +534,6 @@ tasks:
         queueName: "topology-local-queue"
         replicas: 3
         completionMode: Indexed
-        image: ubuntu
         cpu: 2
         memory: 2Gi
         gpu: 6 # Same resources as before, but now should be distributed

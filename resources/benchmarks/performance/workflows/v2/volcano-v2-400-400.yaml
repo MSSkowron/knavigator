@@ -77,10 +77,8 @@ tasks:
       count: 1
       params:
         namespace: default
-        minAvailable: 400
         replicas: 400
         queue: default
-        image: ubuntu
         cpu: 16000m # 16 cores (12.5% node CPU)
         memory: 256Gi # 256GB (25% node)
         gpu: 4 # 4 GPU (50% node GPU)

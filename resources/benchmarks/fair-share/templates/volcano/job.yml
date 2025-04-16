@@ -32,7 +32,7 @@ spec:
       spec:
         containers:
         - name: job
-          image: {{.image}}
+          image: ubuntu
           imagePullPolicy: IfNotPresent
           resources:
             limits:

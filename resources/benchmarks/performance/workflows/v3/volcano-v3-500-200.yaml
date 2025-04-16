@@ -95,10 +95,8 @@ tasks:
       count: 200
       params:
         namespace: default
-        minAvailable: 1
         replicas: 1
         queue: default
-        image: ubuntu
         cpu: 16000m # 16 cores (12.5% of node)
         memory: 96Gi # 96GB (9.4% of node)
         gpu: 8 # 8 GPUs (100% of node)
@@ -122,10 +120,8 @@ tasks:
       count: 200
       params:
         namespace: default
-        minAvailable: 1
         replicas: 1
         queue: default
-        image: ubuntu
         cpu: 8000m # 8 cores (6.25% of node)
         memory: 32Gi # 32GB (3.1% of node)
         gpu: 2 # 2 GPUs (25% of node)
@@ -149,10 +145,8 @@ tasks:
       count: 200
       params:
         namespace: default
-        minAvailable: 1
         replicas: 1
         queue: default
-        image: ubuntu
         cpu: 32000m # 32 cores (25% of node)
         memory: 128Gi # 128GB (12.5% of node)
         gpu: 0 # No GPUs

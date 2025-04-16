@@ -174,7 +174,6 @@ tasks:
         replicas: 1
         completionMode: NonIndexed
         queueName: team-queue
-        image: ubuntu
         cpu: 16000m # 16 rdzeni (12.5% węzła CPU)
         memory: 256Gi # 256GB (25% węzła)
         gpu: 4 # 4 GPU (50% węzła GPU)

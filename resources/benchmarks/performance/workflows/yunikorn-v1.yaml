@@ -82,10 +82,7 @@ tasks:
       params:
         namespace: default
         replicas: 1
-        minMember: 1
-        applicationId: "perf-v1"
         queue: "root.perf-benchmark"
-        image: ubuntu
         cpu: 16000m # 16 cores (12.5% of node)
         memory: 256Gi # 256GB (25% of node)
         gpu: 4 # 4 GPUs (50% of node)

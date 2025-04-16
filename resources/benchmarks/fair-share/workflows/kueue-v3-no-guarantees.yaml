@@ -520,7 +520,6 @@ tasks:
         queueName: tenant-a-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 4000m
         memory: 4000Mi
         ttl: "5m"
@@ -540,7 +539,6 @@ tasks:
         queueName: tenant-b-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 1000m
         memory: 16000Mi
         ttl: "5m"
@@ -560,7 +558,6 @@ tasks:
         queueName: tenant-c-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 1000m
         memory: 4000Mi
         gpu: 1
@@ -582,7 +579,6 @@ tasks:
         queueName: tenant-a-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 4000m
         memory: 4000Mi
         ttl: "5m"
@@ -602,7 +598,6 @@ tasks:
         queueName: tenant-b-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 1000m
         memory: 16000Mi
         ttl: "5m"
@@ -622,7 +617,6 @@ tasks:
         queueName: tenant-c-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 1000m
         memory: 4000Mi
         gpu: 1
@@ -644,7 +638,6 @@ tasks:
         queueName: tenant-a-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 4000m
         memory: 4000Mi
         ttl: "5m"
@@ -664,7 +657,6 @@ tasks:
         queueName: tenant-b-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 1000m
         memory: 16000Mi
         ttl: "5m"
@@ -684,7 +676,6 @@ tasks:
         queueName: tenant-c-queue
         replicas: 1
         completionMode: NonIndexed
-        image: ubuntu
         cpu: 1000m
         memory: 4000Mi
         gpu: 1

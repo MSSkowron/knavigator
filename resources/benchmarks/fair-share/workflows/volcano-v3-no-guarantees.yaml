@@ -192,10 +192,8 @@ tasks:
       count: 100
       params:
         namespace: tenant-a
-        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
-        image: ubuntu
         cpu: 4000m # 4 rdzenie CPU
         memory: 4000Mi # 4GB RAM
         ttl: "5m"
@@ -212,10 +210,8 @@ tasks:
       count: 100
       params:
         namespace: tenant-b
-        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
-        image: ubuntu
         cpu: 1000m # 1 rdzeń CPU
         memory: 16000Mi # 16GB RAM
         ttl: "5m"
@@ -232,10 +228,8 @@ tasks:
       count: 50
       params:
         namespace: tenant-c
-        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
-        image: ubuntu
         cpu: 1000m # 1 rdzeń CPU
         memory: 4000Mi # 4GB RAM
         gpu: 1 # 1 GPU
@@ -254,10 +248,8 @@ tasks:
       count: 100
       params:
         namespace: tenant-a
-        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
-        image: ubuntu
         cpu: 4000m # 4 rdzenie CPU
         memory: 4000Mi # 4GB RAM
         ttl: "5m"
@@ -274,10 +266,8 @@ tasks:
       count: 100
       params:
         namespace: tenant-b
-        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
-        image: ubuntu
         cpu: 1000m # 1 rdzeń CPU
         memory: 16000Mi # 16GB RAM
         ttl: "5m"
@@ -294,10 +284,8 @@ tasks:
       count: 50
       params:
         namespace: tenant-c
-        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
-        image: ubuntu
         cpu: 1000m # 1 rdzeń CPU
         memory: 4000Mi # 4GB RAM
         gpu: 1 # 1 GPU
@@ -316,10 +304,8 @@ tasks:
       count: 100
       params:
         namespace: tenant-a
-        minAvailable: 1
         replicas: 1
         queue: tenant-a-queue
-        image: ubuntu
         cpu: 4000m # 4 rdzenie CPU
         memory: 4000Mi # 4GB RAM
         ttl: "5m"
@@ -336,10 +322,8 @@ tasks:
       count: 100
       params:
         namespace: tenant-b
-        minAvailable: 1
         replicas: 1
         queue: tenant-b-queue
-        image: ubuntu
         cpu: 1000m # 1 rdzeń CPU
         memory: 16000Mi # 16GB RAM
         ttl: "5m"
@@ -356,10 +340,8 @@ tasks:
       count: 50
       params:
         namespace: tenant-c
-        minAvailable: 1
         replicas: 1
         queue: tenant-c-queue
-        image: ubuntu
         cpu: 1000m # 1 rdzeń CPU
         memory: 4000Mi # 4GB RAM
         gpu: 1 # 1 GPU
