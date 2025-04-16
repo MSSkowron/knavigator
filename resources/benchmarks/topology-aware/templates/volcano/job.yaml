@@ -4,7 +4,7 @@ metadata:
   name: "{{._NAME_}}"
   namespace: {{.namespace}}
 spec:
-  minAvailable: {{.minAvailable}}
+  minAvailable: 1
   schedulerName: volcano
   policies:
   - event: PodEvicted
@@ -26,11 +26,11 @@ spec:
     template:
       metadata:
         name: test
-        labels:
-          app: {{._NAME_}}
         annotations:
-          pod-complete.stage.kwok.x-k8s.io/delay: {{.ttl}}
-          pod-complete.stage.kwok.x-k8s.io/jitter-delay: {{.ttl}}
+          {{- if .ttl }}
+          pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
+          pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
+          {{- end }}
       spec:
         containers:
         - name: job

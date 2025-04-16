@@ -4,7 +4,7 @@ metadata:
   name: "{{._NAME_}}"
   namespace: "{{.namespace}}"
 spec:
-  minAvailable: {{.minAvailable}}
+  minAvailable: 1
   schedulerName: volcano
   {{- if .priorityClassName }}
   priorityClassName: "{{ .priorityClassName }}"
@@ -34,13 +34,6 @@ spec:
         - name: job
           image: {{.image}}
           imagePullPolicy: IfNotPresent
-          {{- if .ttl }}
-          command: ["sleep"]
-          args: ["{{.ttl}}"]
-          {{- else }}
-          command: ["sleep"]
-          args: ["1s"]
-          {{- end }}
           resources:
             limits:
               cpu: {{.cpu}}
