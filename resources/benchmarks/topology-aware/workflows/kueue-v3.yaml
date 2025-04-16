@@ -53,8 +53,8 @@ tasks:
             nvidia.com/mlnxnics: "48"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 24
             nvidia.com/mlnxnics: 128
@@ -72,8 +72,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -93,8 +93,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -112,8 +112,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -133,8 +133,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -152,8 +152,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -171,8 +171,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -192,8 +192,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -211,8 +211,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -230,8 +230,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -251,8 +251,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -270,8 +270,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -289,8 +289,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: "128100m" # 128 CPU + 100m
+            memory: "1048626Mi" # 1Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -418,11 +418,19 @@ tasks:
     params:
       template: "resources/benchmarks/topology-aware/templates/kueue/local-queue.yaml"
 
-  - id: register-job
+  - id: register-job-one
     type: RegisterObj
     params:
       template: "resources/benchmarks/topology-aware/templates/kueue/job.yaml"
-      nameFormat: "tas-job{{._ENUM_}}"
+      nameFormat: "tas-job-one{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-two
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/kueue/job.yaml"
+      nameFormat: "tas-job-two{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
 
@@ -461,8 +469,8 @@ tasks:
       params:
         name: "topology-cluster-queue"
         flavor: "topology-resource-flavor"
-        cpu: 1792 # 256 + (12 × 128) = 1792
-        memory: 14Ti # 2Ti + (12 × 1Ti) = 14Ti
+        cpu: 1792000m # 256 + (12 × 128) = 1792
+        memory: 14680064Mi # 2Ti + (12 × 1Ti) = 14Ti
         pods: 1540 # 220 + 12 × 110 = 1540
         gpu: 160 # 24 + (12 × 8) = 120
 
@@ -481,15 +489,15 @@ tasks:
   - id: job-supernode
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register-job-one
       count: 1
       params:
         namespace: default
         queueName: "topology-local-queue"
         replicas: 3
         completionMode: Indexed
-        cpu: 2
-        memory: 2Gi
+        cpu: 2000m
+        memory: 2048Mi
         gpu: 6 # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
         ttl: "2m"
         topologyType: "required"
@@ -506,12 +514,6 @@ tasks:
         kubernetes.io/hostname: n1 # Supernode
       timeout: 30s
 
-  # Clean up after first test
-  - id: cleanup-job-supernode
-    type: DeleteObj
-    params:
-      refTaskId: job-supernode
-
   # Phase 2: Mark supernode as unschedulable
   - id: disable-supernode
     type: UpdateNodes
@@ -527,15 +529,15 @@ tasks:
   - id: job-multinode
     type: SubmitObj
     params:
-      refTaskId: register-job
+      refTaskId: register-job-two
       count: 1
       params:
         namespace: default
         queueName: "topology-local-queue"
         replicas: 3
         completionMode: Indexed
-        cpu: 2
-        memory: 2Gi
+        cpu: 2000m
+        memory: 2048Mi
         gpu: 6 # Same resources as before, but now should be distributed
         ttl: "2m"
         topologyType: "preferred"
@@ -551,9 +553,3 @@ tasks:
       nodeLabels:
         network.topology.kubernetes.io/block: sw115 # All pods should be in block sw115
       timeout: 30s
-
-  # Cleanup
-  - id: cleanup-job-multinode
-    type: DeleteObj
-    params:
-      refTaskId: job-multinode

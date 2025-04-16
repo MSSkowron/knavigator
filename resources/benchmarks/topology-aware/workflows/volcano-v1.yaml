@@ -70,8 +70,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -89,8 +89,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -108,8 +108,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -127,8 +127,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -147,8 +147,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -166,8 +166,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -186,8 +186,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -206,8 +206,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -225,8 +225,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -244,8 +244,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -263,8 +263,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -282,8 +282,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -301,8 +301,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -320,8 +320,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -339,8 +339,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -358,8 +358,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 256
-            memory: "2Ti"
+            cpu: "256100m" # 256CPU + 100m
+            memory: "2097202Mi" # 2Ti + 50Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
@@ -594,8 +594,8 @@ tasks:
         namespace: default
         replicas: 3
         queue: default
-        cpu: 16
-        memory: 32Gi
+        cpu: 16000m
+        memory: 32768Mi
         gpu: 8
         ttl: "2m"
         networkTopology: true
@@ -613,12 +613,6 @@ tasks:
         ta-optimal: "true"
       timeout: 30s
 
-  # Cleanup
-  - id: cleanup-job-hard
-    type: DeleteObj
-    params:
-      refTaskId: job-hard
-
   # Krótkie opóźnienie po 1 fazie
   - id: job-delay
     type: Sleep
@@ -635,8 +629,8 @@ tasks:
         namespace: default
         replicas: 3
         queue: default
-        cpu: 16
-        memory: 32Gi
+        cpu: 16000m
+        memory: 32768Mi
         gpu: 8
         ttl: "2m"
         networkTopology: true
