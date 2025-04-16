@@ -30,11 +30,11 @@ tasks:
   - id: register-cluster-queue
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/kueue/cluster-big-queue.yaml"
+      template: "resources/mytests/templates/kueue/cluster-queue.yaml"
   - id: register-local-queue
     type: RegisterObj
     params:
-      template: "resources/mytests/templates/kueue/local-big-queue.yaml"
+      template: "resources/mytests/templates/kueue/local-queue.yaml"
   - id: register-resource-flavor
     type: RegisterObj
     params:
@@ -51,17 +51,17 @@ tasks:
 #    type: SubmitObj
 #    params:
 #      refTaskId: register-priority-high
-#      canExist: false
+#      canExist: true
 #  - id: create-priority-medium
 #    type: SubmitObj
 #    params:
 #      refTaskId: register-priority-medium
-#      canExist: false
+#      canExist: true
 #  - id: create-priority-low
 #    type: SubmitObj
 #    params:
 #      refTaskId: register-priority-low
-#      canExist: false
+#      canExist: true
   - id: create-resource-flavor
     type: SubmitObj
     params:
@@ -69,25 +69,63 @@ tasks:
       canExist: true
       params:
         name: default-flavor
-  - id: create-cluster-queue
+  - id: create-cluster-queue-a
     type: SubmitObj
     params:
       refTaskId: register-cluster-queue
       canExist: true
       params:
-        name: default-cluster-queue
+        name: default-cluster-queue-a
         flavor: default-flavor
-        cpu: 1000
-        memory: 1000Gi
-  - id: create-local-queue
+        cpu: 600
+        memory: 600Gi
+  - id: create-cluster-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: default-cluster-queue-b
+        flavor: default-flavor
+        cpu: 300
+        memory: 300Gi
+  - id: create-cluster-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: default-cluster-queue-c
+        flavor: default-flavor
+        cpu: 100
+        memory: 100Gi
+  - id: create-local-queue-a
     type: SubmitObj
     params:
       refTaskId: register-local-queue
       canExist: true
       params:
-        name: default-local-queue
+        name: default-local-queue-a
         namespace: default
-        clusterQueue: default-cluster-queue
+        clusterQueue: default-cluster-queue-a
+  - id: create-local-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: default-local-queue-b
+        namespace: default
+        clusterQueue: default-cluster-queue-b
+  - id: create-local-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: default-local-queue-c
+        namespace: default
+        clusterQueue: default-cluster-queue-c
   - id: jobA1
     type: SubmitObj
     params:
@@ -95,12 +133,13 @@ tasks:
       count: 20 #(2 per node, 10 nodes)
       params:
         jobName: job-a
-        queueName: default-local-queue
+        queueName: default-local-queue-a
         namespace: default
         parallelism: 1
         completions: 1
+        backoffLimit: 0
         completionMode: Indexed
-#        priority: high-priority
+        priority: high-priority
         image: ubuntu
         cpu: 60
         memory: 60Gi
@@ -112,12 +151,13 @@ tasks:
       count: 80 #(8 per node, 10 nodes)
       params:
         jobName: job-b
-        queueName: default-local-queue
+        queueName: default-local-queue-b
         namespace: default
         parallelism: 1
         completions: 1
+        backoffLimit: 0
         completionMode: Indexed
-#        priority: medium-priority
+        priority: medium-priority
         image: ubuntu
         cpu: 30
         memory: 30Gi
@@ -129,12 +169,13 @@ tasks:
       count: 240 #(24 per node, 10 nodes)
       params:
         jobName: job-c
-        queueName: default-local-queue
+        queueName: default-local-queue-c
         namespace: default
         parallelism: 1
         completions: 1
+        backoffLimit: 0
         completionMode: Indexed
-#        priority: low-priority
+        priority: low-priority
         image: ubuntu
         cpu: 10
         memory: 10Gi
