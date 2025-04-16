@@ -48,8 +48,8 @@ tasks:
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
           resources:
-            cpu: 128
-            memory: "1Ti"
+            cpu: 128100m
+            memory: 1048626Mi
             pods: 110
             nvidia.com/gpu: 8
             nvidia.com/mlnxnics: 16
