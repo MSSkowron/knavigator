@@ -15,4 +15,4 @@ spec:
   endpoints:
     - port: http-metrics
       path: /metrics
-      interval: 15s # Może być dłuższy, np. 30s
+      interval: 10s # Może być dłuższy, np. 30s
