@@ -38,8 +38,8 @@ readonly KIND_CLUSTER_NAME="kind" # Define cluster name once
 
 # Default target allocatable resources for the Kind node.
 # These values might be adjusted downwards if the host doesn't have enough capacity.
-readonly TARGET_CPU="12"
-readonly TARGET_MEMORY_GIB="32"
+readonly TARGET_CPU="2"
+readonly TARGET_MEMORY_GIB="4"
 # --- End Global Configuration ---
 
 get_host_cpu_count() {

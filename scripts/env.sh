@@ -513,6 +513,7 @@ deploy_yunikorn() {
     helm upgrade --install yunikorn yunikorn/yunikorn -n yunikorn --create-namespace \
         --version="$YUNIKORN_VERSION" \
         --wait \
+        --timeout 10m \
         --set embedAdmissionController=true \
         --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
 
