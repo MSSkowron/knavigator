@@ -45,12 +45,6 @@ tasks:
                 - name: proportion
                 - name: nodeorder
                 - name: binpack
-                  arguments:
-                    binpack.weight: 10
-                    binpack.resources: nvidia.com/gpu
-                    binpack.cpu: 1
-                    binpack.memory: 1
-                    binpack.resources.nvidia.com/gpu: 2
       deploymentRestarts:
         - namespace: volcano-system
           name: volcano-scheduler

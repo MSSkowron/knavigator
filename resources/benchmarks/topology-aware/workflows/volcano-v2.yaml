@@ -43,12 +43,6 @@ tasks:
                 - name: proportion
                 - name: nodeorder
                 - name: binpack
-                  arguments:
-                    binpack.weight: 10
-                    binpack.resources: nvidia.com/gpu
-                    binpack.cpu: 1
-                    binpack.memory: 1
-                    binpack.resources.nvidia.com/gpu: 2
       deploymentRestarts:
         - namespace: volcano-system
           name: volcano-scheduler
@@ -705,7 +699,7 @@ tasks:
         cpu: 16000m
         memory: 32768Mi
         gpu: 8
-        ttl: "2m"
+        ttl: "1m"
         networkTopology: true
         topologyMode: hard
         highestTierAllowed: 1 # Block level
@@ -721,6 +715,12 @@ tasks:
         ta-optimal: "true"
       timeout: 30s
 
+  # Krótkie opóźnienie po 1 fazie
+  - id: job-delay
+    type: Sleep
+    params:
+      timeout: 90s
+
   # Submit a job with network topology constraints (soft mode)
   - id: job-soft
     type: SubmitObj
@@ -734,7 +734,7 @@ tasks:
         cpu: 16000m
         memory: 32768Mi
         gpu: 8
-        ttl: "2m"
+        ttl: "1m"
         networkTopology: true
         topologyMode: soft
         highestTierAllowed: 1 # Block level

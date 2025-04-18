@@ -1,0 +1,1796 @@
+name: volcano-topology-aware-benchmark-v4
+description: |
+  Test Volcano's Network Topology Aware Scheduling capabilities under scale and fragmentation.
+  Verifies scheduling efficiency for mixed workloads with different topology requirements
+  on a 32-node cluster using Volcano.
+
+  Topology: 32 nodes, 1 DC (sw-dc1), 2 Spines (sw-s1, sw-s2), 8 Blocks (sw-b11..sw-b24), 4 nodes/block.
+  HyperNode Tiers: Tier 1=Node, Tier 2=Block, Tier 3=Spine, Tier 4=Datacenter.
+  Phase 1: Create ~50% GPU resource fragmentation using 20 background jobs (8 medium, 12 small-multireplica).
+  Phase 2: Submit a large job (Job A, 8 pods, 4 GPU/pod) requiring spine-level co-location (hard, tier 3).
+  Phase 3: Submit a smaller job (Job B, 4 pods, 1 GPU/pod) preferring block-level co-location (soft, tier 2).
+
+  This scenario aims to highlight differences in scheduling latency and quality between schedulers
+  under realistic load and fragmentation, specifically testing topology-aware features.
+
+  IMPORTANT: Before running this benchmark, make sure to deploy Volcano with
+  Network Topology Aware Scheduling enabled, e.g., using the preview version:
+  helm upgrade --install volcano volcano-sh/volcano -n volcano-system --create-namespace --version="1.11.0-network-topology-preview.0"
+tasks:
+  # Configure Volcano
+  - id: configure-volcano
+    type: Configure
+    params:
+      configmaps:
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
+          op: create
+          data:
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+              - plugins:
+                - name: priority
+              - plugins:
+                - name: drf
+                - name: predicates
+                - name: proportion
+                - name: nodeorder
+                - name: binpack
+      deploymentRestarts:
+        - namespace: volcano-system
+          name: volcano-scheduler
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # 1. Configure 32 nodes with network topology
+  # CPU: 32 węzły * 128 CPU/węzeł = 4096 CPU (4096000m)
+  # Pamięć: 32 węzły * 1 TiB/węzeł = 32 TiB (33554432 MiB)
+  # GPU: 32 węzły * 8 GPU/węzeł = 256 GPU
+
+  # 2. Zasoby Żądane przez Zadania Tła (Background Jobs - 20 zadań):
+  # 8 zadań typu "Medium":
+  # CPU: 8 zadań * 1 pod/zadanie * 32 CPU/pod = 256 CPU
+  # Pamięć: 8 zadań * 1 pod/zadanie * 128 GiB/pod = 1024 GiB = 1 TiB
+  # GPU: 8 zadań * 1 pod/zadanie * 4 GPU/pod = 32 GPU
+  # 12 zadań typu "Small-MultiReplica":
+  # CPU: 12 zadań * 4 pody/zadanie * 8 CPU/pod = 384 CPU
+  # Pamięć: 12 zadań * 4 pody/zadanie * 32 GiB/pod = 1536 GiB = 1.5 TiB
+  # GPU: 12 zadań * 4 pody/zadanie * 2 GPU/pod = 96 GPU
+  # Łączne zasoby zadań tła:
+  # CPU: 256 + 384 = 640 CPU
+  # Pamięć: 1 TiB + 1.5 TiB = 2.5 TiB
+  # GPU: 32 + 96 = 128 GPU
+
+  # 3. Procent Klastra Zajęty przez Zadania Tła:
+  # CPU: (640 / 4096) * 100% = 15.625%
+  # Pamięć: (2.5 TiB / 32 TiB) * 100% = 7.8125%
+  # GPU: (128 / 256) * 100% = 50%
+
+  # Zgodnie z założeniami, zadania tła powinny zająć dokładnie 50% zasobów GPU klastra oraz mniejszy procent CPU i pamięci, tworząc zaplanowaną fragmentację.
+
+  # 4. Zasoby Pozostałe w Klastrze (po uruchomieniu zadań tła):
+  # CPU: 4096 - 640 = 3456 CPU
+  # Pamięć: 32 TiB - 2.5 TiB = 29.5 TiB
+  # GPU: 256 - 128 = 128 GPU
+
+  # 5. Zasoby Wymagane przez Zadania TAS:
+
+  # Zadanie A (Large, Spine Required):
+  # CPU: 8 podów * 32 CPU/pod = 256 CPU
+  # Pamięć: 8 podów * 128 GiB/pod = 1024 GiB = 1 TiB
+  # GPU: 8 podów * 4 GPU/pod = 32 GPU
+
+  # Zadanie B (Small, Block Preferred):
+  # CPU: 4 pody * 8 CPU/pod = 32 CPU
+  # Pamięć: 4 pody * 32 GiB/pod = 128 GiB
+  # GPU: 4 pody * 1 GPU/pod = 4 GPU
+
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        # --- Spine s1 ---
+        # Block sw-b11 (Nodes n111-n114)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n111
+          labels:
+            network.topology.kubernetes.io/datacenter: sw-dc1
+            network.topology.kubernetes.io/spine: sw-s1
+            network.topology.kubernetes.io/block: sw-b11
+            nvidia.com/gpu.count: "8"
+            nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
+            nvidia.com/mlnxnics: "16"
+            type: kwok # Use label for ResourceFlavor matching
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n112
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b11,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n113
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b11,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n114
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b11,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        # Block sw-b12 (Nodes n121-n124)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n121
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b12,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n122
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b12,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n123
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b12,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n124
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b12,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        # Block sw-b13 (Nodes n131-n134)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n131
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b13,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n132
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b13,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n133
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b13,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n134
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b13,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        # Block sw-b14 (Nodes n141-n144)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n141
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b14,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n142
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b14,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n143
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b14,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n144
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s1,
+              network.topology.kubernetes.io/block: sw-b14,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+
+        # --- Spine s2 ---
+        # Block sw-b21 (Nodes n211-n214)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n211
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b21,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n212
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b21,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n213
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b21,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n214
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b21,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        # Block sw-b22 (Nodes n221-n224)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n221
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b22,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n222
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b22,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n223
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b22,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n224
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b22,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        # Block sw-b23 (Nodes n231-n234)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n231
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b23,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n232
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b23,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n233
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b23,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n234
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b23,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        # Block sw-b24 (Nodes n241-n244)
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n241
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b24,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n242
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b24,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n243
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b24,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+        - type: hpc.gpu
+          count: 1
+          namePrefix: n244
+          labels:
+            {
+              network.topology.kubernetes.io/datacenter: sw-dc1,
+              network.topology.kubernetes.io/spine: sw-s2,
+              network.topology.kubernetes.io/block: sw-b24,
+              nvidia.com/gpu.count: "8",
+              nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB,
+              nvidia.com/mlnxnics: "16",
+            }
+          resources:
+            {
+              cpu: "128100m",
+              memory: "1048626Mi",
+              nvidia.com/gpu: 8,
+              pods: 110,
+              ephemeral-storage: "30Ti",
+            }
+      timeout: 15m
+
+  # Define HyperNodes for the network topology
+  - id: register-hypernode-template
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/hypernode.yaml"
+
+  # Register job template
+  - id: register-medium-background-job-template
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
+      nameFormat: "tas-job-medium{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-small-background-job-template
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
+      nameFormat: "tas-job-small{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-a-job-template
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
+      nameFormat: "tas-job-a{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  - id: register-b-job-template
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/job.yaml"
+      nameFormat: "tas-job-b{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
+
+  # 3. Create Volcano HyperNodes (4 Tiers)
+  # Tier 1: Nodes (n111-hn to n244-hn) - 32 tasks
+  - id: create-hn-node-n111
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n111-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n111
+  - id: create-hn-node-n112
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n112-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n112
+  - id: create-hn-node-n113
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n113-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n113
+  - id: create-hn-node-n114
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n114-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n114
+  - id: create-hn-node-n121
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n121-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n121
+  - id: create-hn-node-n122
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n122-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n122
+  - id: create-hn-node-n123
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n123-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n123
+  - id: create-hn-node-n124
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n124-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n124
+  - id: create-hn-node-n131
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n131-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n131
+  - id: create-hn-node-n132
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n132-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n132
+  - id: create-hn-node-n133
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n133-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n133
+  - id: create-hn-node-n134
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n134-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n134
+  - id: create-hn-node-n141
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n141-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n141
+  - id: create-hn-node-n142
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n142-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n142
+  - id: create-hn-node-n143
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n143-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n143
+  - id: create-hn-node-n144
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n144-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n144
+  - id: create-hn-node-n211
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n211-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n211
+  - id: create-hn-node-n212
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n212-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n212
+  - id: create-hn-node-n213
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n213-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n213
+  - id: create-hn-node-n214
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n214-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n214
+  - id: create-hn-node-n221
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n221-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n221
+  - id: create-hn-node-n222
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n222-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n222
+  - id: create-hn-node-n223
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n223-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n223
+  - id: create-hn-node-n224
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n224-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n224
+  - id: create-hn-node-n231
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n231-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n231
+  - id: create-hn-node-n232
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n232-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n232
+  - id: create-hn-node-n233
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n233-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n233
+  - id: create-hn-node-n234
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n234-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n234
+  - id: create-hn-node-n241
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n241-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n241
+  - id: create-hn-node-n242
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n242-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n242
+  - id: create-hn-node-n243
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n243-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n243
+  - id: create-hn-node-n244
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: n244-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n244
+
+  # Tier 2: Blocks (sw-b11 to sw-b24) - 8 tasks
+  - id: create-hn-block-sw-b11
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b11
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n111-hn
+          - type: HyperNode
+            exactMatch: n112-hn
+          - type: HyperNode
+            exactMatch: n113-hn
+          - type: HyperNode
+            exactMatch: n114-hn
+  - id: create-hn-block-sw-b12
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b12
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n121-hn
+          - type: HyperNode
+            exactMatch: n122-hn
+          - type: HyperNode
+            exactMatch: n123-hn
+          - type: HyperNode
+            exactMatch: n124-hn
+  - id: create-hn-block-sw-b13
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b13
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n131-hn
+          - type: HyperNode
+            exactMatch: n132-hn
+          - type: HyperNode
+            exactMatch: n133-hn
+          - type: HyperNode
+            exactMatch: n134-hn
+  - id: create-hn-block-sw-b14
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b14
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n141-hn
+          - type: HyperNode
+            exactMatch: n142-hn
+          - type: HyperNode
+            exactMatch: n143-hn
+          - type: HyperNode
+            exactMatch: n144-hn
+  - id: create-hn-block-sw-b21
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b21
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n211-hn
+          - type: HyperNode
+            exactMatch: n212-hn
+          - type: HyperNode
+            exactMatch: n213-hn
+          - type: HyperNode
+            exactMatch: n214-hn
+  - id: create-hn-block-sw-b22
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b22
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n221-hn
+          - type: HyperNode
+            exactMatch: n222-hn
+          - type: HyperNode
+            exactMatch: n223-hn
+          - type: HyperNode
+            exactMatch: n224-hn
+  - id: create-hn-block-sw-b23
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b23
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n231-hn
+          - type: HyperNode
+            exactMatch: n232-hn
+          - type: HyperNode
+            exactMatch: n233-hn
+          - type: HyperNode
+            exactMatch: n234-hn
+  - id: create-hn-block-sw-b24
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-b24
+        tier: 2
+        members:
+          - type: HyperNode
+            exactMatch: n241-hn
+          - type: HyperNode
+            exactMatch: n242-hn
+          - type: HyperNode
+            exactMatch: n243-hn
+          - type: HyperNode
+            exactMatch: n244-hn
+
+  # Tier 3: Spines (sw-s1, sw-s2) - 2 tasks
+  - id: create-hn-spine-sw-s1
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-s1
+        tier: 3
+        members:
+          - type: HyperNode
+            exactMatch: sw-b11
+          - type: HyperNode
+            exactMatch: sw-b12
+          - type: HyperNode
+            exactMatch: sw-b13
+          - type: HyperNode
+            exactMatch: sw-b14
+  - id: create-hn-spine-sw-s2
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-s2
+        tier: 3
+        members:
+          - type: HyperNode
+            exactMatch: sw-b21
+          - type: HyperNode
+            exactMatch: sw-b22
+          - type: HyperNode
+            exactMatch: sw-b23
+          - type: HyperNode
+            exactMatch: sw-b24
+
+  # Tier 4: Datacenter (sw-dc1) - 1 task
+  - id: create-hn-dc-sw-dc1
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode-template
+      canExist: true
+      params:
+        name: sw-dc1
+        tier: 4
+        members:
+          - type: HyperNode
+            exactMatch: sw-s1
+          - type: HyperNode
+            exactMatch: sw-s2
+
+  # --- Phase 1: Submit Background Fragmentation Jobs (Explicitly) ---
+
+  # Submit 8 Medium Jobs (1 replica, 4 GPU/pod)
+  - id: submit-bg-medium-1
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+  - id: submit-bg-medium-2
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+  - id: submit-bg-medium-3
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+  - id: submit-bg-medium-4
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+  - id: submit-bg-medium-5
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+  - id: submit-bg-medium-6
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+  - id: submit-bg-medium-7
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+  - id: submit-bg-medium-8
+    type: SubmitObj
+    params:
+      refTaskId: register-medium-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 1,
+          cpu: 32000m,
+          memory: 131072Mi,
+          gpu: 4,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 1,
+        }
+
+  # Submit 12 Small-MultiReplica Jobs (4 replicas, 2 GPU/pod)
+  - id: submit-bg-small-mr-1
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params: {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        } # Block preference
+  - id: submit-bg-small-mr-2
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-3
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-4
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-5
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-6
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-7
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-8
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-9
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-10
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-11
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+  - id: submit-bg-small-mr-12
+    type: SubmitObj
+    params:
+      refTaskId: register-small-background-job-template
+      count: 1
+      params:
+        {
+          namespace: default,
+          queue: default,
+          replicas: 4,
+          cpu: 8000m,
+          memory: 32768Mi,
+          gpu: 2,
+          ttl: "10m",
+          networkTopology: true,
+          topologyMode: soft,
+          highestTierAllowed: 2,
+        }
+
+  # --- Wait for Fragmentation Jobs to Start Running (Explicitly) ---
+  # Wait for Medium Jobs (1 pod each)
+  - id: wait-bg-medium-1
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-1, status: Running, timeout: 5m }
+  - id: wait-bg-medium-2
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-2, status: Running, timeout: 5m }
+  - id: wait-bg-medium-3
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-3, status: Running, timeout: 5m }
+  - id: wait-bg-medium-4
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-4, status: Running, timeout: 5m }
+  - id: wait-bg-medium-5
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-5, status: Running, timeout: 5m }
+  - id: wait-bg-medium-6
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-6, status: Running, timeout: 5m }
+  - id: wait-bg-medium-7
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-7, status: Running, timeout: 5m }
+  - id: wait-bg-medium-8
+    type: CheckPod
+    params: { refTaskId: submit-bg-medium-8, status: Running, timeout: 5m }
+
+  # Wait for Small-MultiReplica Jobs (4 pods each)
+  - id: wait-bg-small-mr-1
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-1, status: Running, timeout: 5m } # Assuming CheckPod waits for at least one pod
+  - id: wait-bg-small-mr-2
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-2, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-3
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-3, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-4
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-4, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-5
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-5, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-6
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-6, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-7
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-7, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-8
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-8, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-9
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-9, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-10
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-10, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-11
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-11, status: Running, timeout: 5m }
+  - id: wait-bg-small-mr-12
+    type: CheckPod
+    params: { refTaskId: submit-bg-small-mr-12, status: Running, timeout: 5m }
+
+  # --- Phase 2: Submit TAS Job A (Large, Spine Required) ---
+  - id: submit-tas-job-a
+    type: SubmitObj
+    params:
+      refTaskId: register-a-job-template
+      count: 8
+      params:
+        namespace: default
+        queue: default
+        replicas: 8
+        cpu: 32000m
+        memory: 131072Mi
+        gpu: 4
+        ttl: "2m"
+        networkTopology: true
+        topologyMode: hard
+        highestTierAllowed: 3
+
+  # --- Phase 3: Submit TAS Job B (Small, Block Preferred) ---
+  - id: submit-tas-job-b
+    type: SubmitObj
+    params:
+      refTaskId: register-b-job-template
+      count: 4
+      params:
+        namespace: default
+        queue: default
+        replicas: 4
+        cpu: 8000m
+        memory: 32768Mi
+        gpu: 1
+        ttl: "2m"
+        networkTopology: true
+        topologyMode: soft
+        highestTierAllowed: 2 # Block is Tier 2

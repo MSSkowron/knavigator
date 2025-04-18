@@ -652,7 +652,7 @@ tasks:
         cpu: 16000m
         memory: 32768Mi
         gpu: 8
-        ttl: "2m"
+        ttl: "1m"
         topologyType: "required"
         topologyLevel: "network.topology.kubernetes.io/block"
 
@@ -671,7 +671,7 @@ tasks:
   - id: job-delay
     type: Sleep
     params:
-      timeout: 5s
+      timeout: 90s
 
   # Uruchomienie zadania z topology-aware scheduling (preferred)
   - id: job-preferred
@@ -687,7 +687,7 @@ tasks:
         cpu: 16000m
         memory: 32768Mi
         gpu: 8
-        ttl: "2m"
+        ttl: "1m"
         topologyType: "preferred"
         topologyLevel: "network.topology.kubernetes.io/block"
 
