@@ -1,0 +1,451 @@
+name: kueue-fair-share-benchmark-v4-historical-priority
+description: |
+  Historical Priority Fair Share benchmark for Kueue.
+
+  Tests if historical under/over-usage influences the initial admission priority
+  when multiple tenants with different weights (3:2:1) compete for resources
+  after a period of unequal usage. Aims to emulate aspects of SLURM's fair share.
+
+  Scenario:
+  1. Configure a homogeneous cluster (100 CPU, 400 GiB RAM).
+  2. Configure Kueue with fairSharing enabled.
+  3. Create three tenants (A: weight 3, B: weight 2, C: weight 1) with NO nominal quotas.
+  4. Phase 1: Build historical usage contrast (A: High, B: Medium, C: None/Very Low).
+  5. Phase 2: Submit a large burst of jobs from ALL tenants simultaneously.
+  6. Observe: Does Tenant C get a higher initial admission rate than its 1/6 weight share?
+     Does the system eventually converge towards the 3:2:1 ratio?
+tasks:
+  # Configure Kueue
+  - id: configure-kueue
+    type: Configure
+    params:
+      configmaps:
+        - name: kueue-manager-config
+          namespace: kueue-system
+          op: create
+          data:
+            controller_manager_config.yaml: |
+              apiVersion: config.kueue.x-k8s.io/v1beta1
+              kind: Configuration
+              health:
+                healthProbeBindAddress: :8081
+              metrics:
+                bindAddress: :8080
+              webhook:
+                port: 9443
+              leaderElection:
+                leaderElect: true
+                resourceName: c1f6bfd2.kueue.x-k8s.io
+              controller:
+                groupKindConcurrency:
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
+                  ResourceFlavor.kueue.x-k8s.io: 1
+              clientConnection:
+                qps: 50
+                burst: 100
+              waitForPodsReady:
+                enable: true
+                timeout: 5m
+                blockAdmission: true
+                requeuingStrategy:
+                  timestamp: Eviction
+                  backoffLimitCount: null # null indicates infinite requeuing
+                  backoffBaseSeconds: 60
+                  backoffMaxSeconds: 3600
+              integrations:
+                frameworks:
+                - "batch/job"
+                - "kubeflow.org/mpijob"
+                - "ray.io/rayjob"
+                - "ray.io/raycluster"
+                - "jobset.x-k8s.io/jobset"
+                - "kubeflow.org/paddlejob"
+                - "kubeflow.org/pytorchjob"
+                - "kubeflow.org/tfjob"
+                - "kubeflow.org/xgboostjob"
+              fairSharing:
+               enable: true
+               preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
+      deploymentRestarts:
+        - namespace: kueue-system
+          name: kueue-controller-manager
+      timeout: 10m
+
+  - id: config-sleep
+    type: Sleep
+    params:
+      timeout: 5s
+
+  # Configure nodes (10 nodes, 10 CPU/40GB each = 100 CPU/400GB total)
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: cpu-node
+          count: 10
+          resources:
+            cpu: 10100m # ~10 CPU available per node
+            memory: "40050Mi" # ~40 GB available per node
+            pods: 110
+      timeout: 5m
+
+  # Create namespaces for the three tenants
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: tenant-a
+          op: create
+        - name: tenant-b
+          op: create
+        - name: tenant-c
+          op: create
+      timeout: 1m
+
+  # Register Kueue-specific resources
+  - id: register-cluster-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/cluster-queue.yaml"
+
+  - id: register-local-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/local-queue.yaml"
+
+  - id: register-resource-flavor
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/resource-flavor.yaml"
+
+  - id: register-job-phase1-tenant-a
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v4-p1-a-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase1-tenant-b
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v4-p1-b-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase1-tenant-c
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v4-p1-c-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase2-a
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v4-p2-a-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase2-b
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v4-p2-b-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  - id: register-job-phase2-c
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/fair-share/templates/kueue/job.yaml"
+      nameFormat: "fairshare-v4-p2-c-job{{._ENUM_}}"
+      podNameFormat: "{{._NAME_}}-[0-9]-.*"
+      podCount: "{{.replicas}}"
+
+  # Create resource flavor
+  - id: create-resource-flavor
+    type: SubmitObj
+    params:
+      refTaskId: register-resource-flavor
+      canExist: true
+      params:
+        name: "standard-flavor"
+        nodeLabels:
+          type: kwok
+
+  # Create a cohort and three cluster queues with equal weight
+  - id: create-cluster-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-a-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 3 # WEIGHT 3
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+            flavors:
+              - name: standard-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m # NO GUARANTEE
+                    borrowingLimit: 100000m # Allow up to cluster capacity
+                  - name: memory
+                    nominalQuota: 0Mi # NO GUARANTEE
+                    borrowingLimit: 400000Mi # Allow up to cluster capacity
+                  - name: pods
+                    nominalQuota: 0 # NO GUARANTEE
+                    borrowingLimit: 1100 # Allow up to cluster capacity
+
+  - id: create-cluster-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-b-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 2 # WEIGHT 2
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+            flavors:
+              - name: standard-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m # NO GUARANTEE
+                    borrowingLimit: 100000m # Allow up to cluster capacity
+                  - name: memory
+                    nominalQuota: 0Mi # NO GUARANTEE
+                    borrowingLimit: 400000Mi # Allow up to cluster capacity
+                  - name: pods
+                    nominalQuota: 0 # NO GUARANTEE
+                    borrowingLimit: 1100 # Allow up to cluster capacity
+
+  - id: create-cluster-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: tenant-c-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 1 # WEIGHT 1
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+            flavors:
+              - name: standard-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 0m # NO GUARANTEE
+                    borrowingLimit: 100000m # Allow up to cluster capacity
+                  - name: memory
+                    nominalQuota: 0Mi # NO GUARANTEE
+                    borrowingLimit: 400000Mi # Allow up to cluster capacity
+                  - name: pods
+                    nominalQuota: 0 # NO GUARANTEE
+                    borrowingLimit: 1100 # Allow up to cluster capacity
+
+  # !!! Create the DUMMY ClusterQueue to enable borrowing up to cluster capacity !!!
+  - id: create-dummy-cluster-queue
+    type: SubmitObj
+    params:
+      refTaskId: register-cluster-queue
+      canExist: true
+      params:
+        name: dummy-cq
+        cohort: fairshare-cohort
+        fairSharing:
+          weight: 0 # Weight irrelevant
+        flavorFungibility:
+          whenCanBorrow: Borrow
+          whenCanPreempt: Preempt
+        preemption:
+          borrowWithinCohort:
+            policy: Never
+          reclaimWithinCohort: Any
+          withinClusterQueue: Never
+        resourceGroups:
+          - coveredResources:
+              - cpu
+              - memory
+              - pods
+            flavors:
+              - name: standard-flavor
+                resources:
+                  - name: cpu
+                    nominalQuota: 100000m # <<< Full cluster capacity
+                    borrowingLimit: 0m
+                    lendingLimit: 100000m # Lend everything
+                  - name: memory
+                    nominalQuota: 400000Mi # <<< Full cluster capacity
+                    borrowingLimit: 0Mi
+                    lendingLimit: 400000Mi # Lend everything
+                  - name: pods
+                    nominalQuota: 1100 # <<< Full cluster capacity
+                    borrowingLimit: 0
+                    lendingLimit: 1100 # Lend everything
+
+  # Create local queues for all tenants
+  - id: create-local-queue-a
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-a-queue
+        namespace: tenant-a
+        clusterQueue: tenant-a-cq
+
+  - id: create-local-queue-b
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-b-queue
+        namespace: tenant-b
+        clusterQueue: tenant-b-cq
+
+  - id: create-local-queue-c
+    type: SubmitObj
+    params:
+      refTaskId: register-local-queue
+      canExist: true
+      params:
+        name: tenant-c-queue
+        namespace: tenant-c
+        clusterQueue: tenant-c-cq
+
+  # --- Phase 1: Build Usage History (e.g., 15 minutes) ---
+  # We use a Repeat block to simulate continuous load over the duration.
+  # Inside the loop, submit tasks sequentially for each tenant.
+  - id: phase1-history-building
+    type: Repeat
+    params:
+      duration: 5m
+      interval: 5s
+      tasks:
+        # Tenant A: High Load (submit frequently)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase1-tenant-a
+            count: 2
+            params:
+              namespace: tenant-a
+              queueName: tenant-a-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "30s"
+
+        # Tenant B: Medium Load (submit less frequently than A)
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase1-tenant-b
+            count: 1
+            params:
+              namespace: tenant-b
+              queueName: tenant-b-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "30s"
+
+        # Tenant C: No Load (do nothing in this step of the loop)
+
+  # --- Short pause to ensure Phase 1 load generation finishes ---
+  - id: stabilize-after-phase1
+    type: Sleep
+    params: { timeout: 60s }
+
+  # --- Phase 2: Saturation Burst and Initial Observation ---
+  # Submit a large batch of jobs SIMULTANEOUSLY for all tenants using Parallel task
+  - id: phase2-parallel-burst
+    type: Parallel
+    params:
+      tasks:
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase2-a
+            count: 50
+            params:
+              namespace: tenant-a
+              queueName: tenant-a-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m" # Longer TTL for observation
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase2-b
+            count: 50
+            params:
+              namespace: tenant-b
+              queueName: tenant-b-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m" # Longer TTL for observation
+
+        - type: SubmitObj
+          params:
+            refTaskId: register-job-phase2-c
+            count: 50
+            params:
+              namespace: tenant-c
+              queueName: tenant-c-queue
+              replicas: 1
+              completionMode: NonIndexed
+              cpu: 1000m
+              memory: 1000Mi
+              ttl: "5m" # Longer TTL for observation

@@ -38,6 +38,9 @@ const (
 	TaskSleep          = "Sleep"
 	TaskPause          = "Pause"
 
+	TaskRepeat   = "Repeat"
+	TaskParallel = "Parallel"
+
 	OpCreate    = "create"
 	OpDelete    = "delete"
 	OpCmpEqual  = "equal"

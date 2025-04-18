@@ -908,3 +908,77 @@ Scheduler powinien przydzielić zasoby zgodnie z zasadami DRF (Dominant Resource
     # Dla YuniKorn
     ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v3-guarantees.yaml'
     ```
+
+### V4: Dynamiczny Priorytet Startowy vs. Historia Użycia (Emulacja SLURM Fair-Share)
+
+**Opis**: Ten scenariusz weryfikuje, czy mechanizmy *fair share* w schedulerach Kubernetes (Kueue, Volcano, YuniKorn) **dynamicznie priorytetyzują** nowe zadania na podstawie **historycznego niedoboru lub nadmiaru użycia zasobów** przez najemców w stosunku do ich udziałów wynikających z wag. Głównym celem jest zaobserwowanie, czy najemca historycznie niedostatecznie obsłużony otrzymuje **początkowo wyższy priorytet dostępu do zasobów**, gdy wszyscy najemcy zaczynają jednocześnie intensywnie konkurować o zasoby, zanim system osiągnie długoterminową równowagę zgodną z wagami. Testuje to zdolność schedulera do "nadrabiania zaległości" przez najemców z niskim historycznym użyciem, co jest kluczowym aspektem filozofii Fair Share w SLURM.
+
+**Konfiguracja**:
+
+- **Klaster**: Homogeniczny klaster CPU/RAM.
+  - **4 identyczne węzły robocze**.
+  - Każdy węzeł: ~10 CPU, ~40 GiB RAM (Łącznie: **~100 CPU, ~400 GiB RAM**).
+- **Najemcy**: Trzej najemcy (tenant-a, tenant-b, tenant-c) z **różnymi wagami**.
+  - **Tenant A: waga 3** (Oczekiwany udział ~50%)
+  - **Tenant B: waga 2** (Oczekiwany udział ~33.3%)
+  - **Tenant C: waga 1** (Oczekiwany udział ~16.7%)
+  - (Łączna liczba jednostek wagi: 6)
+- **Zadania**: Identyczne zadania pod względem zasobów.
+  - Każde zadanie: `<1 CPU, 1 GiB RAM>`.
+  - Czas życia (TTL): **~30 sekund** (Faza 1), **~90 sekund** (Faza 2).
+- **Konfiguracja Schedulerów**:
+  - Odpowiednie kolejki/profile dla najemców z wagami (3, 2, 1).
+  - Mechanizmy fair-share skonfigurowane (np. `fairSharing: enable` w Kueue).
+  - Test przeprowadzony **bez istotnych gwarantowanych zasobów** (`nominalQuota` = 0 lub minimalne dla Kueue z dummy-queue).
+
+**Działanie (Fazy Testu)**:
+
+1. **Faza 1: Tworzenie Kontrastu Historycznego (Trwanie: 5 minut)**
+    - **Tenant A:** Wysokie obciążenie - przesyła 2 zadania co 5 sekund (`ttl=30s`).
+    - **Tenant B:** Średnie obciążenie - przesyła 1 zadanie co 5 sekund (`ttl=30s`).
+    - **Tenant C:** Brak obciążenia - nie przesyła żadnych zadań.
+    - **Cel:** Stworzenie sytuacji, gdzie C ma znikome historyczne użycie, a A i B znaczące.
+
+2. **Pauza Stabilizacyjna (Trwanie: 60 sekund)**
+    - Krótka przerwa, aby system zakończył przetwarzanie ostatnich zadań Fazy 1.
+
+3. **Faza 2: Impuls Nasycający i Obserwacja Startowa (Trwanie Obserwacji: np. 5 minut)**
+    - **Jednoczesny Impuls:** Wszyscy trzej najemcy (A, B, C) przesyłają **jednocześnie 50 zadań każdy** (`ttl=90s`). Łącznie 150 zadań natychmiast trafia do systemu, znacząco przekraczając pojemność klastra (~40 CPU).
+    - **Kluczowa Obserwacja (pierwsze minuty, np. 1-3 minuty):**
+        - **Tempo akceptacji zadań:** Czy zadania Tenanta C są przyjmowane do uruchomienia (`Pending` -> `Running`) **częściej** niż wynikałoby to z jego wagi 1/6?
+        - **Proporcje akceptacji:** Jaki jest procentowy udział Tenanta C we *wszystkich* nowo uruchomionych zadaniach w tym początkowym okresie? Czy jest > 16.7%?
+        - **Stan kolejki:** Czy liczba zadań `Pending` dla Tenanta C maleje relatywnie szybciej niż dla A i B?
+
+4. **(Opcjonalnie) Faza 3: Obserwacja Konwergencji**
+    - Monitorowanie przez pozostały czas (do końca 5 minut obserwacji lub dłużej, jeśli potrzeba) czy początkowy priorytet (jeśli wystąpił) zanika, a system zaczyna dążyć do podziału zasobów bliższego proporcji wag 3:2:1.
+
+**Oczekiwany Wynik (Weryfikujący wpływ historii w stylu SLURM):**
+
+- **Na początku Fazy 2 (pierwsze minuty):**
+  - **Priorytet dla C:** Oczekujemy, że **tempo akceptacji zadań** dla Tenanta C będzie **wyższe niż 1/6** całkowitego tempa akceptacji w klastrze. System powinien "faworyzować" C ze względu na jego niskie historyczne użycie.
+  - **Ograniczenie A i B:** Tempo akceptacji dla A i B powinno być odpowiednio niższe niż ich udziały wagowe (3/6 i 2/6).
+- **W trakcie Fazy 2 / Fazy 3:**
+  - Początkowa przewaga w tempie akceptacji dla Tenanta C powinna **stopniowo maleć**, w miarę jak uruchamia on zadania i jego skumulowane użycie rośnie.
+  - System powinien (w zależności od implementacji schedulera) **dążyć do stanu równowagi**, gdzie długoterminowy podział zasobów odzwierciedla wagi 3:2:1.
+
+**Interpretacja wyników dla schedulerów K8s:**
+
+- **Silny początkowy priorytet dla C -> Konwergencja:** Najbliższe SLURM. Historia ma znaczenie.
+- **Słaby/krótki priorytet dla C:** Historia ma ograniczone znaczenie.
+- **Brak priorytetu dla C (tempo od początku ~3:2:1):** Historia nie wpływa na priorytet startowy; liczą się głównie wagi i bieżąca dostępność.
+
+**Metryki kluczowe do wizualizacji:**
+
+- Wykres **tempa akceptacji zadań** (pods/minuta lub pods/10s) w czasie dla każdego najemcy (kluczowy dla początku Fazy 2).
+- Wykres **procentowego udziału w nowo uruchamianych zadaniach** w czasie.
+- Wykres **liczby podów w stanie `Running`** w czasie.
+- Wykres **liczby podów w stanie `Pending`** w czasie.
+
+**Skrypty do uruchomienia**:
+
+```sh
+# Dla Kueue
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v4.yaml'
+# Dla Volcano
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v4.yaml'
+```
