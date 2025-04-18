@@ -132,6 +132,10 @@ cluster_unscheduled_pods_count = Gauge(
     registry=NODE_REGISTRY,
 )
 
+# Zmienna globalna do przechowywania etykiet węzłów z poprzedniego cyklu
+# Klucz: node_name, Wartość: słownik etykiet użyty dla tego węzła
+previous_node_labels = {}
+
 # --- Funkcje Pomocnicze ---
 
 
@@ -257,6 +261,9 @@ def collect_node_metrics(
     core_v1_api: kubernetes.client.CoreV1Api,
 ):
     """Pobiera dane o węzłach i podach, oblicza i eksportuje metryki."""
+
+    global previous_node_labels
+
     start_time_cycle = time.time()
     logging.info("Starting node resource metrics collection cycle...")
 
@@ -470,15 +477,16 @@ def collect_node_metrics(
     )
     logging.info(f"Found {unscheduled_pod_count} unscheduled (Pending, no node) pods.")
 
-    # --- Eksport Metryk dla Każdego Węzła ---
-    processed_node_names = set()
+    current_node_labels = {}
+    processed_node_names_current_cycle = set()
+
     for node in nodes_list:
         node_name = getattr(node.metadata, "name", None)
         if not node_name:
             logging.warning("Found node without a name, skipping.")
             continue
 
-        processed_node_names.add(node_name)
+        processed_node_names_current_cycle.add(node_name)
         log_prefix = f"[Node: {node_name}]"
         logging.debug(f"{log_prefix} Processing...")
 
@@ -492,6 +500,7 @@ def collect_node_metrics(
             "block": block,
             "is_kwok": str(is_kwok).lower(),
         }
+        current_node_labels[node_name] = labels
 
         ready_status = get_node_status_ready(node)
         node_status_ready.labels(**labels).set(ready_status)
@@ -621,12 +630,71 @@ def collect_node_metrics(
     # --- Ustaw Metrykę Nieschedulowanych Podów ---
     cluster_unscheduled_pods_count.set(unscheduled_pod_count)
 
-    # --- Czyszczenie starych metryk (polegamy na Prometheusie) ---
+    # --- Czyszczenie Starych Metryk ---
+    logging.debug("Starting cleanup of metrics for removed nodes...")
+    previous_nodes = set(previous_node_labels.keys())
+    current_nodes = set(current_node_labels.keys())
+    removed_node_names = previous_nodes - current_nodes
+
+    if removed_node_names:
+        logging.info(
+            f"Found {len(removed_node_names)} nodes to remove metrics for: {removed_node_names}"
+        )
+        for node_name in removed_node_names:
+            labels_to_remove = previous_node_labels.get(node_name)
+            if labels_to_remove:
+                try:
+                    label_values_in_order = [
+                        labels_to_remove[label_key] for label_key in NODE_LABELS
+                    ]
+                except KeyError as e:
+                    logging.error(
+                        f"Inconsistency detected: Label key '{e}' from NODE_LABELS not found in stored labels for node {node_name}. Skipping removal for this node. Stored labels: {labels_to_remove}"
+                    )
+                    continue
+
+                try:
+                    logging.debug(
+                        f"Removing metrics for node: {node_name} with label values (in order): {label_values_in_order}"
+                    )
+                    # Usuń wszystkie metryki dla tego zestawu wartości etykiet
+                    node_capacity_cpu_cores.remove(*label_values_in_order)
+                    node_capacity_memory_bytes.remove(*label_values_in_order)
+                    node_capacity_pods.remove(*label_values_in_order)
+                    node_capacity_gpu_cards.remove(*label_values_in_order)
+                    node_allocatable_cpu_cores.remove(*label_values_in_order)
+                    node_allocatable_memory_bytes.remove(*label_values_in_order)
+                    node_allocatable_pods.remove(*label_values_in_order)
+                    node_allocatable_gpu_cards.remove(*label_values_in_order)
+                    node_simulated_usage_cpu_cores.remove(*label_values_in_order)
+                    node_simulated_usage_memory_bytes.remove(*label_values_in_order)
+                    node_simulated_pod_count.remove(*label_values_in_order)
+                    node_simulated_usage_gpu_cards.remove(*label_values_in_order)
+                    node_status_ready.remove(*label_values_in_order)
+                    logging.debug(f"Successfully removed metrics for node: {node_name}")
+                except KeyError:
+                    logging.warning(
+                        f"Tried to remove metrics for node {node_name}, but the specific label combination was not found in the registry (or already removed). Label values: {label_values_in_order}"
+                    )
+                except Exception as e:
+                    logging.error(
+                        f"Error removing metrics for node {node_name} with label values {label_values_in_order}: {e}",
+                        exc_info=True,
+                    )
+            else:
+                logging.warning(
+                    f"Node name {node_name} was marked for removal, but its labels were not found in previous_node_labels."
+                )
+    else:
+        logging.debug("No nodes found for metric cleanup in this cycle.")
+
+    # --- Aktualizacja Stanu na Następny Cykl ---
+    previous_node_labels = current_node_labels
 
     end_time_cycle = time.time()
     duration_cycle = end_time_cycle - start_time_cycle
     logging.info(
-        f"Node resource metrics collection cycle finished. Processed {len(processed_node_names)} nodes. Cycle duration: {duration_cycle:.2f}s"
+        f"Node resource metrics collection cycle finished. Processed {len(processed_node_names_current_cycle)} nodes. Cycle duration: {duration_cycle:.2f}s"
     )
 
 
