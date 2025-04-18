@@ -544,6 +544,117 @@ Na tym diagramie:
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v3.yaml'
 ```
 
+### V4: Planowanie w warunkach fragmentacji i konkurencji
+
+Ten benchmark ma na celu ocenę wydajności i jakości planowania świadomego topologii w bardziej realistycznym scenariuszu, obejmującym większą skalę klastra, istniejące obciążenie powodujące fragmentację zasobów oraz konkurencję między zadaniami o różnych wymaganiach topologicznych.
+
+**Topologia**: Konfiguruje 32 węzły w strukturze drzewiastej: 1 Datacenter (sw-dc1), 2 Spines (sw-s1, sw-s2), 8 Bloków (sw-b11 do sw-b24), po 4 węzły w każdym bloku (n111 do n244). Wszystkie węzły mają standardową konfigurację (np. 128 CPU, 1Ti RAM, 8 GPU).
+
+```mermaid
+graph TD
+    sw_dc1[sw-dc1 - Datacenter] --- sw_s1[sw-s1 - Spine]
+    sw_dc1 --- sw_s2[sw-s2 - Spine]
+
+    subgraph Spine sw-s1
+        sw_s1 --- sw_b11[sw-b11 - Block]
+        sw_s1 --- sw_b12[sw-b12 - Block]
+        sw_s1 --- sw_b13[sw-b13 - Block]
+        sw_s1 --- sw_b14[sw-b14 - Block]
+
+        subgraph Block sw-b11
+            sw_b11 --- n111[n111]
+            sw_b11 --- n112[n112]
+            sw_b11 --- n113[n113]
+            sw_b11 --- n114[n114]
+        end
+        subgraph Block sw-b12
+            sw_b12 --- n121[n121]
+            sw_b12 --- n122[n122]
+            sw_b12 --- n123[n123]
+            sw_b12 --- n124[n124]
+        end
+        subgraph Block sw-b13
+            sw_b13 --- n131[n131]
+            sw_b13 --- n132[n132]
+            sw_b13 --- n133[n133]
+            sw_b13 --- n134[n134]
+        end
+        subgraph Block sw-b14
+            sw_b14 --- n141[n141]
+            sw_b14 --- n142[n142]
+            sw_b14 --- n143[n143]
+            sw_b14 --- n144[n144]
+        end
+    end
+
+    subgraph Spine sw-s2
+        sw_s2 --- sw_b21[sw-b21 - Block]
+        sw_s2 --- sw_b22[sw-b22 - Block]
+        sw_s2 --- sw_b23[sw-b23 - Block]
+        sw_s2 --- sw_b24[sw-b24 - Block]
+
+        subgraph Block sw-b21
+            sw_b21 --- n211[n211]
+            sw_b21 --- n212[n212]
+            sw_b21 --- n213[n213]
+            sw_b21 --- n214[n214]
+        end
+        subgraph Block sw-b22
+            sw_b22 --- n221[n221]
+            sw_b22 --- n222[n222]
+            sw_b22 --- n223[n223]
+            sw_b22 --- n224[n224]
+        end
+        subgraph Block sw-b23
+            sw_b23 --- n231[n231]
+            sw_b23 --- n232[n232]
+            sw_b23 --- n233[n233]
+            sw_b23 --- n234[n234]
+        end
+        subgraph Block sw-b24
+            sw_b24 --- n241[n241]
+            sw_b24 --- n242[n242]
+            sw_b24 --- n243[n243]
+            sw_b24 --- n244[n244]
+        end
+    end
+
+    classDef computeNode fill:#74c0fc,stroke:#333,stroke-width:2px;
+    class n111,n112,n113,n114,n121,n122,n123,n124,n131,n132,n133,n134,n141,n142,n143,n144,n211,n212,n213,n214,n221,n222,n223,n224,n231,n232,n233,n234,n241,n242,n243,n244 computeNode;
+```
+
+*Uwaga: W tym scenariuszu nie ma predefiniowanych węzłów nieplanowalnych ani optymalnych; fragmentacja jest tworzona dynamicznie przez zadania tła.*
+
+**Test**:
+
+- **Konfiguracja węzłów**: Tworzone są 32 wirtualne węzły z etykietami topologii (datacenter, spine, block) i standardowymi zasobami.
+
+- **Faza 1 - Fragmentacja Zasobów**: Uruchamianych jest 20 zadań w tle (8 zadań typu "Medium" po 1 podzie i 4 GPU; 12 zadań typu "Small-MultiReplica" po 4 pody i 2 GPU/pod) do dedykowanej kolejki (background-queue). Celem jest zajęcie około 50% zasobów GPU (128 GPU) w sposób rozproszony i niejednolity. Kluczowe jest, aby te zadania działały w tle podczas kolejnych faz (nie mają ustawionego ttl).
+
+- **Faza 2 - Duże Zadanie TAS (Wymagane)**: W trakcie działania zadań tła, do drugiej kolejki (tas-queue) zgłaszane jest Zadanie A (8 podów, 4 GPU/pod, łącznie 32 GPU) z wymaganiem (required/hard) umieszczenia wszystkich podów w ramach jednego spine'a (network.topology.kubernetes.io/spine lub Tier 3 w Volcano).
+
+- **Faza 3 - Małe Zadanie TAS (Preferowane)**: Następnie (lub równolegle, w zależności od przepustowości), do kolejki tas-queue zgłaszane jest Zadanie B (4 pody, 1 GPU/pod, łącznie 4 GPU) z preferencją (preferred/soft) umieszczenia wszystkich podów w ramach jednego bloku (network.topology.kubernetes.io/block lub Tier 2 w Volcano).
+
+- **Ocena**: Porównanie Kueue i Volcano na podstawie:
+
+  - **Powodzenia planowania**: Czy wszystkie zadania (tła, A, B) zostały pomyślnie uruchomione?
+
+  - **Czasu oczekiwania (latency)**: Jak długo zadania A i B czekały w kolejce przed uruchomieniem? Analiza metryki unified_job_wait_duration_seconds_histogram. Oczekuje się mierzalnych opóźnień, szczególnie dla Zadania A.
+
+  - **Jakości planowania (preferencje)**: Jak często schedulerowi udało się umieścić wszystkie pody Zadania B w jednym bloku (zgodnie z preferencją)? Wymaga to analizy rozmieszczenia podów po teście lub dedykowanej metryki. Porównanie wskaźnika sukcesu (%) między schedulerami.
+
+  - **Poprawności wymagań**: Czy Zadanie A zostało umieszczone w ramach jednego spine'a?
+
+**Skrypty do uruchomienia**:
+
+```sh
+# Dla Kueue
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v4.yaml'
+
+# Dla Volcano
+./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v4.yaml'
+```
+
 ## Sprawiedliwy przydział zasobów (Fair Share)
 
 Benchmarki w tej sekcji oceniają zdolność schedulerów do sprawiedliwego podziału zasobów klastra między różnymi grupami użytkowników (najemcami) lub kolejkami zadań. Testują one różne aspekty mechanizmów *fair share*, w tym:
