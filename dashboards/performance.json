@@ -1917,19 +1917,6 @@
       ]
     },
     {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 52
-      },
-      "id": 80,
-      "panels": [],
-      "title": "Cluster Resources: Overall Simulated Allocation & Utilization",
-      "type": "row"
-    },
-    {
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -2226,19 +2213,6 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 61
-      },
-      "id": 90,
-      "panels": [],
-      "title": "Cluster Resources: Pod Distribution",
-      "type": "row"
-    },
-    {
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -2331,19 +2305,6 @@
       ],
       "title": "Jobs Pod Distribution per Node",
       "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 80
-      },
-      "id": 1000,
-      "panels": [],
-      "title": "Cluster Resources: Simulated Usage Details Per Node",
-      "type": "row"
     },
     {
       "id": 1001,
