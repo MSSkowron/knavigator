@@ -30,7 +30,10 @@ observed_executiontotal_durations_uids = set()
 previous_job_labels_for_uid = {}  # {uid: set(tuple(sorted_label_items), ...)} z poprzedniego cyklu
 previous_active_queue_namespaces = (
     set()
-)  # Przechowuje pary (queue, namespace) z poprzedniego cyklu
+)  # Przechowuje pary (queue, namespace) z poprzedniego cyklu dla concurrency
+previous_histogram_namespaces = (
+    set()
+)  # Przechowuje przestrzenie nazw z histogramami z poprzedniego cyklu
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
@@ -662,12 +665,14 @@ def collect_metrics(
     global observed_executiontotal_durations_uids
     global previous_job_labels_for_uid
     global previous_active_queue_namespaces
+    global previous_histogram_namespaces
 
     # --- Inicjalizacje dla bieżącego cyklu ---
     current_job_uids_processed = set()
     current_job_labels_for_uid = defaultdict(set)
     current_phase_counts = defaultdict(int)
     current_active_queue_namespaces = set()
+    current_histogram_namespaces = set()
     # --- Koniec inicjalizacji ---
 
     logging.info("Starting unified metrics collection cycle...")
@@ -767,6 +772,7 @@ def collect_metrics(
             ):
                 current_job_uids_processed.add(uid)
                 processed_count += 1
+                current_histogram_namespaces.add(namespace)
 
                 # --- Zapisz użyte etykiety dla bieżącego cyklu ---
                 for label_dict in labels_used:
@@ -931,8 +937,77 @@ def collect_metrics(
         logging.debug("No jobs found for metric cleanup in this cycle.")
     # --- Koniec Sekcji Czyszczenia Jobów ---
 
+    # --- Czyszczenie Starych Metryk Histogramów dla Nieaktywnych Przestrzeni Nazw ---
+    logging.debug("Starting cleanup of histogram metrics for inactive namespaces...")
+    namespaces_to_clear = previous_histogram_namespaces - current_histogram_namespaces
+
+    if namespaces_to_clear:
+        logging.info(
+            f"Found {len(namespaces_to_clear)} namespaces with no active jobs this cycle. Removing their histogram metrics: {namespaces_to_clear}"
+        )
+        possible_completion_statuses = [
+            "Succeeded",
+            "Failed",
+        ]
+
+        for namespace in namespaces_to_clear:
+            logging.debug(f"Removing histograms for namespace: {namespace}")
+            try:
+                unified_job_wait_duration_seconds_histogram.remove(namespace)
+                logging.debug(
+                    f"  - Removed unified_job_wait_duration_seconds_histogram{{unified_job_namespace='{namespace}'}}"
+                )
+            except KeyError:
+                logging.debug(
+                    f"  - Metric unified_job_wait_duration_seconds_histogram{{unified_job_namespace='{namespace}'}} not found for removal."
+                )
+            except Exception as e:
+                logging.error(
+                    f"  - Error removing wait duration histogram for namespace {namespace}: {e}",
+                    exc_info=False,
+                )
+
+            for status in possible_completion_statuses:
+                try:
+                    unified_job_execution_duration_seconds_histogram.remove(
+                        namespace, status
+                    )
+                    logging.debug(
+                        f"  - Removed unified_job_execution_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}}"
+                    )
+                except KeyError:
+                    logging.debug(
+                        f"  - Metric unified_job_execution_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}} not found for removal."
+                    )
+                except Exception as e:
+                    logging.error(
+                        f"  - Error removing execution duration histogram for namespace {namespace}, status {status}: {e}",
+                        exc_info=False,
+                    )
+                try:
+                    unified_job_total_duration_seconds_histogram.remove(
+                        namespace, status
+                    )
+                    logging.debug(
+                        f"  - Removed unified_job_total_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}}"
+                    )
+                except KeyError:
+                    logging.debug(
+                        f"  - Metric unified_job_total_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}} not found for removal."
+                    )
+                except Exception as e:
+                    logging.error(
+                        f"  - Error removing total duration histogram for namespace {namespace}, status {status}: {e}",
+                        exc_info=False,
+                    )
+    else:
+        logging.debug("No namespaces found for histogram cleanup in this cycle.")
+    # --- Koniec Sekcji Czyszczenia Histogramów ---
+
     # --- Aktualizacja Stanu na Następny Cykl ---
     previous_job_labels_for_uid = current_job_labels_for_uid
+    previous_active_queue_namespaces = current_active_queue_namespaces
+    previous_histogram_namespaces = current_histogram_namespaces
 
     # --- Czyszczenie Cache Czasu Startu Volcano ---
     volcano_uids_to_remove_from_cache = (
