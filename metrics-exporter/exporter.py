@@ -25,10 +25,11 @@ logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(mes
 
 # --- Globalne Zmienne ---
 volcano_start_times_cache = {}
-previously_exported_completion_metrics = {}
 observed_wait_times_uids = set()
 observed_executiontotal_durations_uids = set()
 previous_concurrency_keys = set()
+# {uid: set(tuple(sorted_label_items), ...)} z poprzedniego cyklu
+previous_job_labels_for_uid = {}
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
@@ -265,7 +266,6 @@ def get_volcano_start_time(uid, conditions_list):
 
 def process_job(job_obj):
     """Przetwarza pojedynczy obiekt Job (K8s lub Volcano) i eksportuje metryki."""
-    global previously_exported_completion_metrics
     global observed_wait_times_uids
     global observed_executiontotal_durations_uids
     uid = None
@@ -273,6 +273,9 @@ def process_job(job_obj):
     namespace = None
     job_kind = "Unknown"
     log_prefix = "[process_job]"
+    labels_used_this_call = []
+    base_labels = None
+    completion_labels = None  # Inicjalizujemy na None
 
     try:
         # --- Rozpoznawanie typu obiektu i pobieranie danych ---
@@ -366,6 +369,9 @@ def process_job(job_obj):
             "unified_job_kind": job_kind,
             "unified_job_queue": queue_name,
         }
+
+        labels_used_this_call.append(base_labels)
+
         logging.debug(
             f"{log_prefix} Processing start. Kind: {job_kind}, Queue: {queue_name}"
         )
@@ -521,6 +527,9 @@ def process_job(job_obj):
 
         if completion_time_dt and final_status:
             completion_labels = {**base_labels, "unified_job_status": final_status}
+
+            labels_used_this_call.append(completion_labels)
+
             ts_val = completion_time_dt.timestamp()
             logging.debug(
                 f"{log_prefix} Exporting completion_timestamp (status={final_status}): {ts_val}"
@@ -528,9 +537,6 @@ def process_job(job_obj):
             unified_job_completion_timestamp_seconds.labels(**completion_labels).set(
                 ts_val
             )
-
-            # Usunięcie flagowania w previously_exported... - histogram zajmie się unikalnością obserwacji
-            # previously_exported_completion_metrics.setdefault(uid, set()).add("completion")
 
             execution_duration = None
             total_duration = None
@@ -550,7 +556,6 @@ def process_job(job_obj):
                 unified_job_execution_duration_seconds.labels(**completion_labels).set(
                     execution_duration
                 )
-                # previously_exported_completion_metrics.setdefault(uid, set()).add("duration_exec")
             else:
                 logging.debug(
                     f"{log_prefix} Cannot calculate execution_duration, missing start_time_dt."
@@ -569,7 +574,6 @@ def process_job(job_obj):
                 unified_job_total_duration_seconds.labels(**completion_labels).set(
                     total_duration
                 )
-                # previously_exported_completion_metrics.setdefault(uid, set()).add("duration_total")
             else:
                 logging.debug(
                     f"{log_prefix} Cannot calculate total_duration, missing creation_time_dt."
@@ -627,8 +631,8 @@ def process_job(job_obj):
             "uid": uid,
             "queue": queue_name,
             "phase": current_phase_str,
-            "job_kind": job_kind,
             "namespace": namespace,
+            "labels_used": labels_used_this_call,
         }
 
     except Exception as e:
@@ -650,25 +654,23 @@ def collect_metrics(
     custom_objects_api: kubernetes.client.CustomObjectsApi,
     core_v1_api: kubernetes.client.CoreV1Api,
 ):
-    """Pobiera zadania K8s i Volcano, przetwarza je i aktualizuje metryki."""
+    """Pobiera zadania K8s i Volcano, przetwarza je, aktualizuje metryki i czyści stare."""
     start_time_cycle = time.time()
-    global volcano_start_times_cache, previously_exported_completion_metrics
+    global volcano_start_times_cache
     global observed_wait_times_uids
     global observed_executiontotal_durations_uids
-    global previous_concurrency_keys  # Dostęp do globalnej zmiennej
+    global previous_concurrency_keys
+    global previous_job_labels_for_uid
 
-    current_job_uids_processed = set()  # UIDy przetworzone w tym cyklu
-    # Usunięto logikę previously_exported_completion_metrics stąd, bo bazujemy na czyszczeniu UIDów
-
-    # --- Inicjalizacja liczników dla bieżącego cyklu ---
+    # --- Inicjalizacje dla bieżącego cyklu ---
+    current_job_uids_processed = set()
+    current_job_labels_for_uid = defaultdict(set)
     current_phase_counts = defaultdict(int)
-    current_concurrency_keys = (
-        set()
-    )  # Zbiór kluczy (queue, phase, kind) widzianych w tym cyklu
-    # --- Koniec inicjalizacji liczników ---
+    current_concurrency_keys = set()
+    # --- Koniec inicjalizacji ---
 
     logging.info("Starting unified metrics collection cycle...")
-    all_jobs_raw = []  # Lista obiektów/słowników z API
+    all_jobs_raw = []
 
     # --- Pobieranie Standardowych Jobów ---
     try:
@@ -752,29 +754,34 @@ def collect_metrics(
 
         if process_result and isinstance(process_result, dict):
             uid = process_result.get("uid")
-            if uid:
+            labels_used = process_result.get("labels_used")
+            if uid and labels_used is not None:
                 current_job_uids_processed.add(uid)
                 processed_count += 1
 
-                # --- Zliczanie dla unified_job_concurrency_count ---
+                # --- Zapisz użyte etykiety dla bieżącego cyklu ---
+                for label_dict in labels_used:
+                    if label_dict:
+                        label_tuple = tuple(sorted(label_dict.items()))
+                        current_job_labels_for_uid[uid].add(label_tuple)
+                # --- Koniec zapisywania etykiet ---
+
+                # --- Zliczanie dla unified_job_concurrency_count (BEZ ZMIAN) ---
                 queue = process_result.get("queue", "<error_in_result>")
-                phase = process_result.get("phase", "Unknown")  # Używamy stringa fazy
+                phase = process_result.get("phase", "Unknown")
                 namespace = process_result.get("namespace", "<error_in_result>")
                 concurrency_key = (queue, phase, namespace)
                 current_phase_counts[concurrency_key] += 1
                 current_concurrency_keys.add(concurrency_key)
                 # --- Koniec zliczania ---
             else:
-                # process_job zwrócił dict, ale bez UID - mało prawdopodobne
                 error_count += 1
                 logging.warning(
-                    f"process_job returned result dict without UID for an object."
+                    f"process_job returned result dict missing UID or labels_used."
                 )
-
-        elif process_result is None:  # process_job zwrócił None (błąd lub brak danych)
+        elif process_result is None:
             error_count += 1
-            # Logowanie błędu powinno być w process_job
-        else:  # Nieoczekiwany wynik z process_job
+        else:
             error_count += 1
             logging.error(
                 f"Unexpected return type from process_job: {type(process_result)}"
@@ -818,7 +825,6 @@ def collect_metrics(
                     f"Zeroed out unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}}"
                 )
             except Exception as e:
-                # Logujemy błąd, ale kontynuujemy
                 logging.error(
                     f"Failed to zero out stale concurrency count for {queue}/{phase}/{namespace}: {e}",
                     exc_info=True,
@@ -828,12 +834,96 @@ def collect_metrics(
     previous_concurrency_keys = current_concurrency_keys
     # --- Koniec ustawiania metryki concurrency ---
 
+    # --- Czyszczenie Starych Metryk Jobów ---
+    logging.debug("Starting cleanup of metrics for removed jobs...")
+    previous_uids = set(previous_job_labels_for_uid.keys())
+    current_uids = current_job_uids_processed
+    removed_uids = previous_uids - current_uids
+
+    if removed_uids:
+        logging.info(f"Found {len(removed_uids)} jobs to remove metrics for.")
+        for uid in removed_uids:
+            label_tuples_to_remove = previous_job_labels_for_uid.get(uid)
+            if label_tuples_to_remove:
+                logging.debug(f"Removing metrics for job UID: {uid}")
+                for label_tuple in label_tuples_to_remove:
+                    try:
+                        label_dict = dict(label_tuple)
+
+                        is_completion_labels = "unified_job_status" in label_dict
+
+                        if is_completion_labels:
+                            target_label_names = COMPLETION_LABEL_NAMES
+                            try:
+                                label_values = [
+                                    label_dict[key] for key in target_label_names
+                                ]
+                                logging.debug(
+                                    f"  - Removing completion metrics with values: {label_values}"
+                                )
+                                unified_job_completion_timestamp_seconds.remove(
+                                    *label_values
+                                )
+                                unified_job_execution_duration_seconds.remove(
+                                    *label_values
+                                )
+                                unified_job_total_duration_seconds.remove(*label_values)
+                            except KeyError as e:
+                                logging.warning(
+                                    f"  - Label key '{e}' not found in completion label dict for UID {uid} while preparing values. Dict: {label_dict}"
+                                )
+                            except Exception as e:  # Złap błędy .remove()
+                                logging.warning(
+                                    f"  - Error removing a completion metric for UID {uid} with values {label_values}: {e}"
+                                )
+                        else:
+                            target_label_names = BASE_LABEL_NAMES
+                            try:
+                                label_values = [
+                                    label_dict[key] for key in target_label_names
+                                ]
+                                logging.debug(
+                                    f"  - Removing base metrics with values: {label_values}"
+                                )
+                                unified_job_created_timestamp_seconds.remove(
+                                    *label_values
+                                )
+                                unified_job_start_timestamp_seconds.remove(
+                                    *label_values
+                                )
+                                unified_job_wait_duration_seconds.remove(*label_values)
+                                unified_job_status_phase.remove(*label_values)
+                            except KeyError as e:
+                                logging.warning(
+                                    f"  - Label key '{e}' not found in base label dict for UID {uid} while preparing values. Dict: {label_dict}"
+                                )
+                            except Exception as e:
+                                logging.warning(
+                                    f"  - Error removing a base metric for UID {uid} with values {label_values}: {e}"
+                                )
+
+                    except Exception as e:
+                        logging.error(
+                            f"Unexpected error processing label tuple {label_tuple} for removal (UID: {uid}): {e}",
+                            exc_info=True,
+                        )
+            else:
+                logging.warning(
+                    f"Job UID {uid} was marked for removal, but its labels were not found in previous_job_labels_for_uid."
+                )
+    else:
+        logging.debug("No jobs found for metric cleanup in this cycle.")
+    # --- Koniec Sekcji Czyszczenia Jobów ---
+
+    # --- Aktualizacja Stanu na Następny Cykl ---
+    previous_job_labels_for_uid = current_job_labels_for_uid
+
     # --- Czyszczenie Cache Czasu Startu Volcano ---
     volcano_uids_to_remove_from_cache = (
         set(volcano_start_times_cache.keys()) - current_job_uids_processed
     )
     if volcano_uids_to_remove_from_cache:
-        logging.debug(  # Zmieniono na debug, bo może być tego sporo
+        logging.debug(
             f"Removing {len(volcano_uids_to_remove_from_cache)} UIDs from Volcano start time cache."
         )
         for uid in volcano_uids_to_remove_from_cache:
@@ -842,7 +932,7 @@ def collect_metrics(
     # --- Czyszczenie Zbioru Zaobserwowanych Czasów Oczekiwania (Histogram) ---
     uids_to_remove_from_observed = observed_wait_times_uids - current_job_uids_processed
     if uids_to_remove_from_observed:
-        logging.debug(  # Zmieniono na debug
+        logging.debug(
             f"Removing {len(uids_to_remove_from_observed)} UIDs from observed wait times set."
         )
         observed_wait_times_uids.difference_update(uids_to_remove_from_observed)
@@ -852,7 +942,7 @@ def collect_metrics(
         observed_executiontotal_durations_uids - current_job_uids_processed
     )
     if uids_to_remove_from_observed_completion:
-        logging.debug(  # Zmieniono na debug
+        logging.debug(
             f"Removing {len(uids_to_remove_from_observed_completion)} UIDs from observed completion durations set."
         )
         observed_executiontotal_durations_uids.difference_update(
