@@ -828,6 +828,26 @@
           {
             "matcher": { "id": "byName", "options": "Last Completion Time" },
             "properties": [{ "id": "unit", "value": "dateTimeAsISO" }]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total Span (Last Completion - First Start) (s)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "displayName",
+                "value": "Total Span (s)"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
           }
         ]
       },
@@ -879,24 +899,63 @@
           "options": {}
         },
         {
+          "id": "calculateField",
+          "options": {
+            "alias": "Total Span (ms)",
+            "binary": {
+              "left": "Value #B",
+              "operator": "-",
+              "reducer": "lastNotNull",
+              "right": "Value #C"
+            },
+            "mode": "binary",
+            "reduce": {
+              "includeTimeField": false,
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Total Span (s)",
+            "binary": {
+              "left": "Total Span (ms)",
+              "operator": "/",
+              "reducer": "lastNotNull",
+              "right": "1000"
+            },
+            "mode": "binary",
+            "reduce": {
+              "includeTimeField": false,
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        },
+        {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Time": true
+              "Time": true,
+              "Total Span (ms)": true
             },
             "indexByName": {
               "unified_job_namespace": 0,
               "Value #C": 1,
               "Value #D": 2,
               "Value #A": 3,
-              "Value #B": 4
+              "Value #B": 4,
+              "Total Span (s)": 5
             },
             "renameByName": {
               "unified_job_namespace": "Namespace",
               "Value #C": "First Start Time",
               "Value #D": "Last Start Time",
               "Value #A": "First Completion Time",
-              "Value #B": "Last Completion Time"
+              "Value #B": "Last Completion Time",
+              "Total Span (s)": "Total Span (Last Completion - First Start) (s)"
             }
           }
         },
@@ -987,6 +1046,26 @@
               "options": "Last Pod Completion Time"
             },
             "properties": [{ "id": "unit", "value": "dateTimeAsISO" }]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total Span (Last Pod Completion - First Pod Start) (s)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "displayName",
+                "value": "Total Span (s)"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
           }
         ]
       },
@@ -1038,10 +1117,41 @@
           "options": {}
         },
         {
+          "id": "calculateField",
+          "options": {
+            "alias": "Pod Total Span (ms)",
+            "binary": {
+              "left": "Value #D",
+              "operator": "-",
+              "reducer": "lastNotNull",
+              "right": "Value #A"
+            },
+            "mode": "binary",
+            "reduce": { "includeTimeField": false, "reducer": "sum" },
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Pod Total Span (s)",
+            "binary": {
+              "left": "Pod Total Span (ms)",
+              "operator": "/",
+              "reducer": "lastNotNull",
+              "right": "1000"
+            },
+            "mode": "binary",
+            "reduce": { "includeTimeField": false, "reducer": "sum" },
+            "replaceFields": false
+          }
+        },
+        {
           "id": "organize",
           "options": {
             "excludeByName": {
               "Time": true,
+              "Pod Total Span (ms)": true,
               "Value #A": false,
               "Value #B": false,
               "Value #C": false,
@@ -1053,14 +1163,16 @@
               "Value #A": 1,
               "Value #B": 2,
               "Value #C": 3,
-              "Value #D": 4
+              "Value #D": 4,
+              "Pod Total Span (s)": 5
             },
             "renameByName": {
               "Value #A": "First Pod Start Time",
               "Value #B": "Last Pod Start Time",
               "Value #C": "First Pod Completion Time",
               "Value #D": "Last Pod Completion Time",
-              "namespace": "Namespace"
+              "namespace": "Namespace",
+              "Pod Total Span (s)": "Total Span (Last Pod Completion - First Pod Start) (s)"
             }
           }
         },
