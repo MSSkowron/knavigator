@@ -107,3 +107,14 @@ tasks:
         cpu: 10
         memory: 10Gi
         ttl: 20s
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: test-backfill
+          count: 35
+          resources:
+            cpu: 100100m
+            memory: 102450Mi
+            pods: 110
+      timeout: 5m
