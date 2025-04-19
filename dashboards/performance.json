@@ -1467,15 +1467,15 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace, unified_job_kind) / sum(rate(unified_job_wait_duration_seconds_histogram_count{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace, unified_job_kind)",
-          "legendFormat": "Avg Wait Time - {{ unified_job_namespace }} ({{ unified_job_kind }})",
+          "expr": "sum(rate(unified_job_wait_duration_seconds_histogram_sum{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace) / sum(rate(unified_job_wait_duration_seconds_histogram_count{unified_job_namespace=~\"$namespace\"}[5m])) by (unified_job_namespace)",
+          "legendFormat": "Avg Wait Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{unified_job_namespace=~\"$namespace\"}[5m])) by (le, unified_job_namespace, unified_job_kind))",
-          "legendFormat": "P95 Wait Time - {{ unified_job_namespace }} ({{ unified_job_kind }})",
+          "expr": "histogram_quantile(0.95, sum(rate(unified_job_wait_duration_seconds_histogram_bucket{unified_job_namespace=~\"$namespace\"}[5m])) by (le, unified_job_namespace))",
+          "legendFormat": "P95 Wait Time - {{ unified_job_namespace }}",
           "range": true,
           "refId": "B"
         }
