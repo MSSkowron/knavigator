@@ -39,17 +39,26 @@
   "liveNow": false,
   "panels": [
     {
-      "collapsed": false,
+      "id": 9001,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "id": 10,
-      "panels": [],
-      "title": "Overview: Cluster & Scheduler Status",
-      "type": "row"
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Cluster & Scheduler Overview",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.0.0",
+      "title": "## Cluster & Scheduler Overview",
+      "transparent": true,
+      "type": "text"
     },
     {
       "datasource": {
@@ -433,30 +442,26 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
+      "id": 9002,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 9
       },
-      "id": 300,
-      "panels": [],
-      "title": "Performance: Job & Pod Lifecycle (Unified Metrics)",
-      "type": "row"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 10
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Job & Pod Performance",
+        "mode": "markdown"
       },
-      "id": 3000,
-      "panels": [],
-      "title": "Job Timing Details (Min/Avg/Max per Namespace)",
-      "type": "row"
+      "pluginVersion": "11.0.0",
+      "title": "## Job & Pod Performance",
+      "transparent": true,
+      "type": "text"
     },
     {
       "id": 3001,
@@ -464,7 +469,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 11
+        "y": 10
       },
       "title": "Job Wait Time (Min/Avg/Max per Namespace)",
       "description": "Minimum, Average, and Maximum job wait time (Created to Start) per namespace, based on unified exporter gauge metric.",
@@ -572,7 +577,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 11
+        "y": 10
       },
       "title": "Job Execution Time (Min/Avg/Max per Namespace)",
       "description": "Minimum, Average, and Maximum job execution time (Start to Completion) for Succeeded/Failed jobs per namespace, based on unified exporter gauge metric.",
@@ -680,7 +685,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 11
+        "y": 10
       },
       "title": "Job Total Time (Min/Avg/Max per Namespace)",
       "description": "Minimum, Average, and Maximum job total time (Created to Completion) for Succeeded/Failed jobs per namespace, based on unified exporter gauge metric.",
@@ -783,8 +788,131 @@
       ]
     },
     {
+      "id": 302,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "title": "Job Phases (Phase per Namespace)",
+      "description": "Number of Jobs (K8s & Volcano) in different states based on unified exporter metrics (filtered by job namespace and kind). Uses numeric phase mapping.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_namespace))",
+          "legendFormat": "Running - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_namespace))",
+          "legendFormat": "Succeeded - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_namespace))",
+          "legendFormat": "Failed - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        },
+        {
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_namespace))",
+          "legendFormat": "Pending - {{ unified_job_namespace }}",
+          "range": true,
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          }
+        }
+      ]
+    },
+    {
       "id": 304,
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
       "title": "Job Event Timestamps (First/Last per Namespace)",
       "description": "Timestamp of the first/last job start and completion (Succeeded or Failed) within the selected time range, grouped by namespace. Uses unified exporter gauge metrics. Timestamps converted and formatted.",
       "type": "table",
@@ -990,12 +1118,204 @@
       ]
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Total number of Pods in each phase over time based on KSM metrics (filtered by namespace). Provides a view of system throughput and potential bottlenecks (e.g., high Pending count).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pending"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Succeeded"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Running"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 303,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Pending\", namespace=~\"$namespace\"})",
+          "instant": false,
+          "legendFormat": "Pending - {{namespace}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Running\", namespace=~\"$namespace\"})",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Running - {{namespace}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Succeeded\", namespace=~\"$namespace\"})",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Succeeded - {{namespace}}",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Failed\", namespace=~\"$namespace\"})",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Failed - {{namespace}}",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Pod Phases (Phase per Namespace)",
+      "type": "timeseries"
+    },
+    {
       "id": 305,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 26
       },
       "title": "Pod Event Timestamps (First/Last per Namespace)",
       "description": "Timestamp of the first/last pod start and completion (based on KSM metrics) within the selected time range, grouped by namespace. Timestamps converted and formatted.",
@@ -1207,306 +1527,6 @@
       ]
     },
     {
-      "id": 302,
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
-      "title": "Job Phases (Phase per Namespace)",
-      "description": "Number of Jobs (K8s & Volcano) in different states based on unified exporter metrics (filtered by job namespace and kind). Uses numeric phase mapping.",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_namespace))",
-          "legendFormat": "Running - {{ unified_job_namespace }}",
-          "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
-        },
-        {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_namespace))",
-          "legendFormat": "Succeeded - {{ unified_job_namespace }}",
-          "range": true,
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
-        },
-        {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_namespace))",
-          "legendFormat": "Failed - {{ unified_job_namespace }}",
-          "range": true,
-          "refId": "C",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
-        },
-        {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_namespace))",
-          "legendFormat": "Pending - {{ unified_job_namespace }}",
-          "range": true,
-          "refId": "D",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
-        }
-      ]
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "description": "Total number of Pods in each phase over time based on KSM metrics (filtered by namespace). Provides a view of system throughput and potential bottlenecks (e.g., high Pending count).",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Failed"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Pending"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "orange",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Succeeded"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Running"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
-      "id": 303,
-      "options": {
-        "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "11.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Pending\", namespace=~\"$namespace\"})",
-          "instant": false,
-          "legendFormat": "Pending - {{namespace}}",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Running\", namespace=~\"$namespace\"})",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "Running - {{namespace}}",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Succeeded\", namespace=~\"$namespace\"})",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "Succeeded - {{namespace}}",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Failed\", namespace=~\"$namespace\"})",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "Failed - {{namespace}}",
-          "range": true,
-          "refId": "D"
-        }
-      ],
-      "title": "Pod Phases (Phase per Namespace)",
-      "type": "timeseries"
-    },
-    {
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -1560,7 +1580,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 35
+        "y": 34
       },
       "id": 3004,
       "options": {
@@ -1649,7 +1669,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 35
+        "y": 34
       },
       "id": 705,
       "options": {
@@ -1738,7 +1758,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 35
+        "y": 34
       },
       "id": 706,
       "options": {
@@ -1774,17 +1794,26 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
+      "id": 9003,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 42
       },
-      "id": 200,
-      "panels": [],
-      "title": "Performance: Job Concurrency (Unified Metrics)",
-      "type": "row"
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Job Concurrency",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.0.0",
+      "title": "## Job Concurrency",
+      "transparent": true,
+      "type": "text"
     },
     {
       "id": 2000,
@@ -1792,7 +1821,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 44
+        "y": 43
       },
       "type": "timeseries",
       "title": "Job Concurrency by Phase",
@@ -1857,7 +1886,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 44
+        "y": 43
       },
       "type": "timeseries",
       "title": "Job Concurrency by Queue",
@@ -1915,6 +1944,28 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "id": 9004,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Node Resource Utilization (Simulated)",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.0.0",
+      "title": "## Node Resource Utilization (Simulated)",
+      "transparent": true,
+      "type": "text"
     },
     {
       "datasource": {
@@ -2040,7 +2091,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 53
+        "y": 52
       },
       "id": 87,
       "options": {
@@ -2161,7 +2212,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 53
+        "y": 52
       },
       "id": 88,
       "options": {
@@ -2272,7 +2323,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 60
       },
       "id": 92,
       "options": {
@@ -2312,7 +2363,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 72
+        "y": 70
       },
       "title": "Selected Nodes CPU Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2420,7 +2471,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 72
+        "y": 70
       },
       "title": "Selected Nodes Memory Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2528,7 +2579,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 72
+        "y": 70
       },
       "title": "Selected Nodes GPU Usage (Absolute) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0 if no GPUs requested or available.",
@@ -2636,7 +2687,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 80
+        "y": 78
       },
       "title": "Selected Nodes CPU Usage (%) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated CPU usage (pod requests) as a percentage of allocatable CPU across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2754,7 +2805,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 80
+        "y": 78
       },
       "title": "Selected Nodes Memory Usage (%) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated Memory usage (pod requests) as a percentage of allocatable Memory across selected nodes (use $node variable). Based on node-resource-exporter.",
@@ -2872,7 +2923,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 80
+        "y": 78
       },
       "title": "Selected Nodes GPU Usage (%) (Avg/Min/Max)",
       "description": "Average, Minimum, and Maximum simulated GPU usage (pod requests) as a percentage of allocatable GPUs across selected nodes (use $node variable). Based on node-resource-exporter. Will show 0% if no GPUs requested or allocatable.",
@@ -3043,7 +3094,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 96
+        "y": 86
       },
       "id": 2201,
       "options": {
@@ -3131,7 +3182,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 96
+        "y": 86
       },
       "id": 2202,
       "options": {
@@ -3219,7 +3270,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 96
+        "y": 86
       },
       "id": 2203,
       "options": {
@@ -3315,7 +3366,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 105
+        "y": 94
       },
       "id": 2101,
       "options": {
@@ -3411,7 +3462,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 105
+        "y": 94
       },
       "id": 2102,
       "options": {
@@ -3507,7 +3558,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 105
+        "y": 94
       },
       "id": 2103,
       "options": {
@@ -3590,7 +3641,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 114
+        "y": 102
       },
       "id": 97,
       "options": {
@@ -3701,7 +3752,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 114
+        "y": 102
       },
       "id": 99,
       "options": {
@@ -3739,6 +3790,28 @@
       ],
       "title": "Node GPU Utilization Evenness (Avg & Std Dev)",
       "type": "timeseries"
+    },
+    {
+      "id": 9005,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 110
+      },
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Scheduler Internal Resource Usage",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.0.0",
+      "title": "## Scheduler Internal Resource Usage",
+      "transparent": true,
+      "type": "text"
     },
     {
       "datasource": {
@@ -3807,7 +3880,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 123
+        "y": 111
       },
       "id": 14,
       "options": {
@@ -3906,7 +3979,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 123
+        "y": 111
       },
       "id": 15,
       "options": {
@@ -4004,7 +4077,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 132
+        "y": 119
       },
       "id": 41,
       "legend": {
@@ -4162,7 +4235,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 132
+        "y": 119
       },
       "id": 42,
       "legend": {
@@ -4390,7 +4463,7 @@
   },
   "timezone": "browser",
   "title": "knavigator - Performance",
-  "uid": "knavigator-performance",
-  "version": 8,
+  "uid": "knavigator-performance-edited",
+  "version": 9,
   "weekStart": ""
 }
