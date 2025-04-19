@@ -27,9 +27,10 @@ logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(mes
 volcano_start_times_cache = {}
 observed_wait_times_uids = set()
 observed_executiontotal_durations_uids = set()
-previous_concurrency_keys = set()
-# {uid: set(tuple(sorted_label_items), ...)} z poprzedniego cyklu
-previous_job_labels_for_uid = {}
+previous_job_labels_for_uid = {}  # {uid: set(tuple(sorted_label_items), ...)} z poprzedniego cyklu
+previous_active_queue_namespaces = (
+    set()
+)  # Przechowuje pary (queue, namespace) z poprzedniego cyklu
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
@@ -659,14 +660,14 @@ def collect_metrics(
     global volcano_start_times_cache
     global observed_wait_times_uids
     global observed_executiontotal_durations_uids
-    global previous_concurrency_keys
     global previous_job_labels_for_uid
+    global previous_active_queue_namespaces
 
     # --- Inicjalizacje dla bieżącego cyklu ---
     current_job_uids_processed = set()
     current_job_labels_for_uid = defaultdict(set)
     current_phase_counts = defaultdict(int)
-    current_concurrency_keys = set()
+    current_active_queue_namespaces = set()
     # --- Koniec inicjalizacji ---
 
     logging.info("Starting unified metrics collection cycle...")
@@ -755,7 +756,15 @@ def collect_metrics(
         if process_result and isinstance(process_result, dict):
             uid = process_result.get("uid")
             labels_used = process_result.get("labels_used")
-            if uid and labels_used is not None:
+            queue = process_result.get("queue", "<error_in_result>")
+            namespace = process_result.get("namespace", "<error_in_result>")
+
+            if (
+                uid
+                and labels_used is not None
+                and queue != "<error_in_result>"
+                and namespace != "<error_in_result>"
+            ):
                 current_job_uids_processed.add(uid)
                 processed_count += 1
 
@@ -766,14 +775,12 @@ def collect_metrics(
                         current_job_labels_for_uid[uid].add(label_tuple)
                 # --- Koniec zapisywania etykiet ---
 
-                # --- Zliczanie dla unified_job_concurrency_count (BEZ ZMIAN) ---
-                queue = process_result.get("queue", "<error_in_result>")
+                # --- Zliczanie dla unified_job_concurrency_count ---
                 phase = process_result.get("phase", "Unknown")
-                namespace = process_result.get("namespace", "<error_in_result>")
                 concurrency_key = (queue, phase, namespace)
                 current_phase_counts[concurrency_key] += 1
-                current_concurrency_keys.add(concurrency_key)
-                # --- Koniec zliczania ---
+                current_active_queue_namespaces.add((queue, namespace))
+                # --- Koniec dodawania ---
             else:
                 error_count += 1
                 logging.warning(
@@ -787,52 +794,61 @@ def collect_metrics(
                 f"Unexpected return type from process_job: {type(process_result)}"
             )
 
-    # --- Ustawianie metryki unified_job_concurrency_count ---
+    # --- Ustawianie i Czyszczenie metryki unified_job_concurrency_count ---
     logging.debug(
-        f"Setting concurrency counts. Found {len(current_phase_counts)} (queue, phase, namespace) combinations."
+        f"Setting concurrency counts. Found {len(current_phase_counts)} (queue, phase, namespace) combinations with jobs."
     )
-    # Ustaw wartości dla kombinacji znalezionych w tym cyklu
-    for (queue, phase, namespace), count in current_phase_counts.items():
-        try:
-            # Zakładamy, że metryka unified_job_concurrency_count jest zdefiniowana globalnie
-            unified_job_concurrency_count.labels(
-                unified_job_queue=queue,
-                unified_job_phase=phase,
-                unified_job_namespace=namespace,
-            ).set(count)
-            logging.debug(
-                f"Set unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}} = {count}"
-            )
-        except Exception as e:
-            # Logujemy błąd, ale kontynuujemy, aby nie przerwać całego cyklu
-            logging.error(
-                f"Failed to set concurrency count for {queue}/{phase}/{namespace}: {e}",
-                exc_info=True,
-            )
 
-    # Wyzeruj metryki dla kombinacji, które istniały poprzednio, ale nie istnieją teraz
-    stale_keys = previous_concurrency_keys - current_concurrency_keys
-    if stale_keys:
-        logging.info(f"Zeroing out {len(stale_keys)} stale concurrency count metrics.")
-        for queue, phase, namespace in stale_keys:
+    all_possible_phases = JOB_STATUS_MAP.keys()
+
+    processed_keys_in_loop = set()
+
+    for queue, namespace in current_active_queue_namespaces:
+        for phase in all_possible_phases:
+            key = (queue, phase, namespace)
+            count = current_phase_counts.get(key, 0)
             try:
                 unified_job_concurrency_count.labels(
                     unified_job_queue=queue,
                     unified_job_phase=phase,
                     unified_job_namespace=namespace,
-                ).set(0)
+                ).set(count)
                 logging.debug(
-                    f"Zeroed out unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}}"
+                    f"Set unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}} = {count}"
                 )
+                processed_keys_in_loop.add(key)
             except Exception as e:
                 logging.error(
-                    f"Failed to zero out stale concurrency count for {queue}/{phase}/{namespace}: {e}",
+                    f"Failed to set concurrency count for {queue}/{phase}/{namespace}: {e}",
                     exc_info=True,
                 )
 
-    # Zaktualizuj zbiór kluczy na potrzeby następnego cyklu
-    previous_concurrency_keys = current_concurrency_keys
-    # --- Koniec ustawiania metryki concurrency ---
+    stale_queue_namespaces = (
+        previous_active_queue_namespaces - current_active_queue_namespaces
+    )
+    if stale_queue_namespaces:
+        logging.info(
+            f"Removing concurrency metrics for {len(stale_queue_namespaces)} queue/namespace combinations that no longer have jobs."
+        )
+        for queue, namespace in stale_queue_namespaces:
+            for phase in all_possible_phases:
+                try:
+                    unified_job_concurrency_count.remove(queue, phase, namespace)
+                    logging.debug(
+                        f"Removed unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}}"
+                    )
+                except KeyError:
+                    logging.debug(
+                        f"Metric unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}} not found for removal (likely already gone or never existed)."
+                    )
+                except Exception as e:
+                    logging.error(
+                        f"Error removing stale concurrency metric for {queue}/{phase}/{namespace}: {e}",
+                        exc_info=True,
+                    )
+
+    previous_active_queue_namespaces = current_active_queue_namespaces
+    # --- Koniec Ustawiania i Czyszczenia metryki concurrency ---
 
     # --- Czyszczenie Starych Metryk Jobów ---
     logging.debug("Starting cleanup of metrics for removed jobs...")
@@ -952,7 +968,11 @@ def collect_metrics(
     end_time_cycle = time.time()
     duration_cycle = end_time_cycle - start_time_cycle
     logging.info(
-        f"Unified metrics collection cycle finished. Processed {processed_count} jobs resulting in metrics. Errors encountered for {error_count} objects. Total UIDs seen this cycle: {len(current_job_uids_processed)}. Cycle duration: {duration_cycle:.2f}s"
+        f"Unified metrics collection cycle finished. Processed {processed_count} jobs resulting in metrics. "
+        f"Errors encountered for {error_count} objects. "
+        f"Total UIDs seen this cycle: {len(current_job_uids_processed)}. "
+        f"Active (queue, namespace) pairs: {len(current_active_queue_namespaces)}. "
+        f"Cycle duration: {duration_cycle:.2f}s"
     )
 
 

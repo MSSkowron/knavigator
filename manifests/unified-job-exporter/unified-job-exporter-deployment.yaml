@@ -63,7 +63,7 @@ spec:
       serviceAccountName: unified-job-exporter
       containers:
         - name: exporter
-          image: mateuszskowron21/metrics-exporter:v1.17.1
+          image: mateuszskowron21/metrics-exporter:v1.17.3
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
