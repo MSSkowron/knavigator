@@ -34,6 +34,9 @@ previous_active_queue_namespaces = (
 previous_histogram_namespaces = (
     set()
 )  # Przechowuje przestrzenie nazw z histogramami z poprzedniego cyklu
+# === POCZĄTEK NOWEGO KODU ===
+job_tas_preference_status = {}  # {uid: 1, 0 lub -1}
+job_tas_requirement_status = {}  # {uid: 1, 0 lub -1}
 
 # --- Definicje Metryk ---
 REGISTRY = CollectorRegistry()
@@ -43,6 +46,8 @@ BASE_LABEL_NAMES = [
     "unified_job_uid",
     "unified_job_kind",
     "unified_job_queue",
+    "unified_job_tas_constraint_type",
+    "unified_job_tas_constraint_level",
 ]
 COMPLETION_LABEL_NAMES = BASE_LABEL_NAMES + ["unified_job_status"]
 
@@ -166,6 +171,20 @@ unified_job_total_duration_seconds_histogram = Histogram(
     buckets=DURATION_BUCKETS,
 )
 
+unified_job_tas_preference_met = Gauge(
+    "unified_job_tas_preference_met",
+    "Indicates if the preferred/soft topology constraint was met (1=met, 0=not met/unknown, -1=N/A)",
+    BASE_LABEL_NAMES,
+    registry=REGISTRY,
+)
+
+unified_job_tas_requirement_met = Gauge(
+    "unified_job_tas_requirement_met",
+    "Indicates if the required/hard topology constraint was met (1=met, 0=VIOLATED, -1=N/A or cannot verify)",
+    BASE_LABEL_NAMES,
+    registry=REGISTRY,
+)
+
 
 # --- Funkcje Pomocnicze ---
 def parse_timestamp(ts_input):
@@ -280,6 +299,15 @@ def process_job(job_obj):
     labels_used_this_call = []
     base_labels = None
     completion_labels = None  # Inicjalizujemy na None
+    tas_constraint_type = "none"
+    tas_constraint_level = "none"
+
+    VOLCANO_TIER_MAP = {
+        1: "kubernetes.io/hostname",  # Najniższy poziom - węzeł
+        2: "network.topology.kubernetes.io/block",  # Poziom bloku/szafy
+        3: "network.topology.kubernetes.io/spine",  # Poziom 'spine switcha'/strefy
+        4: "network.topology.kubernetes.io/datacenter",  # Najwyższy poziom
+    }
 
     try:
         # --- Rozpoznawanie typu obiektu i pobieranie danych ---
@@ -366,18 +394,82 @@ def process_job(job_obj):
 
         logging.debug(f"{log_prefix} Determined queue: {queue_name}")
 
+        try:
+            # --- Ekstrakcja informacji TAS ---
+            if job_kind == "Job":  # Logika Kueue
+                annotations = {}
+                if hasattr(metadata, "annotations") and metadata.annotations:
+                    annotations = metadata.annotations
+                elif isinstance(metadata, dict) and metadata.get("annotations"):
+                    annotations = metadata.get("annotations", {})
+
+                required_level = annotations.get(
+                    "kueue.x-k8s.io/podset-required-topology"
+                )
+                preferred_level = annotations.get(
+                    "kueue.x-k8s.io/podset-preferred-topology"
+                )
+
+                if required_level:
+                    tas_constraint_type = "required"
+                    tas_constraint_level = required_level
+                elif preferred_level:
+                    tas_constraint_type = "preferred"
+                    tas_constraint_level = preferred_level
+                # else: pozostaje 'none'
+
+            elif job_kind == "VolcanoJob":
+                network_topology = spec_data.get("networkTopology")
+                if network_topology and isinstance(network_topology, dict):
+                    mode = network_topology.get("mode")  # hard/soft
+                    tier = network_topology.get("highestTierAllowed")  # numeric
+
+                    # Mapowanie trybu Volcano na ujednolicony typ
+                    if mode == "hard":
+                        tas_constraint_type = (
+                            "required"  # Zmiana z 'hard' na 'required'
+                        )
+                    elif mode == "soft":
+                        tas_constraint_type = (
+                            "preferred"  # Zmiana z 'soft' na 'preferred'
+                        )
+                    else:
+                        tas_constraint_type = "unknown_mode"  # Na wszelki wypadek
+
+                    # Mapowanie tieru Volcano na klucz domeny topologii
+                    if tier is not None and isinstance(tier, int):
+                        tas_constraint_level = VOLCANO_TIER_MAP.get(
+                            tier, f"volcano_tier_{tier}_unmapped"
+                        )
+                        logging.debug(
+                            f"{log_prefix} Mapped Volcano tier {tier} to level: {tas_constraint_level}"
+                        )
+                    else:
+                        tas_constraint_level = "unknown_tier"
+                # else: tas_constraint_type i tas_constraint_level pozostają 'none'
+
+        except Exception as e:
+            logging.warning(f"{log_prefix} Failed to extract TAS constraints: {e}")
+            tas_constraint_type = "error"
+            tas_constraint_level = "error"
+
+        logging.debug(
+            f"{log_prefix} Determined UNIFIED TAS constraints: Type={tas_constraint_type}, Level={tas_constraint_level}"
+        )
+
         base_labels = {
             "unified_job_name": name,
             "unified_job_namespace": namespace,
             "unified_job_uid": uid,
             "unified_job_kind": job_kind,
             "unified_job_queue": queue_name,
+            "unified_job_tas_constraint_type": tas_constraint_type,
+            "unified_job_tas_constraint_level": tas_constraint_level,
         }
-
         labels_used_this_call.append(base_labels)
 
         logging.debug(
-            f"{log_prefix} Processing start. Kind: {job_kind}, Queue: {queue_name}"
+            f"{log_prefix} Processing start. Kind: {job_kind}, Queue: {queue_name}, TAS: {tas_constraint_type}/{tas_constraint_level}"
         )
 
         # --- Timestamps i Status ---
@@ -637,6 +729,10 @@ def process_job(job_obj):
             "phase": current_phase_str,
             "namespace": namespace,
             "labels_used": labels_used_this_call,
+            "tas_type": tas_constraint_type,
+            "tas_level": tas_constraint_level,
+            "name": name,
+            "kind": job_kind,
         }
 
     except Exception as e:
@@ -648,6 +744,122 @@ def process_job(job_obj):
             exc_info=True,
         )
         return None
+
+
+def get_pod_placement_info(core_v1_api, job_uid, job_name, job_namespace, job_kind):
+    """Pobiera informacje o rozmieszczeniu podów dla danego joba."""
+    pod_placements = {}  # {pod_name: node_name}
+    try:
+        # Budowanie selektora etykiet
+        label_selector = ""
+        if job_kind == "Job":
+            # Dla standardowego Joba K8s, użyj controllera UID lub job-name
+            # Controller UID jest bardziej niezawodny, ale job_uid pochodzi z Job, a nie Controller
+            # Użyjmy job-name, zakładając unikalność w namespace
+            label_selector = f"job-name={job_name}"
+            # Można by też pobrać Joba ponownie i znaleźć jego controller-uid, ale to dodatkowe zapytanie API
+        elif job_kind == "VolcanoJob":
+            # Dla Volcano, pody mają etykietę 'volcano.sh/job-name'
+            label_selector = f"volcano.sh/job-name={job_name}"
+        else:
+            logging.warning(
+                f"[get_pod_placement_info] Unknown job kind: {job_kind} for {job_namespace}/{job_name}"
+            )
+            return None  # Nieznany rodzaj joba
+
+        logging.debug(
+            f"[get_pod_placement_info] Listing pods for {job_namespace}/{job_name} with selector: '{label_selector}'"
+        )
+        pod_list = core_v1_api.list_namespaced_pod(
+            namespace=job_namespace,
+            label_selector=label_selector,
+            timeout_seconds=10,  # Krótki timeout
+        )
+
+        for pod in pod_list.items:
+            pod_name = pod.metadata.name
+            node_name = pod.spec.node_name
+            pod_phase = pod.status.phase
+
+            # Interesują nas tylko pody, które zostały przypisane do węzła
+            if node_name and pod_phase not in ["Succeeded", "Failed", "Unknown"]:
+                pod_placements[pod_name] = node_name
+            elif not node_name and pod_phase == "Pending":
+                # Pod jeszcze nie przypisany - preferencja nie może być spełniona (jeszcze)
+                logging.debug(
+                    f"[get_pod_placement_info] Pod {pod_name} for job {job_name} is Pending without node."
+                )
+                # Możemy zwrócić specjalny marker lub None, aby wskazać, że nie można ocenić
+                return None  # Niekompletne rozmieszczenie
+
+        logging.debug(
+            f"[get_pod_placement_info] Found placements for job {job_name}: {pod_placements}"
+        )
+        return pod_placements
+
+    except kubernetes.client.ApiException as e:
+        logging.error(
+            f"API error fetching pods for job {job_namespace}/{job_name}: {e.reason}"
+        )
+    except Exception as e:
+        logging.error(
+            f"Error getting pod placement for job {job_namespace}/{job_name}: {e}",
+            exc_info=True,
+        )
+    return None  # Błąd podczas pobierania
+
+
+def get_node_topology_label_value(node_name, topology_level_key, core_v1_api):
+    """Pobiera wartość etykiety topologii dla danego węzła i poziomu."""
+    # Można by cache'ować etykiety węzłów, aby unikać zapytań API
+    try:
+        node = core_v1_api.read_node(name=node_name)
+        labels = getattr(node.metadata, "labels", {}) or {}
+        return labels.get(topology_level_key)  # Zwróci None jeśli brak etykiety
+    except kubernetes.client.ApiException as e:
+        if e.status == 404:
+            logging.warning(
+                f"[get_node_topology_label_value] Node not found: {node_name}"
+            )
+        else:
+            logging.error(f"API error reading node {node_name}: {e.reason}")
+    except Exception as e:
+        logging.error(
+            f"Error getting topology label for node {node_name}: {e}", exc_info=True
+        )
+    return None
+
+
+def check_preference_met(pod_placements, topology_level_key, core_v1_api):
+    """Sprawdza, czy wszystkie pody w jobie są w tej samej domenie topologii."""
+    if not pod_placements or not topology_level_key:
+        return False  # Brak podów lub poziomu do sprawdzenia
+
+    topology_values = set()
+    for pod_name, node_name in pod_placements.items():
+        label_value = get_node_topology_label_value(
+            node_name, topology_level_key, core_v1_api
+        )
+        if label_value is None:
+            logging.warning(
+                f"Could not get topology label '{topology_level_key}' for node {node_name} (pod {pod_name}). Assuming preference not met."
+            )
+            return False  # Jeśli nie można uzyskać etykiety dla jednego węzła, nie można potwierdzić
+        topology_values.add(label_value)
+
+        # Optymalizacja: jeśli znajdziemy więcej niż jedną wartość, preferencja nie jest spełniona
+        if len(topology_values) > 1:
+            logging.debug(
+                f"Preference not met for level '{topology_level_key}'. Found different values: {topology_values}"
+            )
+            return False
+
+    # Jeśli pętla się zakończyła i mamy dokładnie jedną wartość (lub zero, jeśli nie było podów), preferencja jest spełniona
+    preference_is_met = len(topology_values) == 1
+    logging.debug(
+        f"Preference check result for level '{topology_level_key}': {preference_is_met}. Values found: {topology_values}"
+    )
+    return preference_is_met
 
 
 # --- Główna Pętla ---
@@ -754,6 +966,8 @@ def collect_metrics(
     logging.info(f"Processing a total of {len(all_jobs_raw)} job objects...")
     processed_count = 0
     error_count = 0
+    processed_job_details = []
+
     for job_obj in all_jobs_raw:
         # Przechwyć wynik z process_job (oczekiwany dict lub None)
         process_result = process_job(job_obj)
@@ -770,6 +984,7 @@ def collect_metrics(
                 and queue != "<error_in_result>"
                 and namespace != "<error_in_result>"
             ):
+                processed_job_details.append(process_result)
                 current_job_uids_processed.add(uid)
                 processed_count += 1
                 current_histogram_namespaces.add(namespace)
@@ -799,6 +1014,171 @@ def collect_metrics(
             logging.error(
                 f"Unexpected return type from process_job: {type(process_result)}"
             )
+
+    # --- Sprawdzanie i Ustawianie Metryk Spełnienia Ograniczeń TAS ---
+    logging.debug("Checking and setting TAS constraint fulfillment metrics...")
+    global job_tas_preference_status
+    global job_tas_requirement_status
+    jobs_tas_metrics_set = (
+        set()
+    )  # Śledzi UIDy, dla których *próbowano* ustawić metryki w tym cyklu
+
+    # Pętla przez wyniki zwrócone przez process_job
+    for job_detail in processed_job_details:
+        uid = job_detail.get("uid")
+        tas_type = job_detail.get("tas_type")
+        tas_level = job_detail.get("tas_level")
+        job_name = job_detail.get("name")
+        job_namespace = job_detail.get("namespace")
+        job_kind = job_detail.get("kind")
+        job_queue = job_detail.get("queue", "<error_in_result>")
+        job_phase = job_detail.get("phase")
+
+        # Sprawdź, czy mamy wszystkie potrzebne informacje
+        if not all(
+            [
+                uid,
+                tas_type,
+                tas_level,
+                job_name,
+                job_namespace,
+                job_kind,
+                job_queue != "<error_in_result>",
+                job_phase,
+            ]
+        ):
+            logging.warning(
+                f"Skipping TAS metrics set for job detail due to missing data: {job_detail}"
+            )
+            continue
+
+        # Przygotuj pełny zestaw etykiet bazowych
+        base_labels = {
+            "unified_job_name": job_name,
+            "unified_job_namespace": job_namespace,
+            "unified_job_uid": uid,
+            "unified_job_kind": job_kind,
+            "unified_job_queue": job_queue,
+            "unified_job_tas_constraint_type": tas_type,
+            "unified_job_tas_constraint_level": tas_level,
+        }
+
+        # --- Logika Obliczania Stanu (tylko raz, dla nieterminalnych) ---
+        is_terminal = job_phase in [
+            "Succeeded",
+            "Failed",
+            "Completed",
+            "Aborted",
+            "Terminated",
+        ]
+
+        if not is_terminal:
+            # Sprawdź preferencję tylko jeśli typ='preferred' i brak zapisanego stanu
+            if (
+                tas_type == "preferred"
+                and tas_level != "none"
+                and uid not in job_tas_preference_status
+            ):
+                logging.debug(
+                    f"Calculating PREFERENCE status for non-terminal job {uid}"
+                )
+                pod_placements = get_pod_placement_info(
+                    core_v1_api, uid, job_name, job_namespace, job_kind
+                )
+                calculated_preference = 0  # Domyślnie 0 (niespełnione/nie można ocenić)
+                if pod_placements is not None:
+                    if pod_placements:
+                        is_met = check_preference_met(
+                            pod_placements, tas_level, core_v1_api
+                        )
+                        calculated_preference = 1 if is_met else 0
+                    # else: brak podów = 0
+                # else: błąd/pending = 0
+                job_tas_preference_status[uid] = (
+                    calculated_preference  # Zapisz obliczony stan
+                )
+
+            # Sprawdź wymaganie tylko jeśli typ='required' i brak zapisanego stanu
+            elif (
+                tas_type == "required"
+                and tas_level != "none"
+                and uid not in job_tas_requirement_status
+            ):
+                logging.debug(
+                    f"Calculating REQUIREMENT status for non-terminal job {uid}"
+                )
+                pod_placements = get_pod_placement_info(
+                    core_v1_api, uid, job_name, job_namespace, job_kind
+                )
+                calculated_requirement = -1  # Domyślnie -1 (nie można potwierdzić)
+                if pod_placements is not None:
+                    if pod_placements:
+                        is_collocated = check_preference_met(
+                            pod_placements, tas_level, core_v1_api
+                        )
+                        if is_collocated:
+                            calculated_requirement = 1  # OK
+                        else:
+                            calculated_requirement = 0  # Naruszenie
+                            logging.error(
+                                f"!!! TAS VIOLATION DETECTED !!! Job {uid} ('required' at level '{tas_level}') has pods placed incorrectly: {pod_placements}"
+                            )
+                    # else: brak podów = -1
+                # else: błąd/pending = -1
+                job_tas_requirement_status[uid] = (
+                    calculated_requirement  # Zapisz obliczony stan
+                )
+
+        # --- Ustawianie Metryk (tylko odpowiedniej metryki) ---
+        # Używamy zapamiętanego stanu, jeśli istnieje
+        final_preference_value = job_tas_preference_status.get(
+            uid
+        )  # Zwróci None jeśli brak
+        final_requirement_value = job_tas_requirement_status.get(
+            uid
+        )  # Zwróci None jeśli brak
+
+        try:
+            if tas_type == "preferred":
+                if (
+                    final_preference_value is not None
+                ):  # Ustaw tylko jeśli mamy zapamiętaną wartość (1 lub 0)
+                    unified_job_tas_preference_met.labels(**base_labels).set(
+                        final_preference_value
+                    )
+                    logging.debug(
+                        f"Set PREFERENCE metric for {uid} to {final_preference_value} (from cache/calculation)"
+                    )
+                    jobs_tas_metrics_set.add(uid)  # Oznacz jako "dotknięty"
+                else:
+                    # Jeśli nie ma zapamiętanej wartości (np. job właśnie się pojawił i jest terminalny), nie ustawiaj metryki
+                    logging.debug(
+                        f"Skipping set PREFERENCE metric for {uid} - no cached/calculated value available."
+                    )
+            elif tas_type == "required":
+                if (
+                    final_requirement_value is not None
+                ):  # Ustaw only jeśli mamy zapamiętaną wartość (1, 0 lub -1)
+                    unified_job_tas_requirement_met.labels(**base_labels).set(
+                        final_requirement_value
+                    )
+                    logging.debug(
+                        f"Set REQUIREMENT metric for {uid} to {final_requirement_value} (from cache/calculation)"
+                    )
+                    jobs_tas_metrics_set.add(uid)  # Oznacz jako "dotknięty"
+                else:
+                    # Jeśli nie ma zapamiętanej wartości, nie ustawiaj metryki
+                    logging.debug(
+                        f"Skipping set REQUIREMENT metric for {uid} - no cached/calculated value available."
+                    )
+            # else: Dla 'none' lub 'error' nic nie ustawiamy
+
+        except Exception as e:
+            logging.error(
+                f"Failed to set specific TAS metric for {uid}: {e}", exc_info=True
+            )
+
+    # --- Koniec Sprawdzania i Ustawiania Metryk TAS ---
 
     # --- Ustawianie i Czyszczenie metryki unified_job_concurrency_count ---
     logging.debug(
@@ -865,6 +1245,10 @@ def collect_metrics(
     if removed_uids:
         logging.info(f"Found {len(removed_uids)} jobs to remove metrics for.")
         for uid in removed_uids:
+            removed_pref = job_tas_preference_status.pop(uid, None)
+            removed_req = job_tas_requirement_status.pop(uid, None)
+            if removed_pref is not None or removed_req is not None:
+                logging.debug(f"Removed cached TAS status for job UID: {uid}")
             label_tuples_to_remove = previous_job_labels_for_uid.get(uid)
             if label_tuples_to_remove:
                 logging.debug(f"Removing metrics for job UID: {uid}")
@@ -915,6 +1299,37 @@ def collect_metrics(
                                 )
                                 unified_job_wait_duration_seconds.remove(*label_values)
                                 unified_job_status_phase.remove(*label_values)
+
+                                try:
+                                    unified_job_tas_preference_met.remove(*label_values)
+                                    logging.debug(
+                                        f"  - Removing preference metric with values: {label_values}"
+                                    )
+                                except KeyError:
+                                    logging.debug(
+                                        f"  - Preference metric not found for removal with labels: {label_values}"
+                                    )
+                                except Exception as e:
+                                    logging.warning(
+                                        f"  - Error removing preference metric for UID {uid} with values {label_values}: {e}"
+                                    )
+
+                                # Usuwanie requirement_met
+                                try:
+                                    unified_job_tas_requirement_met.remove(
+                                        *label_values
+                                    )
+                                    logging.debug(
+                                        f"  - Removing requirement metric with values: {label_values}"
+                                    )
+                                except KeyError:
+                                    logging.debug(
+                                        f"  - Requirement metric not found for removal with labels: {label_values}"
+                                    )
+                                except Exception as e:
+                                    logging.warning(
+                                        f"  - Error removing requirement metric for UID {uid} with values {label_values}: {e}"
+                                    )
                             except KeyError as e:
                                 logging.warning(
                                     f"  - Label key '{e}' not found in base label dict for UID {uid} while preparing values. Dict: {label_dict}"
