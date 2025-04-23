@@ -397,16 +397,28 @@ def process_job(job_obj):
         try:
             # --- Ekstrakcja informacji TAS ---
             if job_kind == "Job":  # Logika Kueue
-                annotations = {}
-                if hasattr(metadata, "annotations") and metadata.annotations:
-                    annotations = metadata.annotations
-                elif isinstance(metadata, dict) and metadata.get("annotations"):
-                    annotations = metadata.get("annotations", {})
+                pod_template_annotations = {}
+                if (
+                    hasattr(spec_data, "template")
+                    and spec_data.template
+                    and hasattr(spec_data.template, "metadata")
+                    and spec_data.template.metadata
+                    and hasattr(spec_data.template.metadata, "annotations")
+                    and spec_data.template.metadata.annotations
+                ):
+                    pod_template_annotations = spec_data.template.metadata.annotations
+                    logging.debug(
+                        f"{log_prefix} Found Pod Template annotations: {pod_template_annotations}"
+                    )
+                else:
+                    logging.debug(
+                        f"{log_prefix} No annotations found on Job's Pod Template metadata."
+                    )
 
-                required_level = annotations.get(
+                required_level = pod_template_annotations.get(
                     "kueue.x-k8s.io/podset-required-topology"
                 )
-                preferred_level = annotations.get(
+                preferred_level = pod_template_annotations.get(
                     "kueue.x-k8s.io/podset-preferred-topology"
                 )
 
