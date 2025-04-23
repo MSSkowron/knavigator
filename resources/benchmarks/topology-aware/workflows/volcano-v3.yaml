@@ -143,7 +143,6 @@ tasks:
             network.topology.kubernetes.io/block: sw115
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
-            block-sw115: "true"
             nvidia.com/gpu.count: "8"
             nvidia.com/mlnxnics: "16"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
@@ -160,7 +159,6 @@ tasks:
           count: 1
           namePrefix: n6
           labels:
-            block-sw115: "true"
             network.topology.kubernetes.io/block: sw115
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -180,7 +178,6 @@ tasks:
           count: 1
           namePrefix: n7
           labels:
-            block-sw115: "true"
             network.topology.kubernetes.io/block: sw115
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -679,5 +676,5 @@ tasks:
       refTaskId: job-multinode
       status: Running
       nodeLabels:
-        block-sw115: "true" # All pods should be in block sw115
+        network.topology.kubernetes.io/block: sw115 # All pods should be in block sw115
       timeout: 30s
