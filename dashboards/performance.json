@@ -4851,6 +4851,382 @@
           "range": true
         }
       ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 161
+      },
+      "id": 6000,
+      "panels": [],
+      "title": "Topology Aware Scheduling (TAS) Analysis",
+      "type": "row"
+    },
+    {
+      "id": 6001,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 162
+      },
+      "type": "timeseries",
+      "title": "Count of Jobs with TAS Constraints",
+      "description": "Number of jobs identified with 'required' or 'preferred' TAS constraints over time, grouped by constraint type and level.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Count",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "count by (unified_job_tas_constraint_type, unified_job_tas_constraint_level) (unified_job_status_phase{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"})",
+          "legendFormat": "Required - {{ unified_job_tas_constraint_level }}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "count by (unified_job_tas_constraint_type, unified_job_tas_constraint_level) (unified_job_status_phase{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"})",
+          "legendFormat": "Preferred - {{ unified_job_tas_constraint_level }}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 6002,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 170
+      },
+      "type": "timeseries",
+      "title": "TAS Preference Fulfillment Rate (%)",
+      "description": "Percentage of jobs with 'preferred'/'soft' constraints that had their pods placed according to the preference. Based on unified_job_tas_preference_met.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "axisSoftMin": 0,
+            "axisSoftMax": 100,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 80 },
+              { "color": "green", "value": 95 }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "(  count by (unified_job_tas_constraint_level) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} == 1) /  count by (unified_job_tas_constraint_level) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} != -1)) * 100",
+          "legendFormat": "Fulfilled % - {{ unified_job_tas_constraint_level }}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 6003,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 170
+      },
+      "type": "timeseries",
+      "title": "TAS Requirement Fulfillment Rate (%)",
+      "description": "Percentage of jobs with 'required'/'hard' constraints that had their pods placed according to the requirement. Should always be 100%. Based on unified_job_tas_requirement_met.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "axisSoftMin": 0,
+            "axisSoftMax": 100,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "dark-red", "value": null },
+              { "color": "red", "value": 99.99 },
+              { "color": "green", "value": 100 }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "(  count by (unified_job_tas_constraint_level) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} == 1) /  count by (unified_job_tas_constraint_level) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} != -1)) * 100",
+          "legendFormat": "Fulfilled % - {{ unified_job_tas_constraint_level }}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 6004,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 178
+      },
+      "type": "timeseries",
+      "title": "TAS Requirement Violations (Count)",
+      "description": "Number of jobs with 'required'/'hard' constraints that were violated (pods placed incorrectly). Should always be 0. Based on unified_job_tas_requirement_met == 0.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Count",
+            "axisPlacement": "left",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.1 }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "count by (unified_job_tas_constraint_level) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} == 0)",
+          "legendFormat": "Violations - {{ unified_job_tas_constraint_level }}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 6006,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 178
+      },
+      "type": "timeseries",
+      "title": "TAS Preference Violations (Count)",
+      "description": "Number of jobs with 'preferred'/'soft' constraints that were NOT met (pods placed ignoring preference). Based on unified_job_tas_preference_met == 0.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Count",
+            "axisPlacement": "left",
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.1 }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "count by (unified_job_tas_constraint_level) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} == 0)",
+          "legendFormat": "Not Met - {{ unified_job_tas_constraint_level }}",
+          "range": true
+        }
+      ]
     }
   ],
   "refresh": "10s",
