@@ -4325,6 +4325,532 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "id": 5000,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 127
+      },
+      "options": {
+        "code": {
+          "language": "markdown",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Fair Sharing Analysis (Based on Pod Requests)",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.0.0",
+      "title": "## Fair Sharing Analysis (Based on Pod Requests)",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "id": 5011,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 128 },
+      "type": "timeseries",
+      "title": "JFI CPU Requests",
+      "description": "Jain's Fairness Index for CPU requests among active namespaces (Running pods). 1 = Perfect Equality.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "JFI (0-1)",
+            "axisPlacement": "left",
+            "axisSoftMin": 0,
+            "axisSoftMax": 1,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "dark-red", "value": null },
+              { "color": "red", "value": 0.5 },
+              { "color": "orange", "value": 0.8 },
+              { "color": "green", "value": 0.95 }
+            ]
+          },
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "JFI CPU Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "blue", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "JFI Memory Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "JFI GPU Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "purple", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "min", "max"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "( sum( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"cpu\", unit=\"core\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) or on(namespace) vector(0) ) ^ 2 ) / ( count( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"cpu\", unit=\"core\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) > 0 ) * sum( ( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"cpu\", unit=\"core\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) or on(namespace) vector(0) ) ^ 2 ) ) or on() vector(1)",
+          "legendFormat": "JFI CPU",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 5012,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 128 },
+      "type": "timeseries",
+      "title": "JFI Memory Requests",
+      "description": "Jain's Fairness Index for Memory requests among active namespaces (Running pods). 1 = Perfect Equality.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "JFI (0-1)",
+            "axisPlacement": "left",
+            "axisSoftMin": 0,
+            "axisSoftMax": 1,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "dark-red", "value": null },
+              { "color": "red", "value": 0.5 },
+              { "color": "orange", "value": 0.8 },
+              { "color": "green", "value": 0.95 }
+            ]
+          },
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "JFI CPU Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "blue", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "JFI Memory Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "JFI GPU Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "purple", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "min", "max"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "( sum( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"memory\", unit=\"byte\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) or on(namespace) vector(0) ) ^ 2 ) / ( count( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"memory\", unit=\"byte\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) > 0 ) * sum( ( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"memory\", unit=\"byte\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) or on(namespace) vector(0) ) ^ 2 ) ) or on() vector(1)",
+          "legendFormat": "JFI Memory",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 5013,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 128 },
+      "type": "timeseries",
+      "title": "JFI GPU Requests",
+      "description": "Jain's Fairness Index for GPU (nvidia.com/gpu) requests among active namespaces (Running pods). 1 = Perfect Equality.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "JFI (0-1)",
+            "axisPlacement": "left",
+            "axisSoftMin": 0,
+            "axisSoftMax": 1,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "dark-red", "value": null },
+              { "color": "red", "value": 0.5 },
+              { "color": "orange", "value": 0.8 },
+              { "color": "green", "value": 0.95 }
+            ]
+          },
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "JFI CPU Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "blue", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "JFI Memory Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "JFI GPU Requests" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "purple", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "min", "max"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "( sum( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) or on(namespace) vector(0) ) ^ 2 ) / ( count( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) > 0 ) * sum( ( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", pod!=\"\", namespace=~\"$namespace\"} and on(pod, namespace) kube_pod_status_phase{phase=\"Running\"} == 1 ) or on(namespace) vector(0) ) ^ 2 ) ) or on() vector(1)",
+          "legendFormat": "JFI GPU",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 5002,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 136 },
+      "type": "timeseries",
+      "title": "CPU Request Share (% of Cluster Allocatable)",
+      "description": "Percentage of total cluster allocatable CPU requested by pods (Pending/Running) in each namespace. Based on KSM requests and node-resource-exporter allocatable (excludes control-plane).",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 70,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "( ( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"cpu\", unit=\"core\", pod!=\"\", namespace=~\"$namespace\"} * on(pod, namespace) (kube_pod_status_phase{phase=\"Running\"} == 1) ) or on(namespace) (0 * kube_namespace_created{namespace=~\"$namespace\"}) ) / on() group_left() sum(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"}) * 100 ) unless on() sum(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"}) == 0",
+          "legendFormat": "{{namespace}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 5003,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 136 },
+      "type": "timeseries",
+      "title": "Memory Request Share (% of Cluster Allocatable)",
+      "description": "Percentage of total cluster allocatable Memory requested by pods (Pending/Running) in each namespace. Based on KSM requests and node-resource-exporter allocatable (excludes control-plane).",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 70,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "( ( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"memory\", unit=\"byte\", pod!=\"\", namespace=~\"$namespace\"} * on(pod, namespace) (kube_pod_status_phase{phase=\"Running\"} == 1) ) or on(namespace) (0 * kube_namespace_created{namespace=~\"$namespace\"}) ) / on() group_left() sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"}) * 100 ) unless on() sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"}) == 0",
+          "legendFormat": "{{namespace}}",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 5004,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 136 },
+      "type": "timeseries",
+      "title": "GPU Request Share (% of Cluster Allocatable)",
+      "description": "Percentage of total cluster allocatable GPU (nvidia.com/gpu) requested by pods (Pending/Running) in each namespace. Based on KSM requests and node-resource-exporter allocatable (excludes control-plane). Shows 0% if no GPUs are allocatable or requested.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 70,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "( ( sum by (namespace) ( kube_pod_container_resource_requests{resource=\"nvidia.com/gpu\", pod!=\"\", namespace=~\"$namespace\"} * on(pod, namespace) (kube_pod_status_phase{phase=\"Running\"} == 1) ) or on(namespace) (0 * kube_namespace_created{namespace=~\"$namespace\"}) ) / on() group_left() sum(node_allocatable_gpu_cards{node_name!~\"kind-control-plane\"}) * 100 ) unless on() sum(node_allocatable_gpu_cards{node_name!~\"kind-control-plane\"}) == 0",
+          "legendFormat": "{{namespace}}",
+          "range": true
+        }
+      ]
     }
   ],
   "refresh": "10s",
