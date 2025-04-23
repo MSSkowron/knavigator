@@ -5,13 +5,13 @@ description: |
   for optimal performance of distributed workloads.
 
   The benchmark creates a 16-node cluster with a tree-like network topology and marks 7 nodes as busy:
-            __________ sw31 _________________________
+            __________ sw31 _________________________               - 4
            /            |             \              \
-       sw21            sw22            sw23           sw24
+       sw21            sw22            sw23           sw24          - 3
        /  \            /  \            /  \          /    \
-   sw11    sw12    sw13    sw14    sw15    sw16     sw17   sw18
+   sw11    sw12    sw13    sw14    sw15    sw16     sw17   sw18     - 2
     /\      /\      /\      /\      /\      /\      /  \   /  \
-  n1  n2  n3  n4  n5  n6  n7  n8  n9 n10 n11 n12   n13 n14 n15 n16
+  n1  n2  n3  n4  n5  n6  n7  n8  n9 n10 n11 n12   n13 n14 n15 n16  - 1
   x       x       ^^  x   ^^  ^^         x   x         x       x
 
   Then deploy a 3-replicas job. The optimal nodes from the
@@ -35,8 +35,8 @@ tasks:
               tiers:
               - plugins:
                 - name: priority
+                - name: gang
               - plugins:
-                - name: drf
                 - name: predicates
                 - name: proportion
                 - name: nodeorder
@@ -400,19 +400,181 @@ tasks:
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
-  # Create leaf HyperNodes for blocks
+  # --- TIER 1: Create Leaf HyperNodes for individual nodes ---
+  - id: create-leaf-hypernode-n1
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n1-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n1
+  - id: create-leaf-hypernode-n2
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n2-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n2
+  - id: create-leaf-hypernode-n3
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n3-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n3
+  - id: create-leaf-hypernode-n4
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n4-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n4
+  - id: create-leaf-hypernode-n5
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n5-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n5
+  - id: create-leaf-hypernode-n6
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n6-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n6
+  - id: create-leaf-hypernode-n7
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n7-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n7
+  - id: create-leaf-hypernode-n8
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n8-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n8
+  - id: create-leaf-hypernode-n9
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n9-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n9
+  - id: create-leaf-hypernode-n10
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n10-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n10
+  - id: create-leaf-hypernode-n11
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n11-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n11
+  - id: create-leaf-hypernode-n12
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n12-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n12
+  - id: create-leaf-hypernode-n13
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n13-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n13
+  - id: create-leaf-hypernode-n14
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n14-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n14
+  - id: create-leaf-hypernode-n15
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n15-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n15
+  - id: create-leaf-hypernode-n16
+    type: SubmitObj
+    params:
+      refTaskId: register-hypernode
+      params:
+        name: n16-hn
+        tier: 1
+        members:
+          - type: Node
+            exactMatch: n16
+
+  # --- TIER 2: Create Block HyperNodes grouping leaf hypernodes ---
   - id: create-hypernode-sw11
     type: SubmitObj
     params:
       refTaskId: register-hypernode
       params:
         name: sw11
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n1
-          - type: Node
-            exactMatch: n2
+          - type: HyperNode
+            exactMatch: n1-hn
+          - type: HyperNode
+            exactMatch: n2-hn
 
   - id: create-hypernode-sw12
     type: SubmitObj
@@ -420,12 +582,12 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw12
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n3
-          - type: Node
-            exactMatch: n4
+          - type: HyperNode
+            exactMatch: n3-hn
+          - type: HyperNode
+            exactMatch: n4-hn
 
   - id: create-hypernode-sw13
     type: SubmitObj
@@ -433,12 +595,12 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw13
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n5
-          - type: Node
-            exactMatch: n6
+          - type: HyperNode
+            exactMatch: n5-hn
+          - type: HyperNode
+            exactMatch: n6-hn
 
   - id: create-hypernode-sw14
     type: SubmitObj
@@ -446,12 +608,12 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw14
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n7
-          - type: Node
-            exactMatch: n8
+          - type: HyperNode
+            exactMatch: n7-hn
+          - type: HyperNode
+            exactMatch: n8-hn
 
   - id: create-hypernode-sw15
     type: SubmitObj
@@ -459,12 +621,12 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw15
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n9
-          - type: Node
-            exactMatch: n10
+          - type: HyperNode
+            exactMatch: n9-hn
+          - type: HyperNode
+            exactMatch: n10-hn
 
   - id: create-hypernode-sw16
     type: SubmitObj
@@ -472,12 +634,12 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw16
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n11
-          - type: Node
-            exactMatch: n12
+          - type: HyperNode
+            exactMatch: n11-hn
+          - type: HyperNode
+            exactMatch: n12-hn
 
   - id: create-hypernode-sw17
     type: SubmitObj
@@ -485,12 +647,12 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw17
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n13
-          - type: Node
-            exactMatch: n14
+          - type: HyperNode
+            exactMatch: n13-hn
+          - type: HyperNode
+            exactMatch: n14-hn
 
   - id: create-hypernode-sw18
     type: SubmitObj
@@ -498,21 +660,21 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw18
-        tier: 1
+        tier: 2
         members:
-          - type: Node
-            exactMatch: n15
-          - type: Node
-            exactMatch: n16
+          - type: HyperNode
+            exactMatch: n15-hn
+          - type: HyperNode
+            exactMatch: n16-hn
 
-  # Create spine layer HyperNodes
+  # --- TIER 3: Create Spine layer HyperNodes ---
   - id: create-hypernode-sw21
     type: SubmitObj
     params:
       refTaskId: register-hypernode
       params:
         name: sw21
-        tier: 2
+        tier: 3
         members:
           - type: HyperNode
             exactMatch: sw11
@@ -525,7 +687,7 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw22
-        tier: 2
+        tier: 3
         members:
           - type: HyperNode
             exactMatch: sw13
@@ -538,7 +700,7 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw23
-        tier: 2
+        tier: 3
         members:
           - type: HyperNode
             exactMatch: sw15
@@ -551,21 +713,21 @@ tasks:
       refTaskId: register-hypernode
       params:
         name: sw24
-        tier: 2
+        tier: 3
         members:
           - type: HyperNode
             exactMatch: sw17
           - type: HyperNode
             exactMatch: sw18
 
-  # Create datacenter layer HyperNode
+  # --- TIER 4: Create datacenter layer HyperNode ---
   - id: create-hypernode-sw31
     type: SubmitObj
     params:
       refTaskId: register-hypernode
       params:
         name: sw31
-        tier: 3
+        tier: 4
         members:
           - type: HyperNode
             exactMatch: sw21
@@ -585,6 +747,7 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         cpu: 16000m
         memory: 32768Mi
@@ -592,7 +755,7 @@ tasks:
         ttl: "1m"
         networkTopology: true
         topologyMode: hard
-        highestTierAllowed: 2
+        highestTierAllowed: 3
 
   # Check if pods are running on the optimal nodes
   - id: status
@@ -620,6 +783,7 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         cpu: 16000m
         memory: 32768Mi
@@ -627,7 +791,7 @@ tasks:
         ttl: "1m"
         networkTopology: true
         topologyMode: soft
-        highestTierAllowed: 2
+        highestTierAllowed: 3
 
   # Check if pods are running on the optimal nodes
   - id: status

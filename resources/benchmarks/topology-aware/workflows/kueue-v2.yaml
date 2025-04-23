@@ -601,6 +601,7 @@ tasks:
           - nodeLabel: "network.topology.kubernetes.io/datacenter"
           - nodeLabel: "network.topology.kubernetes.io/spine"
           - nodeLabel: "network.topology.kubernetes.io/block"
+          - nodeLabel: "kubernetes.io/hostname"
 
   # Tworzenie ResourceFlavor z odniesieniem do topologii
   - id: create-resource-flavor

@@ -31,8 +31,8 @@ tasks:
               tiers:
               - plugins:
                 - name: priority
+                - name: gang
               - plugins:
-                - name: drf
                 - name: predicates
                 - name: proportion
                 - name: nodeorder
@@ -1342,6 +1342,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1360,6 +1361,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1378,6 +1380,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1396,6 +1399,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1414,6 +1418,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1432,6 +1437,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1450,6 +1456,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1468,6 +1475,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 1,
+          minAvailable: 1,
           cpu: 32000m,
           memory: 131072Mi,
           gpu: 4,
@@ -1487,6 +1495,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1505,6 +1514,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1523,6 +1533,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1541,6 +1552,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1559,6 +1571,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1577,6 +1590,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1595,6 +1609,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1613,6 +1628,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1631,6 +1647,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1649,6 +1666,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1667,6 +1685,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1685,6 +1704,7 @@ tasks:
           namespace: default,
           queue: default,
           replicas: 4,
+          minAvailable: 4,
           cpu: 8000m,
           memory: 32768Mi,
           gpu: 2,
@@ -1769,6 +1789,7 @@ tasks:
         namespace: default
         queue: default
         replicas: 8
+        minAvailable: 8
         cpu: 32000m
         memory: 131072Mi
         gpu: 4
@@ -1787,6 +1808,7 @@ tasks:
         namespace: default
         queue: default
         replicas: 4
+        minAvailable: 4
         cpu: 8000m
         memory: 32768Mi
         gpu: 1

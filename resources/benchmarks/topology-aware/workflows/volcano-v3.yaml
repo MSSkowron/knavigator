@@ -39,8 +39,8 @@ tasks:
               tiers:
               - plugins:
                 - name: priority
+                - name: gang
               - plugins:
-                - name: drf
                 - name: predicates
                 - name: proportion
                 - name: nodeorder
@@ -619,11 +619,12 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         cpu: 2000m
         memory: 2048Mi
         gpu: 6 # Total: 18 GPUs (fits on supernode, but would need 3 regular nodes)
-        ttl: "2m"
+        ttl: "1m"
         networkTopology: true
         topologyMode: hard
         highestTierAllowed: 1
@@ -638,6 +639,12 @@ tasks:
       nodeLabels:
         kubernetes.io/hostname: n1 # Supernode
       timeout: 30s
+
+  # Krótkie opóźnienie po 1 fazie
+  - id: job-delay
+    type: Sleep
+    params:
+      timeout: 90s
 
   # Phase 2: Mark supernode as unschedulable
   - id: disable-supernode
@@ -659,6 +666,7 @@ tasks:
       params:
         namespace: default
         replicas: 3
+        minAvailable: 3
         queue: default
         cpu: 2000m
         memory: 2048Mi
