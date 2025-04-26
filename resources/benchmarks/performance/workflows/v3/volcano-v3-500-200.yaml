@@ -81,74 +81,52 @@ tasks:
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
 
-  # Group 1: High-GPU Jobs (8 GPUs per job)
-  # Total resources:
-  # - 3,200 CPU cores (200 × 16 = 5% of cluster)
-  # - ~18.75Ti memory (200 × 96Gi = 3.75% of cluster)
-  # - 1,600 GPUs (200 × 8 = 40% of cluster)
-  - id: high-gpu-jobs
-    type: SubmitObj
+  # --- Submit All Job Groups Simultaneously using Parallel Task ---
+  - id: submit-all-jobs-parallel
+    type: Parallel
     params:
-      refTaskId: register-high-gpu
-      count: 200
-      params:
-        namespace: default
-        replicas: 1
-        queue: default
-        cpu: 16000m # 16 cores (12.5% of node)
-        memory: 96Gi # 96GB (9.4% of node)
-        gpu: 8 # 8 GPUs (100% of node)
-        ttl: 5m
+      tasks:
+        # Group 1: High-GPU Jobs (8 GPUs per job)
+        - type: SubmitObj
+          params:
+            refTaskId: register-high-gpu
+            count: 200
+            params:
+              namespace: default
+              replicas: 1
+              queue: default
+              cpu: 16000m # 16 cores (12.5% of node)
+              memory: 96Gi # 96GB (9.4% of node)
+              gpu: 8 # 8 GPUs (100% of node)
+              ttl: 5m
 
-  # Krótkie opóźnienie po 1 fazie
-  - id: high-gpu-delay
-    type: Sleep
-    params:
-      timeout: 15s
+        # Group 2: Medium-GPU Jobs (2 GPUs per job)
+        - type: SubmitObj
+          params:
+            refTaskId: register-medium-gpu
+            count: 200
+            params:
+              namespace: default
+              replicas: 1
+              queue: default
+              cpu: 8000m # 8 cores (6.25% of node)
+              memory: 32Gi # 32GB (3.1% of node)
+              gpu: 2 # 2 GPUs (25% of node)
+              ttl: 5m
 
-  # Group 2: Medium-GPU Jobs (2 GPUs per job)
-  # Total resources:
-  # - 1,600 CPU cores (200 × 8 = 2.5% of cluster)
-  # - ~6.25Ti memory (200 × 32Gi = 1.25% of cluster)
-  # - 400 GPUs (200 × 2 = 10% of cluster)
-  - id: medium-gpu-jobs
-    type: SubmitObj
-    params:
-      refTaskId: register-medium-gpu
-      count: 200
-      params:
-        namespace: default
-        replicas: 1
-        queue: default
-        cpu: 8000m # 8 cores (6.25% of node)
-        memory: 32Gi # 32GB (3.1% of node)
-        gpu: 2 # 2 GPUs (25% of node)
-        ttl: 5m
-
-  # Krótkie opóźnienie po 2 fazie
-  - id: medium-gpu-delay
-    type: Sleep
-    params:
-      timeout: 15s
-
-  # Group 3: CPU-Only Jobs (no GPUs)
-  # Total resources:
-  # - 6,400 CPU cores (200 × 32 = 10% of cluster)
-  # - ~25Ti memory (200 × 128Gi = 5% of cluster)
-  # - 0 GPUs
-  - id: cpu-only-jobs
-    type: SubmitObj
-    params:
-      refTaskId: register-cpu-only
-      count: 200
-      params:
-        namespace: default
-        replicas: 1
-        queue: default
-        cpu: 32000m # 32 cores (25% of node)
-        memory: 128Gi # 128GB (12.5% of node)
-        gpu: 0 # No GPUs
-        ttl: 5m
+        # Group 3: CPU-Only Jobs (no GPUs)
+        - type: SubmitObj
+          params:
+            refTaskId: register-cpu-only
+            count: 200
+            params:
+              namespace: default
+              replicas: 1
+              queue: default
+              cpu: 32000m # 32 cores (25% of node)
+              memory: 128Gi # 128GB (12.5% of node)
+              gpu: 0 # No GPUs
+              ttl: 5m
 # Total cluster utilization:
 # - 11,200 CPU cores (17.5% of cluster)
 # - ~50Ti memory (10% of cluster)

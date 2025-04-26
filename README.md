@@ -247,11 +247,11 @@ tasks:
 
 #### Key Concepts
 
-- **Sequential Execution**: Tasks are executed sequentially. If a task fails, the workflow stops.
-- **Unique IDs**: Each task must have a unique id within the workflow.
-- **Task References**: Tasks can reference other tasks using refTaskId to establish dependencies.
+- **Sequential Execution**: By default, tasks are executed sequentially. If a task fails, the workflow stops unless modified by control flow tasks.
+- **Unique IDs**: Each task must have a unique id within the workflow. Tasks defined within `ParallelTask` or `RepeatTask` have their IDs ignored and dynamically generated to prevent conflicts during runtime.
+- **Task References**: Tasks can reference other tasks using refTaskId to establish dependencies (e.g., `SubmitObj` referencing `RegisterObj`). This is typically used between top-level sequential tasks.
 - **Timeouts**: Most tasks support a timeout parameter to limit execution time.
-- **Parameter Propagation**: Values generated in one task (like object names) can be referenced in subsequent tasks.
+- **Parameter Propagation**: Values generated in one task (like object names via nameFormat) can be referenced in subsequent tasks.
 
 #### Task Types
 
@@ -265,17 +265,17 @@ tasks:
      params:
        # Required: Path to the template file
        template: "resources/templates/k8s/job.yml"
-       
+
        # Required: Template for generating unique object names
        # Uses _ENUM_ as an incrementing counter
        # The result is stored as _NAME_ in the parameter map
        nameFormat: "job{{._ENUM_}}"
-       
+
        # Optional: Pattern for matching pod names created by this object
        # Uses _NAME_ to reference the parent object's name
        # Required when using CheckPod task
        podNameFormat: "{{._NAME_}}-[0-9]-.*"
-       
+
        # Optional: Number of pods expected per object
        # Can be a fixed number or template expression
        # Required when using CheckPod task
@@ -292,14 +292,14 @@ tasks:
      params:
        # Required: References the RegisterObj task
        refTaskId: register
-       
+
        # Optional: Number of object instances to create (default: 1)
        # When count > 1, the referenced RegisterObj must specify nameFormat
        count: 2
-       
+
        # Optional: If true, doesn't error when object already exists
        canExist: true
-       
+
        # Optional: Parameters for template substitution
        # These replace placeholders in the template
        params:
@@ -321,14 +321,14 @@ tasks:
      params:
        # Required: References the SubmitObj task that created the object
        refTaskId: submit
-       
+
        # Required: New state to apply to the object
        state:
          spec:
            parallelism: 3
          status:
            someField: newValue
-       
+
        # Optional: Timeout for the update operation
        timeout: 30s
    ```
@@ -361,12 +361,12 @@ tasks:
            nvidia.com/gpu.count: "8"
          annotations: {}      # Optional annotations
          conditions: []       # Optional node conditions
-       
+
        # Optional: Manage namespaces
        namespaces:
        - name: test-namespace
          op: create           # Operation: create or delete
-       
+
        # Optional: Manage ConfigMaps
        configmaps:
        - name: test-config
@@ -375,13 +375,13 @@ tasks:
          data:                # ConfigMap data (for create operations)
            key1: value1
            key2: value2
-       
+
        # Optional: Manage PriorityClasses
        priorityClasses:
        - name: high-priority
          value: 90            # Priority value (required for create)
          op: create           # Operation: create or delete
-       
+
        # Optional: Restart deployments
        deploymentRestarts:
        - name: my-deployment  # Deployment name (exclusive with labels)
@@ -389,7 +389,7 @@ tasks:
          # OR use labels to select deployments:
          # labels:
          #   app: my-app
-       
+
        # Required: Timeout for all configuration operations
        timeout: 1m
     ```
@@ -406,13 +406,13 @@ tasks:
        selectors:
        - key1: value1     # Nodes matching all these labels will be updated
        - key2: value2     # Multiple selectors work as OR condition
-       
+
        # Required: New state to apply to matching nodes
        state:
          spec:
            unschedulable: true    # Mark nodes as unschedulable
          # Can also update other node properties
-       
+
        # Optional: Timeout for the operation
        timeout: 30s
     ```
@@ -427,13 +427,13 @@ tasks:
      params:
        # Required: References the task that created the objects to check
        refTaskId: submit
-       
+
        # Required: Expected state to verify
        state:
          status:
            active: 3
            succeeded: 0
-       
+
        # Optional: Timeout for verification
        timeout: 10s
     ```
@@ -448,14 +448,14 @@ tasks:
      params:
        # Required: References the task that created the objects whose pods to check
        refTaskId: submit
-       
+
        # Required: Expected pod status (Running, Succeeded, Failed, etc.)
        status: Running
-       
+
        # Optional: Verify pods are on nodes with these labels
        nodeLabels:
          nvidia.com/gpu.count: "8"
-       
+
        # Optional: Timeout for verification
        timeout: 5s
     ```
@@ -470,14 +470,14 @@ tasks:
      params:
        # Required: ConfigMap name to check
        name: my-configmap
-       
+
        # Required: Namespace where the ConfigMap is located
        namespace: default
-       
+
        # Required: Expected data to verify
        data:
          key1: value1
-       
+
        # Required: Comparison operation
        # - equal: Exact match (all keys and values must match)
        # - subset: Data must contain at least these keys with matching values
@@ -503,6 +503,64 @@ tasks:
     ```yaml
     - id: manual-check
       type: Pause
+    ```
+
+- `Parallel`
+
+    Executes a defined list of sub-tasks concurrently. This task completes successfully only if all its sub-tasks complete successfully. If any sub-task fails, the Parallel task fails immediately (though other running parallel sub-tasks might continue until completion or cancellation). This is useful for running independent operations simultaneously.
+
+    Note: Any id specified for the sub-tasks within the tasks list will be ignored. Knavigator generates unique internal IDs for each sub-task during parallel execution to prevent conflicts. Sub-tasks within Parallel cannot directly reference each other using refTaskId.
+
+    ```yaml
+    - id: parallel-ops
+      type: Parallel
+      params:
+        # Required: A list of task configurations to execute concurrently.
+        tasks:
+          - type: SubmitObj # Example: Submit a batch of jobs of type a
+            params:
+              refTaskId: register-batch-job-a
+              count: 10
+              params:
+                # ... job parameters
+          - type: SubmitObj # Example: Submit a batch of jobs of type b
+            params:
+              refTaskId: register-batch-job-b
+              count: 10
+              params:
+                # ... job parameters
+    ```
+
+- `Repeat`
+
+    Executes a sequence of defined sub-tasks repeatedly based on either a specified total duration or a fixed count of iterations. An optional interval can introduce a pause between the end of one iteration and the start of the next. The loop terminates if the duration/count limit is reached, if the workflow context is cancelled (e.g., Ctrl+C), or if any sub-task within an iteration fails.
+
+    Note: Any id specified for the sub-tasks within the tasks list will be ignored. Knavigator generates unique internal IDs for each sub-task within each iteration (e.g., repeat-task-id-iter0-sub0, repeat-task-id-iter0-sub1, repeat-task-id-iter1-sub0, etc.) to prevent conflicts. Sub-tasks within a Repeat iteration cannot directly reference each other using refTaskId.
+
+    ```yaml
+    - id: periodic-check
+      type: Repeat
+      params:
+        # Required: Specify EITHER 'duration' OR 'count'. One must be non-empty/positive.
+        duration: "5m"     # Example: Repeat the sequence for 5 minutes.
+        # count: 10        # Example: Repeat the sequence exactly 10 times.
+
+        # Optional: Pause duration between iterations (e.g., "15s", "1m"). Default is 0 (no pause).
+        interval: "30s"
+
+        # Required: A list of task configurations to execute sequentially in EACH iteration.
+        tasks:
+          - type: CheckObj # Example: Check object status periodically
+            params:
+              refTaskId: some-monitored-object # Assumes this task exists outside the loop
+              state:
+                status:
+                  phase: Running
+              # Note: CheckObj doesn't have its own timeout; use workflow timeout or Repeat duration.
+              # If this check fails in any iteration, the Repeat task fails.
+          - type: Sleep # Example: A short pause within the iteration sequence
+            params:
+              timeout: 2s
     ```
 
 #### Examples
