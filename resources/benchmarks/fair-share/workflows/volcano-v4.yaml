@@ -58,7 +58,7 @@ tasks:
           count: 10
           resources:
             cpu: 10100m # ~10 CPU available per node
-            memory: "40050Mi" # ~40 GB available per node
+            memory: "10050Mi" # ~40 GB available per node
             pods: 110
       timeout: 5m
 
@@ -137,7 +137,7 @@ tasks:
         weight: 3 # WEIGHT 3
         capability: # Set to cluster capacity
           cpu: 100000m # ~100 CPU
-          memory: 400000Mi # ~400 GiB
+          memory: 100000Mi # ~100 GiB
 
   - id: create-queue-b
     type: SubmitObj
@@ -151,7 +151,7 @@ tasks:
         weight: 2 # WEIGHT 2
         capability: # Set to cluster capacity
           cpu: 100000m # ~100 CPU
-          memory: 400000Mi # ~400 GiB
+          memory: 100000Mi # ~100 GiB
 
   - id: create-queue-c
     type: SubmitObj
@@ -165,7 +165,7 @@ tasks:
         weight: 1 # WEIGHT 1
         capability: # Set to cluster capacity
           cpu: 100000m # ~100 CPU
-          memory: 400000Mi # ~400 GiB
+          memory: 100000Mi # ~100 GiB
 
   # --- Phase 1: Build Usage History (5 minutes) ---
   - id: phase1-history-building
@@ -223,7 +223,7 @@ tasks:
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "5m" # Longer TTL for observation
+              ttl: "2m" # Longer TTL for observation
 
         - type: SubmitObj
           params:
@@ -235,7 +235,7 @@ tasks:
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "5m" # Longer TTL for observation
+              ttl: "2m" # Longer TTL for observation
 
         - type: SubmitObj
           params:
@@ -247,4 +247,4 @@ tasks:
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "5m" # Longer TTL for observation
+              ttl: "2m" # Longer TTL for observation

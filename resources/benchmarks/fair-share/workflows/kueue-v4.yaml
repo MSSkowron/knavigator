@@ -80,7 +80,7 @@ tasks:
     params:
       timeout: 5s
 
-  # Configure nodes (10 nodes, 10 CPU/40GB each = 100 CPU/400GB total)
+  # Configure nodes (10 nodes, 10 CPU/10GB each = 100 CPU/100 GB total)
   - id: configure-nodes
     type: Configure
     params:
@@ -89,7 +89,7 @@ tasks:
           count: 10
           resources:
             cpu: 10100m # ~10 CPU available per node
-            memory: "40050Mi" # ~40 GB available per node
+            memory: "10050Mi" # ~10 GB available per node
             pods: 110
       timeout: 5m
 
@@ -213,7 +213,7 @@ tasks:
                     borrowingLimit: 100000m # Allow up to cluster capacity
                   - name: memory
                     nominalQuota: 0Mi # NO GUARANTEE
-                    borrowingLimit: 400000Mi # Allow up to cluster capacity
+                    borrowingLimit: 100000Mi # Allow up to cluster capacity
                   - name: pods
                     nominalQuota: 0 # NO GUARANTEE
                     borrowingLimit: 1100 # Allow up to cluster capacity
@@ -249,7 +249,7 @@ tasks:
                     borrowingLimit: 100000m # Allow up to cluster capacity
                   - name: memory
                     nominalQuota: 0Mi # NO GUARANTEE
-                    borrowingLimit: 400000Mi # Allow up to cluster capacity
+                    borrowingLimit: 100000Mi # Allow up to cluster capacity
                   - name: pods
                     nominalQuota: 0 # NO GUARANTEE
                     borrowingLimit: 1100 # Allow up to cluster capacity
@@ -285,7 +285,7 @@ tasks:
                     borrowingLimit: 100000m # Allow up to cluster capacity
                   - name: memory
                     nominalQuota: 0Mi # NO GUARANTEE
-                    borrowingLimit: 400000Mi # Allow up to cluster capacity
+                    borrowingLimit: 100000Mi # Allow up to cluster capacity
                   - name: pods
                     nominalQuota: 0 # NO GUARANTEE
                     borrowingLimit: 1100 # Allow up to cluster capacity
@@ -322,9 +322,9 @@ tasks:
                     borrowingLimit: 0m
                     lendingLimit: 100000m # Lend everything
                   - name: memory
-                    nominalQuota: 400000Mi # <<< Full cluster capacity
+                    nominalQuota: 100000Mi # <<< Full cluster capacity
                     borrowingLimit: 0Mi
-                    lendingLimit: 400000Mi # Lend everything
+                    lendingLimit: 100000Mi # Lend everything
                   - name: pods
                     nominalQuota: 1100 # <<< Full cluster capacity
                     borrowingLimit: 0
@@ -361,7 +361,7 @@ tasks:
         namespace: tenant-c
         clusterQueue: tenant-c-cq
 
-  # --- Phase 1: Build Usage History (e.g., 15 minutes) ---
+  # --- Phase 1: Build Usage History ---
   # We use a Repeat block to simulate continuous load over the duration.
   # Inside the loop, submit tasks sequentially for each tenant.
   - id: phase1-history-building
@@ -422,7 +422,7 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "5m" # Longer TTL for observation
+              ttl: "2m" # Longer TTL for observation
 
         - type: SubmitObj
           params:
@@ -435,7 +435,7 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "5m" # Longer TTL for observation
+              ttl: "2m" # Longer TTL for observation
 
         - type: SubmitObj
           params:
@@ -448,4 +448,4 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "5m" # Longer TTL for observation
+              ttl: "2m" # Longer TTL for observation

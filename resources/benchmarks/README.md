@@ -546,9 +546,9 @@ Na tym diagramie:
 
 ### V4: Planowanie w warunkach fragmentacji i konkurencji
 
-Ten benchmark ma na celu ocenę wydajności i jakości planowania świadomego topologii w bardziej realistycznym scenariuszu, obejmującym większą skalę klastra, istniejące obciążenie powodujące fragmentację zasobów oraz konkurencję między zadaniami o różnych wymaganiach topologicznych.
+Ten benchmark ma na celu ocenę wydajności i jakości planowania świadomego topologii w bardziej realistycznym scenariuszu, obejmującym większą skalę klastra, istniejące obciążenie powodujące fragmentację zasobów oraz konkurencję między zadaniami o różnych wymaganiach topologicznych. Porównuje implementacje dla Kueue i Volcano.
 
-**Topologia**: Konfiguruje 32 węzły w strukturze drzewiastej: 1 Datacenter (sw-dc1), 2 Spines (sw-s1, sw-s2), 8 Bloków (sw-b11 do sw-b24), po 4 węzły w każdym bloku (n111 do n244). Wszystkie węzły mają standardową konfigurację (np. 128 CPU, 1Ti RAM, 8 GPU).
+**Topologia**: Konfiguruje 32 węzły w strukturze drzewiastej: 1 Datacenter (`sw-dc1`), 2 Spines (`sw-s1`, `sw-s2`), 8 Bloków (`sw-b11` do `sw-b24`), po 4 węzły w każdym bloku (`n111` do `n244`). Wszystkie węzły mają identyczne zasoby: `128100m` CPU (ok. 128 CPU), `1048626Mi` pamięci (ok. 1 TiB), 8 `nvidia.com/gpu` (NVIDIA A100). Łącznie: 4096 CPU, 32 TiB RAM, 256 GPU.
 
 ```mermaid
 graph TD
@@ -627,23 +627,35 @@ graph TD
 
 **Test**:
 
-- **Konfiguracja węzłów**: Tworzone są 32 wirtualne węzły z etykietami topologii (datacenter, spine, block) i standardowymi zasobami.
+- **Konfiguracja węzłów**: Tworzone są 32 wirtualne węzły z etykietami topologii (network.topology.kubernetes.io/datacenter, /spine, /block).
 
-- **Faza 1 - Fragmentacja Zasobów**: Uruchamianych jest 20 zadań w tle (8 zadań typu "Medium" po 1 podzie i 4 GPU; 12 zadań typu "Small-MultiReplica" po 4 pody i 2 GPU/pod) do dedykowanej kolejki (background-queue). Celem jest zajęcie około 50% zasobów GPU (128 GPU) w sposób rozproszony i niejednolity. Kluczowe jest, aby te zadania działały w tle podczas kolejnych faz (nie mają ustawionego ttl).
+- **Faza 1 - Fragmentacja Zasobów**: Uruchamianych jest 20 zadań w tle:
+  - 8 zadań typu "Medium": Każde z 1 podem (replicas: 1) żądającym 32000m CPU, 131072Mi pamięci, 4 GPU. Razem: 256 CPU, 1 TiB RAM, 32 GPU.
+  - 12 zadań typu "Small-MultiReplica": Każde z 4 podami (replicas: 4) żądającymi po 8000m CPU, 32768Mi pamięci, 2 GPU na pod. Razem: 384 CPU, 1.5 TiB RAM, 96 GPU.
+  - Łącznie zadania tła: 640 CPU (15.6%), 2.5 TiB RAM (7.8%), 128 GPU (50%). Celem jest zajęcie dokładnie 50% zasobów GPU w sposób rozproszony.
+  - Wszystkie zadania tła mają ustawiony ttl: "10m". Oznacza to, że fragmentacja jest obecna podczas startu zadań A i B, ale zniknie po 10 minutach od ich zakończenia.
 
-- **Faza 2 - Duże Zadanie TAS (Wymagane)**: W trakcie działania zadań tła, do drugiej kolejki (tas-queue) zgłaszane jest Zadanie A (8 podów, 4 GPU/pod, łącznie 32 GPU) z wymaganiem (required/hard) umieszczenia wszystkich podów w ramach jednego spine'a (network.topology.kubernetes.io/spine lub Tier 3 w Volcano).
+- **Faza 2 - Duże Zadanie TAS (Wymagane)**: W trakcie działania zadań tła, zgłaszanych jest 8 instancji Zadania A:
+  - Każda instancja (count: 8 w implementacji) wymaga 8 podów (replicas: 8).
+  - Każdy pod żąda 32000m CPU, 131072Mi pamięci, 4 GPU.
+  - Łącznie dla 1 instancji Zadania A: 256 CPU, 1 TiB RAM, 32 GPU.
+  - Łącznie dla wszystkich 8 instancji Zadania A: 2048 CPU, 8 TiB RAM, 256 GPU.
+  - Wymaganie (required/hard) umieszczenia wszystkich 8 podów w ramach jednej instancji w obrębie jednego spine'a
+  - Każda instancja Zadania A ma ttl: "2m".
 
-- **Faza 3 - Małe Zadanie TAS (Preferowane)**: Następnie (lub równolegle, w zależności od przepustowości), do kolejki tas-queue zgłaszane jest Zadanie B (4 pody, 1 GPU/pod, łącznie 4 GPU) z preferencją (preferred/soft) umieszczenia wszystkich podów w ramach jednego bloku (network.topology.kubernetes.io/block lub Tier 2 w Volcano).
+- **Faza 3 - Małe Zadanie TAS (Preferowane)**: Zgłaszanych jest 4 instancje Zadania B:
+  - Każda instancja (count: 4 w implementacji) wymaga 4 podów (replicas: 4).
+  - Każdy pod żąda 8000m CPU, 32768Mi pamięci, 1 GPU.
+  - Łącznie dla 1 instancji Zadania B: 32 CPU, 128 GiB RAM, 4 GPU.
+  - Łącznie dla wszystkich 4 instancji Zadania B: 128 CPU, 512 GiB RAM, 16 GPU.
+  - Preferencja (preferred/soft) umieszczenia wszystkich 4 podów w ramach jednej instancji w obrębie jednego bloku (network.topology.kubernetes.io/block lub Tier 2 w Volcano).
+  - Każda instancja Zadania B ma ttl: "2m".
 
-- **Ocena**: Porównanie Kueue i Volcano na podstawie:
-
-  - **Powodzenia planowania**: Czy wszystkie zadania (tła, A, B) zostały pomyślnie uruchomione?
-
-  - **Czasu oczekiwania (latency)**: Jak długo zadania A i B czekały w kolejce przed uruchomieniem? Analiza metryki unified_job_wait_duration_seconds_histogram. Oczekuje się mierzalnych opóźnień, szczególnie dla Zadania A.
-
-  - **Jakości planowania (preferencje)**: Jak często schedulerowi udało się umieścić wszystkie pody Zadania B w jednym bloku (zgodnie z preferencją)? Wymaga to analizy rozmieszczenia podów po teście lub dedykowanej metryki. Porównanie wskaźnika sukcesu (%) między schedulerami.
-
-  - **Poprawności wymagań**: Czy Zadanie A zostało umieszczone w ramach jednego spine'a?
+- Ocena: Porównanie Kueue i Volcano na podstawie:
+  - Powodzenia planowania: Czy wszystkie zadania (tła, 8x A, 4x B) zostały pomyślnie uruchomione? (Biorąc pod uwagę zasoby, 8 instancji A i 4 instancje B nie zmieszczą się jednocześnie z zadaniami tła - oczekuje się, że część z nich pozostanie w kolejce).
+  - Czasu oczekiwania (latency): Jak długo instancje Zadań A i B czekały w odpowiednich kolejkach (tas-queue / default) przed uruchomieniem? Analiza metryki unified_job_wait_duration_seconds_histogram dla każdej instancji. Oczekuje się mierzalnych opóźnień, szczególnie dla instancji Zadania A.
+  - Jakości planowania (preferencje): Dla każdej z 4 instancji Zadania B, czy schedulerowi udało się umieścić wszystkie jej 4 pody w jednym bloku (zgodnie z preferencją)? Wymaga to analizy rozmieszczenia podów po teście. Porównanie wskaźnika sukcesu (%) między schedulerami.
+  - Poprawności wymagań: Czy każda z uruchomionych instancji Zadania A miała swoje pody umieszczone w ramach jednego spine'a?
 
 **Skrypty do uruchomienia**:
 
@@ -916,7 +928,7 @@ Scheduler powinien przydzielić zasoby zgodnie z zasadami DRF (Dominant Resource
 **Konfiguracja**:
 
 - **Klaster**: Homogeniczny klaster CPU/RAM.
-  - **4 identyczne węzły robocze**.
+  - **10 identycznych węzłów roboczych**.
   - Każdy węzeł: ~10 CPU, ~40 GiB RAM (Łącznie: **~100 CPU, ~400 GiB RAM**).
 - **Najemcy**: Trzej najemcy (tenant-a, tenant-b, tenant-c) z **różnymi wagami**.
   - **Tenant A: waga 3** (Oczekiwany udział ~50%)
