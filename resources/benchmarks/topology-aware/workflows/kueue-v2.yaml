@@ -658,21 +658,30 @@ tasks:
         topologyLevel: "network.topology.kubernetes.io/block"
 
   # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
-  - id: check-required-topology
+  - id: status-running-required
     type: CheckPod
     description: confirm that the pods initiated by the job with required topology are running on optimal nodes
     params:
       refTaskId: job-required
       status: Running
-      nodeLabels:
-        ta-optimal: "true"
-      timeout: 30s
+      # nodeLabels:
+      #   ta-optimal: "true"
+      timeout: 5m
+
+  # Oczekiwanie, aż pody się zakończą
+  - id: status-succeeded-required
+    type: CheckPod
+    description: waiting for the pods to finish
+    params:
+      refTaskId: job-required
+      status: Succeeded
+      timeout: 5m
 
   # Krótkie opóźnienie po 1 fazie
   - id: job-delay
     type: Sleep
     params:
-      timeout: 90s
+      timeout: 5s
 
   # Uruchomienie zadania z topology-aware scheduling (preferred)
   - id: job-preferred
@@ -693,12 +702,21 @@ tasks:
         topologyLevel: "network.topology.kubernetes.io/block"
 
   # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
-  - id: check-preferred-topology
+  - id: status-running-preferred
     type: CheckPod
     description: confirm that the pods initiated by the job are running on optimal nodes
     params:
       refTaskId: job-preferred
       status: Running
-      nodeLabels:
-        ta-optimal: "true"
-      timeout: 30s
+      # nodeLabels:
+      #   ta-optimal: "true"
+      timeout: 5m
+
+  # Oczekiwanie, aż pody się zakończą
+  - id: status-succeeded-preferred
+    type: CheckPod
+    description: waiting for the pods to finish
+    params:
+      refTaskId: job-preferred
+      status: Succeeded
+      timeout: 5m

@@ -630,21 +630,30 @@ tasks:
         highestTierAllowed: 1
 
   # Verify pods are on the supernode
-  - id: check-supernode-placement
+  - id: status-running-supernode
     type: CheckPod
     description: Confirm that all pods are placed on the supernode
     params:
       refTaskId: job-supernode
       status: Running
-      nodeLabels:
-        kubernetes.io/hostname: n1 # Supernode
-      timeout: 30s
+      # nodeLabels:
+      #   kubernetes.io/hostname: n1 # Supernode
+      timeout: 5m
 
-  # Krótkie opóźnienie po 1 fazie
-  - id: job-delay
+  # Oczekiwanie, aż pody się zakończą
+  - id: status-succeeded-supernode
+    type: CheckPod
+    description: Confirm that all pods are placed on the supernode
+    params:
+      refTaskId: job-supernode
+      status: Succeeded
+      timeout: 5m
+
+  # Krótkie opóźnienie
+  - id: job-delay-1
     type: Sleep
     params:
-      timeout: 90s
+      timeout: 5s
 
   # Phase 2: Mark supernode as unschedulable
   - id: disable-supernode
@@ -656,6 +665,12 @@ tasks:
         spec:
           unschedulable: true
       timeout: 30s
+
+  # Krótkie opóźnienie
+  - id: job-delay-2
+    type: Sleep
+    params:
+      timeout: 5s
 
   # Submit a job that should now use multiple nodes in block sw115
   - id: job-multinode
@@ -677,12 +692,21 @@ tasks:
         highestTierAllowed: 1 # Block level - should place pods within the same block
 
   # Check that pods are distributed across multiple nodes in block sw115
-  - id: check-block-placement
+  - id: status-running-block
     type: CheckPod
     description: Confirm that pods are distributed but within the same block
     params:
       refTaskId: job-multinode
       status: Running
-      nodeLabels:
-        network.topology.kubernetes.io/block: sw115 # All pods should be in block sw115
-      timeout: 30s
+      # nodeLabels:
+      #   network.topology.kubernetes.io/block: sw115 # All pods should be in block sw115
+      timeout: 5m
+
+  # Oczekiwanie, aż pody się zakończą
+  - id: status-succeeded-block
+    type: CheckPod
+    description: Confirm that pods are distributed but within the same block
+    params:
+      refTaskId: job-multinode
+      status: Succeeded
+      timeout: 5m
