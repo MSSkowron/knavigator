@@ -173,7 +173,7 @@ unified_job_total_duration_seconds_histogram = Histogram(
 
 unified_job_tas_preference_met = Gauge(
     "unified_job_tas_preference_met",
-    "Indicates if the preferred/soft topology constraint was met (1=met, 0=not met/unknown, -1=N/A)",
+    "Indicates if the preferred/soft topology constraint was met (1=met, 0=not met, -1=N/A or cannot verify)",
     BASE_LABEL_NAMES,
     registry=REGISTRY,
 )
@@ -1075,7 +1075,7 @@ def collect_metrics(
             "unified_job_tas_constraint_level": tas_level,
         }
 
-        # --- Logika Obliczania Stanu (tylko raz, dla nieterminalnych) ---
+        # --- Logika Obliczania Stanu (tylko dla nieterminalnych LUB jeśli stan jest nieustalony) ---
         is_terminal = job_phase in [
             "Succeeded",
             "Failed",
@@ -1084,104 +1084,136 @@ def collect_metrics(
             "Terminated",
         ]
 
-        if not is_terminal:
-            # Sprawdź preferencję tylko jeśli typ='preferred' i brak zapisanego stanu
-            if (
-                tas_type == "preferred"
-                and tas_level != "none"
-                and uid not in job_tas_preference_status
-            ):
-                logging.debug(
-                    f"Calculating PREFERENCE status for non-terminal job {uid}"
-                )
-                pod_placements = get_pod_placement_info(
-                    core_v1_api, uid, job_name, job_namespace, job_kind
-                )
-                calculated_preference = 0  # Domyślnie 0 (niespełnione/nie można ocenić)
-                if pod_placements is not None:
-                    if pod_placements:
-                        is_met = check_preference_met(
-                            pod_placements, tas_level, core_v1_api
-                        )
-                        calculated_preference = 1 if is_met else 0
-                    # else: brak podów = 0
-                # else: błąd/pending = 0
-                job_tas_preference_status[uid] = (
-                    calculated_preference  # Zapisz obliczony stan
+        # Obliczaj ponownie, jeśli zadanie nie jest terminalne ORAZ stan dla tego UID jest nieustalony (-1)
+        # Używamy .get(uid, -1) aby obsłużyć przypadek, gdy UID jeszcze nie ma w cache
+        # Recalculate ONLY if status is -1 (unverified/NA)
+        should_recalculate_preference = (
+            not is_terminal
+            and tas_type == "preferred"
+            and tas_level != "none"
+            and job_tas_preference_status.get(uid, -1) == -1
+        )
+        should_recalculate_requirement = (
+            not is_terminal
+            and tas_type == "required"
+            and tas_level != "none"
+            and job_tas_requirement_status.get(uid, -1) == -1
+        )
+
+        if should_recalculate_preference:
+            logging.debug(
+                f"Recalculating PREFERENCE status for non-terminal job {uid} (current cache state: {job_tas_preference_status.get(uid, -1)})"
+            )
+            pod_placements = get_pod_placement_info(
+                core_v1_api, uid, job_name, job_namespace, job_kind
+            )
+            # Domyślnie stan pozostaje -1, jeśli nie uda się go ustalić
+            calculated_preference = -1
+            if pod_placements is not None:  # Successfully queried pods?
+                if pod_placements:  # Found scheduled pods?
+                    # Mamy pody, możemy ocenić preferencję
+                    is_met = check_preference_met(
+                        pod_placements, tas_level, core_v1_api
+                    )
+                    # Stan staje się definitywny: 1 (spełnione) lub 0 (niespełnione)
+                    calculated_preference = 1 if is_met else 0
+                    logging.debug(
+                        f"Preference for {uid} calculated as: {calculated_preference} based on placements: {pod_placements}"
+                    )
+                # else: pod_placements is empty {} -> pody jeszcze nie są gotowe, stan pozostaje -1
+                else:
+                    logging.debug(
+                        f"Preference for {uid} remains -1: No running/scheduled pods found yet."
+                    )
+            # else: pod_placements is None -> błąd API, stan pozostaje -1
+            else:
+                logging.warning(
+                    f"Preference for {uid} remains -1: Failed to get pod placements."
                 )
 
-            # Sprawdź wymaganie tylko jeśli typ='required' i brak zapisanego stanu
-            elif (
-                tas_type == "required"
-                and tas_level != "none"
-                and uid not in job_tas_requirement_status
-            ):
-                logging.debug(
-                    f"Calculating REQUIREMENT status for non-terminal job {uid}"
-                )
-                pod_placements = get_pod_placement_info(
-                    core_v1_api, uid, job_name, job_namespace, job_kind
-                )
-                calculated_requirement = -1  # Domyślnie -1 (nie można potwierdzić)
-                if pod_placements is not None:
-                    if pod_placements:
-                        is_collocated = check_preference_met(
-                            pod_placements, tas_level, core_v1_api
+            # Zapisz (nadpisz) obliczony stan tylko jeśli się zmienił z -1 na 0 lub 1
+            # Albo jeśli był -1 i nadal jest -1 (nic się nie dzieje, ale dla spójności logiki)
+            job_tas_preference_status[uid] = calculated_preference
+
+        elif should_recalculate_requirement:
+            logging.debug(
+                f"Recalculating REQUIREMENT status for non-terminal job {uid} (current cache state: {job_tas_requirement_status.get(uid, -1)})"
+            )
+            pod_placements = get_pod_placement_info(
+                core_v1_api, uid, job_name, job_namespace, job_kind
+            )
+            # Domyślnie stan pozostaje -1
+            calculated_requirement = -1
+            if pod_placements is not None:  # Successfully queried pods?
+                if pod_placements:  # Found scheduled pods?
+                    # Mamy pody, możemy ocenić wymaganie
+                    is_collocated = check_preference_met(  # Używamy tej samej funkcji do sprawdzenia kolokacji
+                        pod_placements, tas_level, core_v1_api
+                    )
+                    if is_collocated:
+                        calculated_requirement = 1  # OK - stan definitywny
+                        logging.debug(
+                            f"Requirement for {uid} calculated as: 1 based on placements: {pod_placements}"
                         )
-                        if is_collocated:
-                            calculated_requirement = 1  # OK
-                        else:
-                            calculated_requirement = 0  # Naruszenie
-                            logging.error(
-                                f"!!! TAS VIOLATION DETECTED !!! Job {uid} ('required' at level '{tas_level}') has pods placed incorrectly: {pod_placements}"
-                            )
-                    # else: brak podów = -1
-                # else: błąd/pending = -1
-                job_tas_requirement_status[uid] = (
-                    calculated_requirement  # Zapisz obliczony stan
+                    else:
+                        calculated_requirement = 0  # Naruszenie - stan definitywny
+                        logging.error(
+                            f"!!! TAS VIOLATION DETECTED !!! Job {uid} ('required' at level '{tas_level}') has pods placed incorrectly: {pod_placements}"
+                        )
+                        logging.debug(
+                            f"Requirement for {uid} calculated as: 0 based on placements: {pod_placements}"
+                        )
+                # else: pod_placements is empty {} -> pody jeszcze nie są gotowe, stan pozostaje -1
+                else:
+                    logging.debug(
+                        f"Requirement for {uid} remains -1: No running/scheduled pods found yet."
+                    )
+            # else: pod_placements is None -> błąd API, stan pozostaje -1
+            else:
+                logging.warning(
+                    f"Requirement for {uid} remains -1: Failed to get pod placements."
                 )
+
+            # Zapisz (nadpisz) obliczony stan
+            job_tas_requirement_status[uid] = calculated_requirement
 
         # --- Ustawianie Metryk (tylko odpowiedniej metryki) ---
-        # Używamy zapamiętanego stanu, jeśli istnieje
-        final_preference_value = job_tas_preference_status.get(
-            uid
-        )  # Zwróci None jeśli brak
-        final_requirement_value = job_tas_requirement_status.get(
-            uid
-        )  # Zwróci None jeśli brak
+        # Używamy zapamiętanego stanu, który mógł zostać właśnie zaktualizowany
+        # Używamy .get() bez wartości domyślnej, bo jeśli klucza nie ma, to znaczy, że nic nie obliczyliśmy/ustawiliśmy
+        final_preference_value = job_tas_preference_status.get(uid)
+        final_requirement_value = job_tas_requirement_status.get(uid)
 
         try:
+            # Ustaw metrykę preferencji tylko jeśli TAS type to 'preferred' i mamy jakąkolwiek wartość w cache (1, 0 lub -1)
             if tas_type == "preferred":
-                if (
-                    final_preference_value is not None
-                ):  # Ustaw tylko jeśli mamy zapamiętaną wartość (1 lub 0)
+                if final_preference_value is not None:
                     unified_job_tas_preference_met.labels(**base_labels).set(
                         final_preference_value
                     )
                     logging.debug(
-                        f"Set PREFERENCE metric for {uid} to {final_preference_value} (from cache/calculation)"
+                        f"Set PREFERENCE metric for {uid} to {final_preference_value} (from cache/recalculation)"
                     )
-                    jobs_tas_metrics_set.add(uid)  # Oznacz jako "dotknięty"
+                    jobs_tas_metrics_set.add(uid)
                 else:
-                    # Jeśli nie ma zapamiętanej wartości (np. job właśnie się pojawił i jest terminalny), nie ustawiaj metryki
-                    logging.debug(
-                        f"Skipping set PREFERENCE metric for {uid} - no cached/calculated value available."
+                    # Ten log nie powinien się pojawić, bo jeśli should_recalculate było True, to wartość powinna być w cache
+                    logging.warning(
+                        f"Skipping set PREFERENCE metric for {uid} - no value found in cache unexpectedly."
                     )
+
+            # Ustaw metrykę wymagania tylko jeśli TAS type to 'required' i mamy jakąkolwiek wartość w cache (1, 0 lub -1)
             elif tas_type == "required":
-                if (
-                    final_requirement_value is not None
-                ):  # Ustaw only jeśli mamy zapamiętaną wartość (1, 0 lub -1)
+                if final_requirement_value is not None:
                     unified_job_tas_requirement_met.labels(**base_labels).set(
                         final_requirement_value
                     )
                     logging.debug(
-                        f"Set REQUIREMENT metric for {uid} to {final_requirement_value} (from cache/calculation)"
+                        f"Set REQUIREMENT metric for {uid} to {final_requirement_value} (from cache/recalculation)"
                     )
-                    jobs_tas_metrics_set.add(uid)  # Oznacz jako "dotknięty"
+                    jobs_tas_metrics_set.add(uid)
                 else:
-                    # Jeśli nie ma zapamiętanej wartości, nie ustawiaj metryki
-                    logging.debug(
-                        f"Skipping set REQUIREMENT metric for {uid} - no cached/calculated value available."
+                    # Ten log nie powinien się pojawić
+                    logging.warning(
+                        f"Skipping set REQUIREMENT metric for {uid} - no value found in cache unexpectedly."
                     )
             # else: Dla 'none' lub 'error' nic nie ustawiamy
 
@@ -1189,7 +1221,6 @@ def collect_metrics(
             logging.error(
                 f"Failed to set specific TAS metric for {uid}: {e}", exc_info=True
             )
-
     # --- Koniec Sprawdzania i Ustawiania Metryk TAS ---
 
     # --- Ustawianie i Czyszczenie metryki unified_job_concurrency_count ---
