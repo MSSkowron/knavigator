@@ -671,7 +671,7 @@ tasks:
         cpu: 2000m
         memory: 2048Mi
         gpu: 6 # Same resources as before, but now should be distributed
-        ttl: "2m"
+        ttl: "1m"
         networkTopology: true
         topologyMode: soft
         highestTierAllowed: 1 # Block level - should place pods within the same block
