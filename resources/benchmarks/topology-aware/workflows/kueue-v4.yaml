@@ -793,6 +793,17 @@ tasks:
             }
       timeout: 15m
 
+  # Create namespaces
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: background
+          op: create
+        - name: main
+          op: create
+      timeout: 1m
+
   # 2. Register Kueue Resource Templates
   - id: register-topology
     type: RegisterObj
@@ -892,7 +903,7 @@ tasks:
       canExist: true
       params:
         name: "background-queue"
-        namespace: "default"
+        namespace: "background"
         clusterQueue: "tas-cluster-queue"
 
   - id: create-local-queue-tas
@@ -902,7 +913,7 @@ tasks:
       canExist: true
       params:
         name: "tas-queue"
-        namespace: "default"
+        namespace: "main"
         clusterQueue: "tas-cluster-queue"
 
   # --- Phase 1: Submit Background Fragmentation Jobs (Explicitly) ---
@@ -915,7 +926,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -933,7 +944,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -951,7 +962,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -969,7 +980,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -987,7 +998,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -1005,7 +1016,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -1023,7 +1034,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -1041,7 +1052,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 1,
           completionMode: Indexed,
@@ -1061,7 +1072,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1079,7 +1090,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1097,7 +1108,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1115,7 +1126,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1133,7 +1144,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1151,7 +1162,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1169,7 +1180,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1187,7 +1198,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1205,7 +1216,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1223,7 +1234,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1241,7 +1252,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1259,7 +1270,7 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
+          namespace: background,
           queueName: background-queue,
           replicas: 4,
           completionMode: Indexed,
@@ -1343,7 +1354,7 @@ tasks:
       refTaskId: register-a-job-template
       count: 8
       params:
-        namespace: default
+        namespace: main
         queueName: "tas-queue"
         replicas: 8
         completionMode: Indexed
@@ -1361,7 +1372,7 @@ tasks:
       refTaskId: register-b-job-template
       count: 4
       params:
-        namespace: default
+        namespace: main
         queueName: "tas-queue"
         replicas: 4
         completionMode: Indexed

@@ -746,11 +746,28 @@ tasks:
             }
       timeout: 15m
 
+  # Create namespaces
+  - id: create-namespaces
+    type: Configure
+    params:
+      namespaces:
+        - name: background
+          op: create
+        - name: main
+          op: create
+      timeout: 1m
+
   # Define HyperNodes for the network topology
   - id: register-hypernode-template
     type: RegisterObj
     params:
       template: "resources/benchmarks/topology-aware/templates/volcano/hypernode.yaml"
+
+  # Register queue template
+  - id: register-queue
+    type: RegisterObj
+    params:
+      template: "resources/benchmarks/topology-aware/templates/volcano/queue.yml"
 
   # Register job template
   - id: register-medium-background-job-template
@@ -784,6 +801,35 @@ tasks:
       nameFormat: "tas-job-b{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
+
+  # Create queues with equal weights
+  - id: create-queue-bg
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "background-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 4096000m
+          memory: 33554432Mi
+
+  - id: create-queue-tas
+    type: SubmitObj
+    params:
+      refTaskId: register-queue
+      canExist: true
+      params:
+        name: "tas-queue"
+        reclaimable: true
+        priority: 1
+        weight: 1
+        capability:
+          cpu: 4096000m
+          memory: 33554432Mi
 
   # 3. Create Volcano HyperNodes (4 Tiers)
   # Tier 1: Nodes (n111-hn to n244-hn) - 32 tasks
@@ -1339,8 +1385,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1358,8 +1404,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1377,8 +1423,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1396,8 +1442,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1415,8 +1461,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1434,8 +1480,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1453,8 +1499,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1472,8 +1518,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 1,
           minAvailable: 1,
           cpu: 32000m,
@@ -1492,8 +1538,8 @@ tasks:
       refTaskId: register-small-background-job-template
       count: 1
       params: {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1511,8 +1557,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1530,8 +1576,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1549,8 +1595,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1568,8 +1614,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1587,8 +1633,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1606,8 +1652,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1625,8 +1671,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1644,8 +1690,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1663,8 +1709,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1682,8 +1728,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1701,8 +1747,8 @@ tasks:
       count: 1
       params:
         {
-          namespace: default,
-          queue: default,
+          namespace: background,
+          queue: background-queue,
           replicas: 4,
           minAvailable: 4,
           cpu: 8000m,
@@ -1786,8 +1832,8 @@ tasks:
       refTaskId: register-a-job-template
       count: 8
       params:
-        namespace: default
-        queue: default
+        namespace: main
+        queue: tas-queue
         replicas: 8
         minAvailable: 8
         cpu: 32000m
@@ -1805,8 +1851,8 @@ tasks:
       refTaskId: register-b-job-template
       count: 4
       params:
-        namespace: default
-        queue: default
+        namespace: main
+        queue: tas-queue
         replicas: 4
         minAvailable: 4
         cpu: 8000m
