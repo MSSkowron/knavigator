@@ -2522,7 +2522,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"} and on(node_name)\r\n  label_replace(\r\n    count(kube_node_status_allocatable) by (node),\r\n    \"node_name\", \"$1\", \"node\", \"(.*)\"\r\n  )) / sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"} and on(node_name)\r\n  label_replace(\r\n    count(kube_node_status_allocatable) by (node),\r\n    \"node_name\", \"$1\", \"node\", \"(.*)\"\r\n  ))",
+          "expr": "sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"})",
           "hide": false,
           "instant": false,
           "legendFormat": "Memory",
@@ -2535,7 +2535,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "(sum(node_simulated_usage_gpu_cards{node_name!~\"kind-control-plane\"} and on(node_name)\r\n  label_replace(\r\n    count(kube_node_status_allocatable) by (node),\r\n    \"node_name\", \"$1\", \"node\", \"(.*)\"\r\n  )) / sum(node_allocatable_gpu_cards{node_name!~\"kind-control-plane\"} and on(node_name)\r\n  label_replace(\r\n    count(kube_node_status_allocatable) by (node),\r\n    \"node_name\", \"$1\", \"node\", \"(.*)\"\r\n  ))) or vector(0)",
+          "expr": "(sum(node_simulated_usage_gpu_cards{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_gpu_cards{node_name!~\"kind-control-plane\"})) or vector(0)",
           "hide": false,
           "instant": false,
           "legendFormat": "GPU",
