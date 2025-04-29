@@ -4,6 +4,8 @@
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/mytests/templates/nodes/nodes-backfill-35x100.yaml
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/mytests/templates/nodes/nodes-backfill-100x100.yaml
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/mytests/templates/nodes/nodes-cleanup.yaml
+  ./scripts/create-test-cluster.sh
+  ./monitoring-portforward.sh
 ```
 ```bash
   kubectl -n default delete job --all
