@@ -15,6 +15,17 @@
 name: test-backfill-1
 description: test backfill for yunikorn
 tasks:
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: test-backfill
+          count: 0
+          resources:
+            cpu: 100100m
+            memory: 102450Mi
+            pods: 110
+      timeout: 5m
   - id: register
     type: RegisterObj
     params:
