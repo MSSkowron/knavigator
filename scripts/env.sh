@@ -135,11 +135,11 @@ grafana:
     enabled: true
   resources:
     requests:
-      cpu: "1500m"
-      memory: "4096Mi"
+      cpu: "500m"
+      memory: "512Mi"
     limits:
       cpu: "2000m"
-      memory: "6144Mi"
+      memory: "4096Mi"
 alertmanager:
   enabled: false
 nodeExporter:
@@ -161,11 +161,11 @@ prometheus:
     podMonitorNamespaceSelector: {}
     resources:
         requests:
-          cpu: "1500m"
-          memory: "4096Mi"
+          cpu: "500m"
+          memory: "512Mi"
         limits:
           cpu: "2000m"
-          memory: "6144Mi"
+          memory: "4096Mi"
     storageSpec:
       volumeClaimTemplate:
         spec:

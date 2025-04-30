@@ -77,10 +77,10 @@ spec:
               value: "DEBUG"
           resources:
             requests:
-              cpu: 1000m
-              memory: 1024Mi
+              cpu: 500m
+              memory: 512Mi
             limits:
-              cpu: 1000m
+              cpu: 2000m
               memory: 2048Mi
 ---
 apiVersion: v1
