@@ -177,14 +177,7 @@ prometheus:
 EOF
 
     log_info "Waiting for ${helm_release_name} pods to become ready in namespace ${namespace}..."
-    # Czekanie na pody z labelką instancji Helm
     kubectl -n ${namespace} wait --for=condition=ready pod -l app.kubernetes.io/instance=${helm_release_name} --timeout=600s
-
-    # log_info "Deploying Node Resource Exporter..."
-    # helm upgrade --install -n ${namespace} node-resource-exporter --wait $REPO_HOME/charts/node-resource-exporter
-
-    # log_info "Waiting for node-resource-exporter pods to become ready..."
-    # kubectl -n ${namespace} wait --for=condition=ready pod -l app.kubernetes.io/name=node-resource-exporter --timeout=600s
 
     log_success "Deployment complete: Prometheus, Grafana, and monitoring stack are now operational."
     log_info "Access monitoring interfaces by running: ${REPO_HOME}/monitoring-portforward.sh"
@@ -422,13 +415,10 @@ deploy_volcano() {
 
     log_info "Patching volcano-scheduler to add node-selector..."
 
-    # Zapisz aktualne argumenty
     CURRENT_ARGS=$(kubectl get deployment -n volcano-system volcano-scheduler -o jsonpath='{.spec.template.spec.containers[0].args}')
 
-    # Utwórz nową listę argumentów z dodanym node-selector we właściwym miejscu
     NEW_ARGS=$(echo "$CURRENT_ARGS" | jq '.[:-2] + ["--node-selector=type:kwok"] + .[-2:]')
 
-    # Zastosuj patch z nową listą argumentów
     kubectl patch deployment -n volcano-system volcano-scheduler --type=json \
         -p="[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/args\",\"value\":$NEW_ARGS}]" || {
         log_error "Failed to patch volcano-scheduler with node-selector"
@@ -469,7 +459,7 @@ spec:
   endpoints:
   - port: metrics
     path: /metrics
-    interval: 15s
+    interval: 10s
 EOF
             log_success "ServiceMonitor created for Prometheus integration"
         else
@@ -479,27 +469,27 @@ EOF
 
         log_info "Volcano metrics are available at the /metrics endpoint of each component"
 
-        log_info "Deploying Volcano Dashboard..."
-        if ! kubectl get ns volcano-system >/dev/null 2>&1; then
-            log_info "Creating namespace volcano-system for dashboard..."
-            kubectl create ns volcano-system || {
-                log_error "Failed to create namespace volcano-system"
-                return 1
-            }
-        fi
+        # log_info "Deploying Volcano Dashboard..."
+        # if ! kubectl get ns volcano-system >/dev/null 2>&1; then
+        #     log_info "Creating namespace volcano-system for dashboard..."
+        #     kubectl create ns volcano-system || {
+        #         log_error "Failed to create namespace volcano-system"
+        #         return 1
+        #     }
+        # fi
 
-        log_info "Applying dashboard manifest..."
-        kubectl apply -f https://raw.githubusercontent.com/volcano-sh/dashboard/main/deployment/volcano-dashboard.yaml || {
-            log_error "Failed to apply Volcano Dashboard manifest"
-            return 1
-        }
+        # log_info "Applying dashboard manifest..."
+        # kubectl apply -f https://raw.githubusercontent.com/volcano-sh/dashboard/main/deployment/volcano-dashboard.yaml || {
+        #     log_error "Failed to apply Volcano Dashboard manifest"
+        #     return 1
+        # }
 
-        log_info "Waiting for Volcano Dashboard deployment to be available..."
-        kubectl -n volcano-system wait --for=condition=available deployment/volcano-dashboard --timeout=300s || {
-            log_warning "Timed out waiting for Volcano Dashboard deployment, check status manually."
-        }
+        # log_info "Waiting for Volcano Dashboard deployment to be available..."
+        # kubectl -n volcano-system wait --for=condition=available deployment/volcano-dashboard --timeout=300s || {
+        #     log_warning "Timed out waiting for Volcano Dashboard deployment, check status manually."
+        # }
 
-        log_success "Volcano Dashboard deployment initiated. Use 'kubectl port-forward svc/volcano-dashboard 8080:80 -n volcano-system' to access it."
+        # log_success "Volcano Dashboard deployment initiated. Use 'kubectl port-forward svc/volcano-dashboard 8080:80 -n volcano-system' to access it."
 
     else
         log_error "Volcano deployment failed - scheduler is not running"
@@ -548,7 +538,7 @@ spec:
   endpoints:
   - port: yunikorn-service
     path: /ws/v1/metrics
-    interval: 30s
+    interval: 10s
 EOF
         log_success "ServiceMonitor created for Prometheus integration"
     else
