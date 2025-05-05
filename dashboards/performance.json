@@ -4921,15 +4921,15 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "count by (unified_job_tas_constraint_type, unified_job_tas_constraint_level) (unified_job_status_phase{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"})",
-          "legendFormat": "Required - {{ unified_job_tas_constraint_level }}",
+          "expr": "count by (unified_job_tas_constraint_type, unified_job_tas_constraint_level, unified_job_namespace) (unified_job_status_phase{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"})",
+          "legendFormat": "Required - {{ unified_job_namespace }} - {{ unified_job_tas_constraint_level }}",
           "range": true
         },
         {
           "refId": "B",
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "count by (unified_job_tas_constraint_type, unified_job_tas_constraint_level) (unified_job_status_phase{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"})",
-          "legendFormat": "Preferred - {{ unified_job_tas_constraint_level }}",
+          "expr": "count by (unified_job_tas_constraint_type, unified_job_tas_constraint_level, unified_job_namespace) (unified_job_status_phase{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"})",
+          "legendFormat": "Preferred - {{ unified_job_namespace }} - {{ unified_job_tas_constraint_level }}",
           "range": true
         }
       ]
@@ -4997,8 +4997,8 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "(  count by (unified_job_tas_constraint_level) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} == 1) /  count by (unified_job_tas_constraint_level) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} != -1)) * 100",
-          "legendFormat": "Fulfilled % - {{ unified_job_tas_constraint_level }}",
+          "expr": "(  count by (unified_job_tas_constraint_level, unified_job_namespace) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} == 1) /  count by (unified_job_tas_constraint_level, unified_job_namespace) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} != -1)) * 100",
+          "legendFormat": "Fulfilled % -  {{ unified_job_namespace }} - {{ unified_job_tas_constraint_level }}",
           "range": true
         }
       ]
@@ -5066,8 +5066,8 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "(  count by (unified_job_tas_constraint_level) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} == 1) /  count by (unified_job_tas_constraint_level) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} != -1)) * 100",
-          "legendFormat": "Fulfilled % - {{ unified_job_tas_constraint_level }}",
+          "expr": "(  count by (unified_job_tas_constraint_level, unified_job_namespace) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} == 1) /  count by (unified_job_tas_constraint_level, unified_job_namespace) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} != -1)) * 100",
+          "legendFormat": "Fulfilled % - {{ unified_job_namespace }} - {{ unified_job_tas_constraint_level }}",
           "range": true
         }
       ]
@@ -5133,8 +5133,8 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "count by (unified_job_tas_constraint_level) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} == 0)",
-          "legendFormat": "Violations - {{ unified_job_tas_constraint_level }}",
+          "expr": "count by (unified_job_tas_constraint_level, unified_job_namespace) (unified_job_tas_requirement_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"required\"} == 0)",
+          "legendFormat": "Violations - {{ unified_job_namespace }} - {{ unified_job_tas_constraint_level }}",
           "range": true
         }
       ]
@@ -5222,8 +5222,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "count by (unified_job_tas_constraint_level) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} == 0)",
-          "legendFormat": "Not Met - {{ unified_job_tas_constraint_level }}",
+          "expr": "count by (unified_job_tas_constraint_level, unified_job_namespace) (unified_job_tas_preference_met{unified_job_namespace=~\"$namespace\", unified_job_tas_constraint_type=\"preferred\"} == 0)",
+          "legendFormat": "Not Met - {{ unified_job_namespace }} - {{ unified_job_tas_constraint_level }}",
           "range": true
         }
       ]

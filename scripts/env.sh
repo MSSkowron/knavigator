@@ -138,7 +138,7 @@ grafana:
       cpu: "500m"
       memory: "512Mi"
     limits:
-      cpu: "2000m"
+      cpu: "3000m"
       memory: "4096Mi"
 alertmanager:
   enabled: false
@@ -164,7 +164,7 @@ prometheus:
           cpu: "500m"
           memory: "512Mi"
         limits:
-          cpu: "2000m"
+          cpu: "3000m"
           memory: "4096Mi"
     storageSpec:
       volumeClaimTemplate:
@@ -173,7 +173,7 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 20Gi
+              storage: 40Gi
 EOF
 
     log_info "Waiting for ${helm_release_name} pods to become ready in namespace ${namespace}..."
