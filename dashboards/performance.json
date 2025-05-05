@@ -3649,7 +3649,7 @@
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true,
-          "calcs": ["lastNotNull"]
+          "calcs": ["mean", "max", "lastNotNull"]
         },
         "tooltip": {
           "mode": "multi",
@@ -3760,7 +3760,7 @@
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true,
-          "calcs": ["lastNotNull"]
+          "calcs": ["mean", "max", "lastNotNull"]
         },
         "tooltip": {
           "mode": "multi",
