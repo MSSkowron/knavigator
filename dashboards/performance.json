@@ -3901,7 +3901,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue-controller-manager.*|volcano-scheduler.*|yunikorn-scheduler.*\"}[1m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue.*|volcano.*|yunikorn.*\"}[1m]))",
           "instant": false,
           "legendFormat": "Scheduler CPU",
           "range": true,
@@ -4000,7 +4000,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(container_memory_working_set_bytes{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue-controller-manager.*|volcano-scheduler.*|yunikorn-scheduler.*\"})",
+          "expr": "sum(container_memory_working_set_bytes{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue.*|volcano.*|yunikorn.*\"})",
           "instant": false,
           "legendFormat": "Scheduler Memory",
           "range": true,
@@ -4117,7 +4117,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue-controller-manager.*|volcano-scheduler.*|yunikorn-scheduler.*\"}[1m]))",
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue.*|volcano.*|yunikorn.*\"}[1m]))",
           "hide": false,
           "instant": false,
           "legendFormat": "{{pod}}",
@@ -4275,7 +4275,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue-controller-manager.*|volcano-scheduler.*|yunikorn-scheduler.*\"})",
+          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=~\"kueue-system|volcano-system|yunikorn\", pod=~\"kueue.*|volcano.*|yunikorn.*\"})",
           "hide": false,
           "instant": false,
           "legendFormat": "{{pod}}",
