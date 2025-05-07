@@ -864,7 +864,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_namespace))",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 1) by (unified_job_namespace)) or on(unified_job_namespace) (0 * count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace))",
           "legendFormat": "Running - {{ unified_job_namespace }}",
           "range": true,
           "refId": "A",
@@ -874,7 +874,7 @@
           }
         },
         {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_namespace))",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 2) by (unified_job_namespace)) or on(unified_job_namespace) (0 * count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace))",
           "legendFormat": "Succeeded - {{ unified_job_namespace }}",
           "range": true,
           "refId": "B",
@@ -884,7 +884,7 @@
           }
         },
         {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_namespace))",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 3) by (unified_job_namespace)) or on(unified_job_namespace) (0 * count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace))",
           "legendFormat": "Failed - {{ unified_job_namespace }}",
           "range": true,
           "refId": "C",
@@ -894,7 +894,7 @@
           }
         },
         {
-          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_namespace))",
+          "expr": "sum by (unified_job_namespace) (count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"} == 0) by (unified_job_namespace)) or on(unified_job_namespace) (0 * count(unified_job_status_phase{unified_job_namespace=~\"$namespace\"}) by (unified_job_namespace))",
           "legendFormat": "Pending - {{ unified_job_namespace }}",
           "range": true,
           "refId": "D",
@@ -1260,7 +1260,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Pending\", namespace=~\"$namespace\"})",
+          "expr": "(sum by (namespace) (kube_pod_status_phase{phase=\"Pending\", namespace=~\"$namespace\"})) or on(namespace) (0 * count by (namespace) (kube_pod_info{namespace=~\"$namespace\"}))",
           "instant": false,
           "legendFormat": "Pending - {{namespace}}",
           "range": true,
@@ -1272,7 +1272,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Running\", namespace=~\"$namespace\"})",
+          "expr": "(sum by (namespace) (kube_pod_status_phase{phase=\"Running\", namespace=~\"$namespace\"})) or on(namespace) (0 * count by (namespace) (kube_pod_info{namespace=~\"$namespace\"}))",
           "hide": false,
           "instant": false,
           "legendFormat": "Running - {{namespace}}",
@@ -1285,7 +1285,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Succeeded\", namespace=~\"$namespace\"})",
+          "expr": "(sum by (namespace) (kube_pod_status_phase{phase=\"Succeeded\", namespace=~\"$namespace\"})) or on(namespace) (0 * count by (namespace) (kube_pod_info{namespace=~\"$namespace\"}))",
           "hide": false,
           "instant": false,
           "legendFormat": "Succeeded - {{namespace}}",
@@ -1298,7 +1298,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Failed\", namespace=~\"$namespace\"})",
+          "expr": "(sum by (namespace) (kube_pod_status_phase{phase=\"Failed\", namespace=~\"$namespace\"})) or on(namespace) (0 * count by (namespace) (kube_pod_info{namespace=~\"$namespace\"}))",
           "hide": false,
           "instant": false,
           "legendFormat": "Failed - {{namespace}}",
