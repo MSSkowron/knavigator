@@ -2114,7 +2114,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(node_simulated_usage_cpu_cores{node_name!~\"kind-control-plane\"})",
+          "expr": "sum(node_simulated_usage_cpu_cores{node_name!~\"kind-control-plane\"}) or vector(0)",
           "hide": false,
           "instant": false,
           "legendFormat": "CPU Simulated Usage",
@@ -2127,7 +2127,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"})",
+          "expr": "sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"}) or vector(0)",
           "hide": false,
           "instant": false,
           "legendFormat": "Memory Simulated Usage",
@@ -2232,7 +2232,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "editorMode": "code",
-          "expr": "(sum(node_simulated_usage_cpu_cores{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"})) * 100",
+          "expr": "((sum(node_simulated_usage_cpu_cores{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_cpu_cores{node_name!~\"kind-control-plane\"})) * 100) or vector(0)",
           "hide": false,
           "instant": false,
           "legendFormat": "CPU Simulated Usage %",
@@ -2242,7 +2242,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "editorMode": "code",
-          "expr": "(sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"})) * 100",
+          "expr": "((sum(node_simulated_usage_memory_bytes{node_name!~\"kind-control-plane\"}) / sum(node_allocatable_memory_bytes{node_name!~\"kind-control-plane\"})) * 100) or vector(0)",
           "hide": false,
           "instant": false,
           "legendFormat": "Memory Simulated Usage %",
