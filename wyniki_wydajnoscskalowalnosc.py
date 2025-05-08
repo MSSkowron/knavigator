@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import os
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+mpl.rcParams["hatch.linewidth"] = 0.5
 
 # Wczytanie danych z pliku Excel
 df = pd.read_excel("Wyniki.xlsx", sheet_name="Wydajność i Skalowalność")
@@ -67,7 +70,7 @@ type_map_std = {
 
 tools = ["Kueue", "Volcano", "YuniKorn"]
 colors = {"Kueue": "blue", "Volcano": "red", "YuniKorn": "green"}
-hatches = {"CPU": "", "RAM": "//", "GPU": "xx"}
+hatches = {"CPU": "////", "RAM": "", "GPU": "xxx"}
 
 
 # Funkcja do sortowania kombinacji "WxH"
@@ -98,21 +101,27 @@ def plot_grouped_bar(
     for i, (tool, resource) in enumerate(labels):
         means = mean_dict[(tool, resource)]
         stds = std_dict[(tool, resource)]
-        ax.bar(
+        # Rysowanie słupków z pustym wnętrzem i wzorami
+        bars = ax.bar(
             np.arange(N) + offsets[i],
             means,
             width,
             label=f"{tool} {resource}",
-            color=colors[tool],
+            facecolor=colors[tool],
+            alpha=0.8,
+            edgecolor="black",
+            linewidth=0.5,
             hatch=hatches.get(resource, ""),
             yerr=stds,
             capsize=3,
+            error_kw={"ecolor": "black", "elinewidth": 1.5},
         )
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels(x_labels)
+    # Legenda poza wykresem po prawej stronie
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0)
     plt.tight_layout()
     plt.savefig(os.path.join(dir_out, outfile), bbox_inches="tight")
