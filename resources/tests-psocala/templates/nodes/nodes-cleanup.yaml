@@ -15,3 +15,21 @@ nodes:
   resources:
     cpu: 100.1
     memory: 100.05Gi
+- type: gang-test-small
+  count: 0
+  resources:
+    cpu: 8100m
+    memory: "16050Mi"
+    pods: 310
+- type: gang-test-medium
+  count: 0
+  resources:
+    cpu: 32100m
+    memory: "64050Mi"
+    pods: 310
+- type: gang-test-big
+  count: 0
+  resources:
+    cpu: 64100m
+    memory: "128050Mi"
+    pods: 310

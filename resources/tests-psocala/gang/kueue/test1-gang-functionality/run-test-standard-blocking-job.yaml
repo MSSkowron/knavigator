@@ -19,11 +19,11 @@ tasks:
     type: Configure
     params:
       nodes:
-        - type: test-gang-1
+        - type: test-backfill
           count: 0
           resources:
-            cpu: 10100m
-            memory: 10050Mi
+            cpu: 100100m
+            memory: 102450Mi
             pods: 110
       timeout: 5m
   - id: configure-kueue
@@ -59,12 +59,12 @@ tasks:
                 burst: 100
               waitForPodsReady:
                 enable: true
-                timeout: 5m
+                timeout: 10s
                 blockAdmission: true
                 requeuingStrategy:
                   timestamp: Eviction
                   backoffLimitCount: null # null indicates infinite requeuing
-                  backoffBaseSeconds: 60
+                  backoffBaseSeconds: 10
                   backoffMaxSeconds: 3600
               integrations:
                 frameworks:
@@ -81,6 +81,17 @@ tasks:
         - namespace: kueue-system
           name: kueue-controller-manager
       timeout: 10m
+  - id: configure-nodes
+    type: Configure
+    params:
+      nodes:
+        - type: test-gang-2
+          count: 3
+          resources:
+            cpu: 100100m
+            memory: 100050Mi
+            pods: 110
+      timeout: 5m
   - id: register-cluster-queue
     type: RegisterObj
     params:
@@ -96,7 +107,7 @@ tasks:
   - id: register-job
     type: RegisterObj
     params:
-      template: "resources/tests-psocala/templates/kueue/job.yaml"
+      template: "resources/tests-psocala/templates/kueue/job-gang.yaml"
       nameFormat: "{{.jobName}}-{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.parallelism}}"
@@ -116,8 +127,8 @@ tasks:
       params:
         name: default-cluster-queue
         flavor: default-flavor
-        cpu: 5200
-        memory: 10400Gi
+        cpu: 400
+        memory: 400Gi
   - id: create-local-queue
     type: SubmitObj
     params:
@@ -127,82 +138,44 @@ tasks:
         name: default-local-queue
         namespace: default
         clusterQueue: default-cluster-queue
-  - id: main-loop
-    type: Repeat
+  - id: blocking-job
+    type: SubmitObj
     params:
-      duration: 8s
-      interval: 5s
-      tasks:
-        # Tenant A: High Load
-        - id: big-memory-job
-          type: SubmitObj
-          params:
-            refTaskId: register-job
-            count: 2
-            params:
-              jobName: big-memory-job
-              queueName: default-local-queue
-              namespace: default
-              parallelism: 8
-              completions: 8
-              backoffLimit: 0
-              completionMode: Indexed
-              image: ubuntu
-              cpu: 3
-              memory: 8Gi
-              ttl: 2m
-              jitter: 3m
-        - id: big-cpu-job
-          type: SubmitObj
-          params:
-            refTaskId: register-job
-            count: 2
-            params:
-              jobName: big-cpu-job
-              queueName: default-local-queue
-              namespace: default
-              parallelism: 8
-              completions: 8
-              backoffLimit: 0
-              completionMode: Indexed
-              image: ubuntu
-              cpu: 4
-              memory: 2Gi
-              ttl: 2m
-              jitter: 3m
-        - id: small-balanced-job
-          type: SubmitObj
-          params:
-            refTaskId: register-job
-            count: 3
-            params:
-              jobName: small-balanced-job
-              queueName: default-local-queue
-              namespace: default
-              parallelism: 3
-              completions: 3
-              backoffLimit: 0
-              completionMode: Indexed
-              image: ubuntu
-              cpu: 1
-              memory: 1Gi
-              ttl: 30s
-              jitter: 45s
-        - id: small-memory-job
-          type: SubmitObj
-          params:
-            refTaskId: register-job
-            count: 3
-            params:
-              jobName: small-memory-job
-              queueName: default-local-queue
-              namespace: default
-              parallelism: 5
-              completions: 5
-              backoffLimit: 0
-              completionMode: Indexed
-              image: ubuntu
-              cpu: 1
-              memory: 2Gi
-              ttl: 30s
-              jitter: 45s
+      refTaskId: register-job
+      count: 1
+      params:
+        jobName: blocking-job
+        queueName: default-local-queue
+        namespace: default
+        parallelism: 3
+        completions: 3
+        backoffLimit: 0
+        completionMode: Indexed
+        image: ubuntu
+        cpu: 92
+        memory: 50Gi
+        ttl: 2m
+        jitter: 2m
+  - id: wait
+    type: Sleep
+    params:
+      # Required: Duration to wait
+      timeout: 5s
+  - id: big-cpu-job
+    type: SubmitObj
+    params:
+      refTaskId: register-job
+      count: 1
+      params:
+        jobName: big-cpu-job
+        queueName: default-local-queue
+        namespace: default
+        parallelism: 8
+        completions: 8
+        backoffLimit: 0
+        completionMode: Indexed
+        image: ubuntu
+        cpu: 4
+        memory: 2Gi
+        ttl: 2m
+        jitter: 3m
