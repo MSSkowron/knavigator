@@ -12,7 +12,7 @@ nodes:
       cpu: 32100m
       memory: "64050Mi"
       pods: 310
-  - type: gang-test-medium
+  - type: gang-test-big
     count: 50
     resources:
       cpu: 64100m

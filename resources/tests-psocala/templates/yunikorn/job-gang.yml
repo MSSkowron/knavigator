@@ -21,9 +21,6 @@ metadata:
 spec:
   completions: {{.completions}}
   parallelism: {{.parallelism}}
-  {{- if .deadlineSeconds}}
-  activeDeadlineSeconds: {{.deadlineSeconds}}
-  {{- end }}
   template:
     metadata:
       labels:
@@ -31,7 +28,7 @@ spec:
         queue: {{.queue}}
       annotations:
         yunikorn.apache.org/task-group-name: group-{{._NAME_}}
-        yunikorn.apache.org/schedulingPolicyParameters: "gangSchedulingStyle=Hard"
+        yunikorn.apache.org/schedulingPolicyParameters: "placeholderTimeoutInSeconds=5000 gangSchedulingStyle=Hard"
         yunikorn.apache.org/task-groups: |-
           [{
             "name": "group-{{._NAME_}}",
@@ -45,11 +42,11 @@ spec:
             "affinity": {}
           }]
         pod-complete.stage.kwok.x-k8s.io/delay: "{{.ttl}}"
-        pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.ttl}}"
+        pod-complete.stage.kwok.x-k8s.io/jitter-delay: "{{.jitter}}"
     spec:
       schedulerName: yunikorn
       containers:
-      - name: {{.applicationId}}
+      - name: {{._NAME_}}
         image: {{.image}}
         imagePullPolicy: IfNotPresent
         resources:
@@ -60,6 +57,3 @@ spec:
             cpu: "{{.cpu}}"
             memory: {{.memory}}
       restartPolicy: Never
-      {{- if .priorityClass }}
-      priorityClassName: {{.priorityClass}}
-      {{- end }}

@@ -86,6 +86,12 @@ tasks:
     params:
       nodes:
         - type: test-gang-1
+          count: 90
+          resources:
+            cpu: 1100m
+            memory: 1050Mi
+            pods: 110
+        - type: test-gang-2
           count: 1
           resources:
             cpu: 10100m
@@ -127,8 +133,8 @@ tasks:
       params:
         name: default-cluster-queue
         flavor: default-flavor
-        cpu: 10
-        memory: 10Gi
+        cpu: 100
+        memory: 100Gi
   - id: create-local-queue
     type: SubmitObj
     params:
@@ -150,7 +156,7 @@ tasks:
         parallelism: 8
         completions: 8
         backoffLimit: 0
-        completionMode: NonIndexed
+        completionMode: Indexed
         image: ubuntu
         cpu: 4
         memory: 2Gi
