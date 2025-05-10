@@ -8,10 +8,10 @@ import pandas as pd
 
 mpl.rcParams["hatch.linewidth"] = 0.5
 
-# Wczytanie danych z pliku Excel
-df = pd.read_excel("Wyniki.xlsx", sheet_name="Wydajność i Skalowalność")
+df = pd.read_excel(
+    "wyniki_wydajnosciskalowalnosc.xlsx", sheet_name="Wydajność i Skalowalność"
+)
 
-# Wyciągnięcie bloków danych dla trzech systemów (suffix: "", ".1", ".2")
 blocks = []
 for suffix in ["", ".1", ".2"]:
     cols = [
@@ -27,14 +27,12 @@ for suffix in ["", ".1", ".2"]:
     blocks.append(block)
 
 data = pd.concat(blocks, ignore_index=True)
-# Usunięcie wierszy nagłówkowych i braków
 data = data[data["Scenariusz"] != "Scenariusz"]
 data = data[data["Metryka"] != "Metryka"]
 data.dropna(subset=["Scenariusz", "Metryka"], inplace=True)
 data["Mean"] = pd.to_numeric(data["Mean"], errors="coerce")
 data["Std"] = pd.to_numeric(data["Std"], errors="coerce")
 
-# Mapowania nazw metryk na klucze plików i etykiety w j. polskim
 file_key_map = {
     "Makespan [s]": "Makespan",
     "Śr. Wykorz. CPU (w nasyceniu) [%]": "CPU_Utilization",
@@ -57,7 +55,17 @@ display_label_map = {
     "RAM_Overhead": "Narzut pamięci RAM harmonogramu [MB]",
 }
 
-# Zmapowanie surowych nazw metryk na klucze zasobów
+title_label_map = {
+    "Makespan": "Całkowity czas wykonania",
+    "CPU_Utilization": "Wykorzystanie zasobów",
+    "RAM_Utilization": "Wykorzystanie zasobów",
+    "GPU_Utilization": "Wykorzystanie zasobów",
+    "CPU_StdDev": "Równomierność rozłożenia zasobów",
+    "RAM_StdDev": "Równomierność rozłożenia zasobów",
+    "CPU_Overhead": "Narzut CPU harmonogramu",
+    "RAM_Overhead": "Narzut pamięci RAM harmonogramu",
+}
+
 type_map_util = {
     "Śr. Wykorz. CPU (w nasyceniu) [%]": "CPU",
     "Śr. Wykorz. Pam. (w nasyceniu) [%]": "RAM",
@@ -73,7 +81,6 @@ colors = {"Kueue": "blue", "Volcano": "red", "YuniKorn": "green"}
 hatches = {"CPU": "////", "RAM": "", "GPU": "xxx"}
 
 
-# Funkcja do sortowania kombinacji "WxH"
 def sort_key(combo):
     if isinstance(combo, str) and "x" in combo:
         try:
@@ -84,12 +91,10 @@ def sort_key(combo):
     return combo
 
 
-# Katalog na wykresy
-dir_out = "wyniki_wydajnosc_i_skalowalnosc_"
+dir_out = "wyniki/wyniki_wydajnosc_i_skalowalnosc"
 os.makedirs(dir_out, exist_ok=True)
 
 
-# Funkcja rysująca wykres słupkowy z odchyleniami i legendą na zewnątrz
 def plot_grouped_bar(
     x_labels, mean_dict, std_dict, title, xlabel, ylabel, labels, outfile
 ):
@@ -101,7 +106,6 @@ def plot_grouped_bar(
     for i, (tool, resource) in enumerate(labels):
         means = mean_dict[(tool, resource)]
         stds = std_dict[(tool, resource)]
-        # Rysowanie słupków z pustym wnętrzem i wzorami
         bars = ax.bar(
             np.arange(N) + offsets[i],
             means,
@@ -121,14 +125,12 @@ def plot_grouped_bar(
     ax.set_ylabel(ylabel)
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels(x_labels)
-    # Legenda poza wykresem po prawej stronie
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0)
     plt.tight_layout()
     plt.savefig(os.path.join(dir_out, outfile), bbox_inches="tight")
     plt.close()
 
 
-# Generowanie wykresów dla każdego scenariusza
 db_util = list(type_map_util.keys())
 db_std = list(type_map_std.keys())
 scenarios = ["V1", "V2", "V3"]
@@ -159,8 +161,8 @@ for scen in scenarios:
         combos,
         mean_util,
         std_util,
-        f"Scenariusz {scen} – Wykorzystanie zasobów (%)",
-        "Kombinacja zadań",
+        f"Scenariusz {scen} – Wykorzystanie zasobów",
+        "Kombinacje węzłów i zadań",
         "Wykorzystanie zasobów (%)",
         labels_util,
         f"{scen}_Wykorzystanie_zasobow.svg",
@@ -188,14 +190,14 @@ for scen in scenarios:
         combos,
         mean_std,
         std_std,
-        f"Scenariusz {scen} – Równomierność rozłożenia zasobów (%)",
-        "Kombinacja zadań",
+        f"Scenariusz {scen} – Równomierność rozłożenia zasobów",
+        "Kombinacje węzłów i zadań",
         "Równomierność rozłożenia zasobów (%)",
         labels_std,
         f"{scen}_Rownomiernosc_zasobow.svg",
     )
 
-    # Pozostałe metryki (Makespan i narzuty)
+    # Pozostałe metryki (Makespan i Narzuty zasobów)
     for raw_metric, file_key in file_key_map.items():
         if file_key in ["Makespan", "CPU_Overhead", "RAM_Overhead"]:
             df_m = df_s[df_s["Metryka"] == raw_metric]
@@ -220,8 +222,8 @@ for scen in scenarios:
                 combos,
                 {(tool, ""): mean_vals[tool] for tool in tools},
                 {(tool, ""): std_vals[tool] for tool in tools},
-                f"Scenariusz {scen} – {display_label_map[file_key]}",
-                "Kombinacja zadań",
+                f"Scenariusz {scen} – {title_label_map[file_key]}",
+                "Kombinacje węzłów i zadań",
                 display_label_map[file_key],
                 labels_single,
                 f"{scen}_{file_key}.svg",
