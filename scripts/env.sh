@@ -133,6 +133,12 @@ grafana:
   adminPassword: 'admin'
   persistence:
     enabled: true
+  defaultDashboardsTimezone: "Europe/Warsaw"
+  grafana.ini:
+    users:
+      default_theme: light
+    date_formats:
+      default_timezone: Europe/Warsaw
   resources:
     requests:
       cpu: "500m"
