@@ -11,6 +11,7 @@
   kubectl -n default delete localqueue --all
   kubectl -n default delete clusterqueue --all
   kubectl -n default delete resourceflavor --all
+  kubectl -n default delete topology --all
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/tests-psocala/templates/nodes/nodes-cleanup.yaml
 ```
 ```bash
