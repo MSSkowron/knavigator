@@ -960,7 +960,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Total Span (Last Completion - First Creation) (s)"
+              "options": "Makespan (Last Completion - First Creation) (s)"
             },
             "properties": [
               {
@@ -969,7 +969,7 @@
               },
               {
                 "id": "displayName",
-                "value": "Total Span (s)"
+                "value": "Makespan (s)"
               },
               {
                 "id": "decimals",
@@ -1029,7 +1029,7 @@
         {
           "id": "calculateField",
           "options": {
-            "alias": "Total Span (ms)",
+            "alias": "Makespan (ms)",
             "binary": {
               "left": "Value #B",
               "operator": "-",
@@ -1047,9 +1047,9 @@
         {
           "id": "calculateField",
           "options": {
-            "alias": "Total Span (s)",
+            "alias": "Makespan (s)",
             "binary": {
-              "left": "Total Span (ms)",
+              "left": "Makespan (ms)",
               "operator": "/",
               "reducer": "lastNotNull",
               "right": "1000"
@@ -1067,7 +1067,7 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Total Span (ms)": true
+              "Makespan (ms)": true
             },
             "indexByName": {
               "unified_job_namespace": 0,
@@ -1075,7 +1075,7 @@
               "Value #D": 2,
               "Value #A": 3,
               "Value #B": 4,
-              "Total Span (s)": 5
+              "Makespan (s)": 5
             },
             "renameByName": {
               "unified_job_namespace": "Namespace",
@@ -1083,7 +1083,7 @@
               "Value #D": "Last Creation Time",
               "Value #A": "First Completion Time",
               "Value #B": "Last Completion Time",
-              "Total Span (s)": "Total Span (Last Completion - First Creation) (s)"
+              "Makespan (s)": "Makespan (Last Completion - First Creation) (s)"
             }
           }
         },
@@ -1346,31 +1346,31 @@
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "First Pod Creation Time" },
+            "matcher": { "id": "byName", "options": "First Creation Time" },
             "properties": [{ "id": "unit", "value": "dateTimeAsISO" }]
           },
           {
-            "matcher": { "id": "byName", "options": "Last Pod Creation Time" },
+            "matcher": { "id": "byName", "options": "Last Creation Time" },
             "properties": [{ "id": "unit", "value": "dateTimeAsISO" }]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "First Pod Completion Time"
+              "options": "First Completion Time"
             },
             "properties": [{ "id": "unit", "value": "dateTimeAsISO" }]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Last Pod Completion Time"
+              "options": "Last Completion Time"
             },
             "properties": [{ "id": "unit", "value": "dateTimeAsISO" }]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Total Span (Last Pod Completion - First Pod Creation) (s)"
+              "options": "Makespan (Last Completion - First Creation) (s)"
             },
             "properties": [
               {
@@ -1379,7 +1379,7 @@
               },
               {
                 "id": "displayName",
-                "value": "Total Span (s)"
+                "value": "Makespan (s)"
               },
               {
                 "id": "decimals",
@@ -1391,7 +1391,7 @@
       },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "Last Pod Completion Time", "desc": true }],
+        "sortBy": [{ "displayName": "Last Completion Time", "desc": true }],
         "footer": {
           "show": false
         }
@@ -1403,7 +1403,7 @@
           "expr": "min(kube_pod_created{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
-          "legendFormat": "First Pod Creation",
+          "legendFormat": "First Creation",
           "refId": "A"
         },
         {
@@ -1411,7 +1411,7 @@
           "expr": "max(kube_pod_created{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
-          "legendFormat": "Last Pod Creation",
+          "legendFormat": "Last Creation",
           "refId": "B"
         },
         {
@@ -1419,7 +1419,7 @@
           "expr": "min(kube_pod_completion_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
-          "legendFormat": "First Pod Completion",
+          "legendFormat": "First Completion",
           "refId": "C"
         },
         {
@@ -1427,7 +1427,7 @@
           "expr": "max(kube_pod_completion_time{namespace=~\"$namespace\", pod!=\"\"}) by (namespace) * 1000",
           "format": "table",
           "instant": true,
-          "legendFormat": "Last Pod Completion",
+          "legendFormat": "Last Completion",
           "refId": "D"
         }
       ],
@@ -1439,7 +1439,7 @@
         {
           "id": "calculateField",
           "options": {
-            "alias": "Pod Total Span (ms)",
+            "alias": "Makespan (ms)",
             "binary": {
               "left": "Value #D",
               "operator": "-",
@@ -1454,9 +1454,9 @@
         {
           "id": "calculateField",
           "options": {
-            "alias": "Pod Total Span (s)",
+            "alias": "Makespan (s)",
             "binary": {
-              "left": "Pod Total Span (ms)",
+              "left": "Makespan (ms)",
               "operator": "/",
               "reducer": "lastNotNull",
               "right": "1000"
@@ -1471,7 +1471,7 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "Pod Total Span (ms)": true,
+              "Makespan (ms)": true,
               "Value #A": false,
               "Value #B": false,
               "Value #C": false,
@@ -1484,15 +1484,15 @@
               "Value #B": 2,
               "Value #C": 3,
               "Value #D": 4,
-              "Pod Total Span (s)": 5
+              "Makespan (s)": 5
             },
             "renameByName": {
-              "Value #A": "First Pod Creation Time",
-              "Value #B": "Last Pod Creation Time",
-              "Value #C": "First Pod Completion Time",
-              "Value #D": "Last Pod Completion Time",
+              "Value #A": "First Creation Time",
+              "Value #B": "Last Creation Time",
+              "Value #C": "First Completion Time",
+              "Value #D": "Last Completion Time",
               "namespace": "Namespace",
-              "Pod Total Span (s)": "Total Span (Last Pod Completion - First Pod Creation) (s)"
+              "Makespan (s)": "Makespan (Last Completion - First Creation) (s)"
             }
           }
         },
@@ -1502,22 +1502,22 @@
             "fields": {},
             "conversions": [
               {
-                "targetField": "First Pod Creation Time",
+                "targetField": "First Creation Time",
                 "destinationType": "time",
                 "dateFormat": "Epoch (ms)"
               },
               {
-                "targetField": "Last Pod Creation Time",
+                "targetField": "Last Creation Time",
                 "destinationType": "time",
                 "dateFormat": "Epoch (ms)"
               },
               {
-                "targetField": "First Pod Completion Time",
+                "targetField": "First Completion Time",
                 "destinationType": "time",
                 "dateFormat": "Epoch (ms)"
               },
               {
-                "targetField": "Last Pod Completion Time",
+                "targetField": "Last Completion Time",
                 "destinationType": "time",
                 "dateFormat": "Epoch (ms)"
               }
