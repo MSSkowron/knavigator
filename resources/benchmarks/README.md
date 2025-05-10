@@ -496,12 +496,14 @@ graph TD
     sw117 --- n13[n13]
 
     classDef unschedulable fill:#ff6b6b,stroke:#333,stroke-width:2px;
-    classDef supernode fill:#51cf66,stroke:#333,stroke-width:2px;
-    classDef normal fill:#74c0fc,stroke:#333,stroke-width:2px;
+    classDef supernode   fill:#51cf66,stroke:#333,stroke-width:2px;
+    classDef normal      fill:#74c0fc,stroke:#333,stroke-width:2px;
+    classDef lightgreen  fill:#b2f2bb,stroke:#333,stroke-width:2px;
 
     class n3,n4,n10,n12,n13 unschedulable;
     class n1 supernode;
-    class n2,n5,n6,n7,n8,n9,n11 normal;
+    class n2,n8,n9,n11 normal;
+    class n5,n6,n7 lightgreen;
 ```
 
 Na tym diagramie:
