@@ -965,7 +965,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "short"
+                "value": "none"
               },
               {
                 "id": "displayName",
@@ -973,7 +973,7 @@
               },
               {
                 "id": "decimals",
-                "value": 2
+                "value": 0
               }
             ]
           }
@@ -1375,7 +1375,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "short"
+                "value": "none"
               },
               {
                 "id": "displayName",
@@ -1383,7 +1383,7 @@
               },
               {
                 "id": "decimals",
-                "value": 2
+                "value": 0
               }
             ]
           }
