@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 import time
@@ -721,8 +722,6 @@ def process_job(job_obj):
                     # Pobierz wszystkie obiekty Node (z etykietami topologicznymi)
                     nodes = {n.metadata.name: n for n in core_v1_api.list_node().items}
 
-                    import itertools
-
                     distances = []
                     for a, b in itertools.combinations(node_names, 2):
                         na = nodes.get(a)
@@ -730,37 +729,42 @@ def process_job(job_obj):
                         if not na or not nb:
                             continue
 
+                        # Pobierz etykiety topologiczne
                         da = na.metadata.labels.get(
+                            "network.topology.kubernetes.io/datacenter"
+                        )
+                        db = nb.metadata.labels.get(
                             "network.topology.kubernetes.io/datacenter"
                         )
                         sa = na.metadata.labels.get(
                             "network.topology.kubernetes.io/spine"
                         )
-                        ba = na.metadata.labels.get(
-                            "network.topology.kubernetes.io/block"
-                        )
-                        db = nb.metadata.labels.get(
-                            "network.topology.kubernetes.io/datacenter"
-                        )
                         sb = nb.metadata.labels.get(
                             "network.topology.kubernetes.io/spine"
+                        )
+                        ba = na.metadata.labels.get(
+                            "network.topology.kubernetes.io/block"
                         )
                         bb = nb.metadata.labels.get(
                             "network.topology.kubernetes.io/block"
                         )
 
-                        # poziom LCA: 0=root,1=spine,2=block,3=ten sam node
-                        if da == db and sa == sb and ba == bb:
-                            lca = 3
-                        elif da == db and sa == sb:
-                            lca = 2
-                        elif da == db:
-                            lca = 1
+                        # 4 poziomy głębokości: 0=datacenter, 1=spine, 2=block, 3=node
+                        # Wyznaczamy depth(LCA):
+                        if ba is not None and bb is not None and ba == bb:
+                            lca_depth = 2  # ten sam block
+                        elif sa is not None and sb is not None and sa == sb:
+                            lca_depth = 1  # ten sam spine
+                        elif da is not None and db is not None and da == db:
+                            lca_depth = 0  # ten samo datacenter
                         else:
-                            lca = 0
+                            lca_depth = (
+                                0  # różne datacenters → LCA na poziomie „korzenia”
+                            )
 
-                        # depth(node)=3
-                        distances.append(3 + 3 - 2 * lca)
+                        # depth(node)=3, więc odległość:
+                        d = 3 + 3 - 2 * lca_depth
+                        distances.append(d)
 
                     avg_d = sum(distances) / len(distances)
                     max_d = max(distances)
