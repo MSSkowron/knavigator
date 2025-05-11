@@ -738,7 +738,7 @@ tasks:
           - type: HyperNode
             exactMatch: sw24
 
-  # Submit a job with network topology constraints (hard mode)
+  # Uruchomienie zadania z topology-aware scheduling (required)
   - id: job-hard
     type: SubmitObj
     params:
@@ -757,15 +757,13 @@ tasks:
         topologyMode: hard
         highestTierAllowed: 3
 
-  # Check if pods are running on the optimal nodes
+  # Sprawdzenie, czy pody się uruchomiły
   - id: status-running-required
     type: CheckPod
     description: confirm that the pods initiated by the job are running on optimal nodes
     params:
       refTaskId: job-hard
       status: Running
-      # nodeLabels:
-      #   ta-optimal: "true"
       timeout: 5m
 
   # Oczekiwanie, aż pody się zakończą
@@ -783,7 +781,7 @@ tasks:
     params:
       timeout: 5s
 
-  # Submit a job with network topology constraints (soft mode)
+  # Uruchomienie zadania z topology-aware scheduling (preferred)
   - id: job-soft
     type: SubmitObj
     params:
@@ -802,15 +800,13 @@ tasks:
         topologyMode: soft
         highestTierAllowed: 3
 
-  # Check if pods are running on the optimal nodes
+  # Sprawdzenie, czy pody się uruchomiły
   - id: status-running-preferred
     type: CheckPod
     description: confirm that the pods initiated by the job are running on optimal nodes
     params:
       refTaskId: job-soft
       status: Running
-      # nodeLabels:
-      #   ta-optimal: "true"
       timeout: 5m
 
   # Oczekiwanie, aż pody się zakończą

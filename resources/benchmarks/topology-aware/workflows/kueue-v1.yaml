@@ -117,7 +117,6 @@ tasks:
           count: 1
           namePrefix: n5
           labels:
-            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw13
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -156,7 +155,6 @@ tasks:
           count: 1
           namePrefix: n7
           labels:
-            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw14
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -176,7 +174,6 @@ tasks:
           count: 1
           namePrefix: n8
           labels:
-            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw14
             network.topology.kubernetes.io/spine: sw22
             network.topology.kubernetes.io/datacenter: sw31
@@ -551,15 +548,13 @@ tasks:
         topologyType: "required"
         topologyLevel: "network.topology.kubernetes.io/spine"
 
-  # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
+  # Sprawdzenie, czy pody się uruchomiły
   - id: status-running-required
     type: CheckPod
     description: confirm that the pods initiated by the job are running on optimal nodes
     params:
       refTaskId: job-required
       status: Running
-      # nodeLabels:
-      #   ta-optimal: "true"
       timeout: 5m
 
   # Oczekiwanie, aż pody się zakończą
@@ -595,15 +590,13 @@ tasks:
         topologyType: "preferred"
         topologyLevel: "network.topology.kubernetes.io/spine"
 
-  # Sprawdzenie, czy pody uruchomiły się na optymalnych węzłach
+  # Sprawdzenie, czy pody się uruchomiły
   - id: status-running-preferred
     type: CheckPod
     description: confirm that the pods initiated by the job are running on optimal nodes
     params:
       refTaskId: job-preferred
       status: Running
-      # nodeLabels:
-      #   ta-optimal: "true"
       timeout: 5m
 
   # Oczekiwanie, aż pody się zakończą

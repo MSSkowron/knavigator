@@ -689,7 +689,7 @@ tasks:
         ttl: "1m"
         networkTopology: true
         topologyMode: soft
-        highestTierAllowed: 1 # Block level - should place pods within the same block
+        highestTierAllowed: 1
 
   # Check that pods are distributed across multiple nodes in block sw115
   - id: status-running-block

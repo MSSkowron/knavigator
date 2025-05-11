@@ -185,6 +185,20 @@ unified_job_tas_requirement_met = Gauge(
     registry=REGISTRY,
 )
 
+unified_job_topo_distance_avg = Gauge(
+    "unified_job_topo_distance_avg",
+    "Average topological distance (in hops) between Pods of the Job",
+    BASE_LABEL_NAMES,
+    registry=REGISTRY,
+)
+
+unified_job_topo_distance_max = Gauge(
+    "unified_job_topo_distance_max",
+    "Maximum topological distance (in hops) between Pods of the Job",
+    BASE_LABEL_NAMES,
+    registry=REGISTRY,
+)
+
 
 # --- Funkcje Pomocnicze ---
 def parse_timestamp(ts_input):
@@ -687,6 +701,80 @@ def process_job(job_obj):
                     f"{log_prefix} Cannot calculate total_duration, missing creation_time_dt."
                 )
 
+            logging.debug(f"{log_prefix} Entering TAS distance calculation for job")
+
+            # --- Topology‐Aware Scheduling: calculate pod‐distance metrics ---
+            try:
+                # 1. Pobierz mapowanie pod→node dla tego joba (obsłuży oba typy)
+                pod_placements = get_pod_placement_info(
+                    core_v1_api, uid, name, namespace, job_kind
+                )
+
+                # 2. Wyciągnij unikalne nazwy węzłów
+                if pod_placements:
+                    node_names = sorted(set(pod_placements.values()))
+                else:
+                    node_names = []
+
+                # 3. Oblicz avg i max tylko gdy co najmniej 2 różne węzły
+                if len(node_names) >= 2:
+                    # Pobierz wszystkie obiekty Node (z etykietami topologicznymi)
+                    nodes = {n.metadata.name: n for n in core_v1_api.list_node().items}
+
+                    import itertools
+
+                    distances = []
+                    for a, b in itertools.combinations(node_names, 2):
+                        na = nodes.get(a)
+                        nb = nodes.get(b)
+                        if not na or not nb:
+                            continue
+
+                        da = na.metadata.labels.get(
+                            "network.topology.kubernetes.io/datacenter"
+                        )
+                        sa = na.metadata.labels.get(
+                            "network.topology.kubernetes.io/spine"
+                        )
+                        ba = na.metadata.labels.get(
+                            "network.topology.kubernetes.io/block"
+                        )
+                        db = nb.metadata.labels.get(
+                            "network.topology.kubernetes.io/datacenter"
+                        )
+                        sb = nb.metadata.labels.get(
+                            "network.topology.kubernetes.io/spine"
+                        )
+                        bb = nb.metadata.labels.get(
+                            "network.topology.kubernetes.io/block"
+                        )
+
+                        # poziom LCA: 0=root,1=spine,2=block,3=ten sam node
+                        if da == db and sa == sb and ba == bb:
+                            lca = 3
+                        elif da == db and sa == sb:
+                            lca = 2
+                        elif da == db:
+                            lca = 1
+                        else:
+                            lca = 0
+
+                        # depth(node)=3
+                        distances.append(3 + 3 - 2 * lca)
+
+                    avg_d = sum(distances) / len(distances)
+                    max_d = max(distances)
+                else:
+                    avg_d = 0.0
+                    max_d = 0.0
+
+                # 4. Eksport do Prometheusa
+                unified_job_topo_distance_avg.labels(**base_labels).set(avg_d)
+                unified_job_topo_distance_max.labels(**base_labels).set(max_d)
+
+            except Exception as e:
+                logging.warning(f"{log_prefix} Error calculating topo distances: {e}")
+
             # --- Obserwacja dla Histogramów Czasów Trwania (tylko raz) ---
             if uid not in observed_executiontotal_durations_uids:
                 logging.debug(
@@ -759,66 +847,53 @@ def process_job(job_obj):
 
 
 def get_pod_placement_info(core_v1_api, job_uid, job_name, job_namespace, job_kind):
-    """Pobiera informacje o rozmieszczeniu podów dla danego joba."""
-    pod_placements = {}  # {pod_name: node_name}
-    try:
-        # Budowanie selektora etykiet
-        label_selector = ""
-        if job_kind == "Job":
-            # Dla standardowego Joba K8s, użyj controllera UID lub job-name
-            # Controller UID jest bardziej niezawodny, ale job_uid pochodzi z Job, a nie Controller
-            # Użyjmy job-name, zakładając unikalność w namespace
-            label_selector = f"job-name={job_name}"
-            # Można by też pobrać Joba ponownie i znaleźć jego controller-uid, ale to dodatkowe zapytanie API
-        elif job_kind == "VolcanoJob":
-            # Dla Volcano, pody mają etykietę 'volcano.sh/job-name'
-            label_selector = f"volcano.sh/job-name={job_name}"
-        else:
-            logging.warning(
-                f"[get_pod_placement_info] Unknown job kind: {job_kind} for {job_namespace}/{job_name}"
-            )
-            return None  # Nieznany rodzaj joba
+    """
+    Zwraca słownik {pod_name: node_name} dla podów danego Joba (K8s lub Volcano),
+    włączając pody juz ukończone (phase=Succeeded). Jeżeli któryś pod jest w Pending
+    bez node_name → zwraca None (niekompletne rozmieszczenie).
+    """
+    if job_kind == "Job":
+        label_selector = f"job-name={job_name}"
+    elif job_kind == "VolcanoJob":
+        label_selector = f"volcano.sh/job-name={job_name}"
+    else:
+        logging.warning(f"[get_pod_placement_info] Unknown job kind: {job_kind}")
+        return None
 
-        logging.debug(
-            f"[get_pod_placement_info] Listing pods for {job_namespace}/{job_name} with selector: '{label_selector}'"
-        )
-        pod_list = core_v1_api.list_namespaced_pod(
+    try:
+        pods = core_v1_api.list_namespaced_pod(
             namespace=job_namespace,
             label_selector=label_selector,
-            timeout_seconds=10,  # Krótki timeout
-        )
+            timeout_seconds=10,
+        ).items
 
-        for pod in pod_list.items:
-            pod_name = pod.metadata.name
-            node_name = pod.spec.node_name
-            pod_phase = pod.status.phase
+        placements = {}
+        for pod in pods:
+            phase = pod.status.phase
+            node = pod.spec.node_name
 
-            # Interesują nas tylko pody, które zostały przypisane do węzła
-            if node_name and pod_phase not in ["Succeeded", "Failed", "Unknown"]:
-                pod_placements[pod_name] = node_name
-            elif not node_name and pod_phase == "Pending":
-                # Pod jeszcze nie przypisany - preferencja nie może być spełniona (jeszcze)
+            # jeśli pod nadal Pending i bez przypisanego node → nie możemy ocenić
+            if phase == "Pending" and not node:
                 logging.debug(
-                    f"[get_pod_placement_info] Pod {pod_name} for job {job_name} is Pending without node."
+                    f"[get_pod_placement_info] Pod {pod.metadata.name} Pending bez node"
                 )
-                # Możemy zwrócić specjalny marker lub None, aby wskazać, że nie można ocenić
-                return None  # Niekompletne rozmieszczenie
+                return None
+
+            # jeśli pod ma przypisany node, bieremy go pod uwagę
+            if node:
+                placements[pod.metadata.name] = node
 
         logging.debug(
-            f"[get_pod_placement_info] Found placements for job {job_name}: {pod_placements}"
+            f"[get_pod_placement_info] Placements for {job_kind} {job_name}: {placements}"
         )
-        return pod_placements
+        return placements
 
     except kubernetes.client.ApiException as e:
-        logging.error(
-            f"API error fetching pods for job {job_namespace}/{job_name}: {e.reason}"
-        )
+        logging.error(f"[get_pod_placement_info] API error: {e.reason}")
     except Exception as e:
-        logging.error(
-            f"Error getting pod placement for job {job_namespace}/{job_name}: {e}",
-            exc_info=True,
-        )
-    return None  # Błąd podczas pobierania
+        logging.error(f"[get_pod_placement_info] Unexpected error: {e}", exc_info=True)
+
+    return None
 
 
 def get_node_topology_label_value(node_name, topology_level_key, core_v1_api):
@@ -1373,6 +1448,11 @@ def collect_metrics(
                                     logging.warning(
                                         f"  - Error removing requirement metric for UID {uid} with values {label_values}: {e}"
                                     )
+
+                                # **Topological distance**
+                                unified_job_topo_distance_avg.remove(*label_values)
+                                unified_job_topo_distance_max.remove(*label_values)
+
                             except KeyError as e:
                                 logging.warning(
                                     f"  - Label key '{e}' not found in base label dict for UID {uid} while preparing values. Dict: {label_dict}"

@@ -559,7 +559,7 @@ tasks:
         completionMode: Indexed
         cpu: 2000m
         memory: 2048Mi
-        gpu: 6 # Same resources as before, but now should be distributed
+        gpu: 6
         ttl: "1m"
         topologyType: "preferred"
         topologyLevel: "kubernetes.io/hostname"

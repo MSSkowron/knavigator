@@ -58,7 +58,6 @@ tasks:
           count: 1
           namePrefix: n1
           labels:
-            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw113
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -78,7 +77,6 @@ tasks:
           count: 1
           namePrefix: n2
           labels:
-            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw113
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -98,7 +96,6 @@ tasks:
           count: 1
           namePrefix: n3
           labels:
-            ta-optimal: "true"
             network.topology.kubernetes.io/block: sw113
             network.topology.kubernetes.io/spine: sw21
             network.topology.kubernetes.io/datacenter: sw31
@@ -898,7 +895,7 @@ tasks:
           - type: HyperNode
             exactMatch: sw24
 
-  # Submit a job with network topology constraints (hard mode)
+  # Uruchomienie zadania z topology-aware scheduling (required)
   - id: job-hard
     type: SubmitObj
     params:
@@ -917,15 +914,13 @@ tasks:
         topologyMode: hard
         highestTierAllowed: 2 # Block level
 
-  # Check if pods are running on the optimal nodes
+  # Sprawdzenie, czy pody się uruchomiły
   - id: status-running-required
     type: CheckPod
     description: confirm that the pods initiated by the job with hard topology are running on optimal nodes
     params:
       refTaskId: job-hard
       status: Running
-      # nodeLabels:
-      #   ta-optimal: "true"
       timeout: 5m
 
   # Oczekiwanie, aż pody się zakończą
@@ -943,7 +938,7 @@ tasks:
     params:
       timeout: 5s
 
-  # Submit a job with network topology constraints (soft mode)
+  # Uruchomienie zadania z topology-aware scheduling (preferred)
   - id: job-soft
     type: SubmitObj
     params:
@@ -962,15 +957,13 @@ tasks:
         topologyMode: soft
         highestTierAllowed: 2 # Block level
 
-  # Check if pods are running on the optimal nodes
+  # Sprawdzenie, czy pody się uruchomiły
   - id: status-running-preferred
     type: CheckPod
     description: confirm that the pods initiated by the job with soft topology are running on optimal nodes
     params:
       refTaskId: job-soft
       status: Running
-      # nodeLabels:
-      #   ta-optimal: "true"
       timeout: 5m
 
   # Oczekiwanie, aż pody się zakończą
