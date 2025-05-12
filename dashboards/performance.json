@@ -522,7 +522,9 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "none",
+          "decimals": 0,
+          "unitSuffix": "s"
         },
         "overrides": []
       },
@@ -535,7 +537,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
@@ -630,7 +632,9 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "none",
+          "decimals": 0,
+          "unitSuffix": "s"
         },
         "overrides": []
       },
@@ -643,7 +647,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
@@ -738,7 +742,9 @@
               }
             ]
           },
-          "unit": "s"
+          "unit": "none",
+          "decimals": 0,
+          "unitSuffix": "s"
         },
         "overrides": []
       },
@@ -751,7 +757,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
