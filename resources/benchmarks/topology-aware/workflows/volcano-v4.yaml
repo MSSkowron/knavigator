@@ -816,6 +816,7 @@ tasks:
         capability:
           cpu: 4096000m
           memory: 33554432Mi
+          nvidia.com/gpu: 256
 
   - id: create-queue-tas
     type: SubmitObj
@@ -823,13 +824,14 @@ tasks:
       refTaskId: register-queue
       canExist: true
       params:
-        name: "tas-queue"
+        name: "main-queue"
         reclaimable: true
         priority: 1
         weight: 1
         capability:
           cpu: 4096000m
           memory: 33554432Mi
+          nvidia.com/gpu: 256
 
   # 3. Create Volcano HyperNodes (4 Tiers)
   # Tier 1: Nodes (n111-hn to n244-hn) - 32 tasks
@@ -1825,40 +1827,41 @@ tasks:
     type: CheckPod
     params: { refTaskId: submit-bg-small-mr-12, status: Running, timeout: 5m }
 
-  # --- Phase 2: Submit TAS Job A (Large, Spine Required) ---
-  - id: submit-tas-job-a
-    type: SubmitObj
+  - id: submit-main-jobs-parallel
+    type: Parallel
     params:
-      refTaskId: register-a-job-template
-      count: 8
-      params:
-        namespace: main
-        queue: tas-queue
-        replicas: 8
-        minAvailable: 8
-        cpu: 32000m
-        memory: 131072Mi
-        gpu: 4
-        ttl: "2m"
-        networkTopology: true
-        topologyMode: hard
-        highestTierAllowed: 3
-
-  # --- Phase 3: Submit TAS Job B (Small, Block Preferred) ---
-  - id: submit-tas-job-b
-    type: SubmitObj
-    params:
-      refTaskId: register-b-job-template
-      count: 4
-      params:
-        namespace: main
-        queue: tas-queue
-        replicas: 4
-        minAvailable: 4
-        cpu: 8000m
-        memory: 32768Mi
-        gpu: 1
-        ttl: "2m"
-        networkTopology: true
-        topologyMode: soft
-        highestTierAllowed: 2 # Block is Tier 2
+      tasks:
+        # --- Submit TAS Job A (Large, Spine Required) ---
+        - type: SubmitObj
+          params:
+            refTaskId: register-a-job-template
+            count: 8
+            params:
+              namespace: main
+              queue: main-queue
+              replicas: 8
+              minAvailable: 8
+              cpu: 32000m
+              memory: 131072Mi
+              gpu: 5
+              ttl: "2m"
+              networkTopology: true
+              topologyMode: hard
+              highestTierAllowed: 3
+        # --- Submit TAS Job B (Small, Block Preferred) ---
+        - type: SubmitObj
+          params:
+            refTaskId: register-b-job-template
+            count: 4
+            params:
+              namespace: main
+              queue: main-queue
+              replicas: 4
+              minAvailable: 4
+              cpu: 8000m
+              memory: 32768Mi
+              gpu: 3
+              ttl: "2m"
+              networkTopology: true
+              topologyMode: soft
+              highestTierAllowed: 2

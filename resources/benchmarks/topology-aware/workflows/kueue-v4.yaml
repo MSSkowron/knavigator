@@ -153,7 +153,6 @@ tasks:
             nvidia.com/gpu.count: "8"
             nvidia.com/gpu.product: NVIDIA-A100-SXM4-80GB
             nvidia.com/mlnxnics: "16"
-            type: kwok # Use label for ResourceFlavor matching
           resources:
             {
               cpu: "128100m",
@@ -912,7 +911,7 @@ tasks:
       refTaskId: register-local-queue
       canExist: true
       params:
-        name: "tas-queue"
+        name: "main-queue"
         namespace: "main"
         clusterQueue: "tas-cluster-queue"
 
@@ -1347,38 +1346,39 @@ tasks:
     type: CheckPod
     params: { refTaskId: submit-bg-small-mr-12, status: Running, timeout: 5m }
 
-  # --- Phase 2: Submit TAS Job A (Large, Spine Required) ---
-  - id: submit-tas-job-a
-    type: SubmitObj
+  - id: submit-main-jobs-parallel
+    type: Parallel
     params:
-      refTaskId: register-a-job-template
-      count: 8
-      params:
-        namespace: main
-        queueName: "tas-queue"
-        replicas: 8
-        completionMode: Indexed
-        cpu: 32000m
-        memory: 131072Mi
-        gpu: 4
-        ttl: "2m"
-        topologyType: "required"
-        topologyLevel: "network.topology.kubernetes.io/spine"
-
-  # --- Phase 3: Submit TAS Job B (Small, Block Preferred) ---
-  - id: submit-tas-job-b
-    type: SubmitObj
-    params:
-      refTaskId: register-b-job-template
-      count: 4
-      params:
-        namespace: main
-        queueName: "tas-queue"
-        replicas: 4
-        completionMode: Indexed
-        cpu: 8000m
-        memory: 32768Mi
-        gpu: 1
-        ttl: "2m"
-        topologyType: "preferred"
-        topologyLevel: "network.topology.kubernetes.io/block"
+      tasks:
+        # --- Submit TAS Job A (Large, Spine Required) ---
+        - type: SubmitObj
+          params:
+            refTaskId: register-a-job-template
+            count: 8
+            params:
+              namespace: main
+              queueName: "main-queue"
+              replicas: 8
+              completionMode: Indexed
+              cpu: 32000m
+              memory: 131072Mi
+              gpu: 5
+              ttl: "2m"
+              topologyType: "required"
+              topologyLevel: "network.topology.kubernetes.io/spine"
+        # --- Submit TAS Job B (Small, Block Preferred) ---
+        - type: SubmitObj
+          params:
+            refTaskId: register-b-job-template
+            count: 4
+            params:
+              namespace: main
+              queueName: "main-queue"
+              replicas: 4
+              completionMode: Indexed
+              cpu: 8000m
+              memory: 32768Mi
+              gpu: 3
+              ttl: "2m"
+              topologyType: "preferred"
+              topologyLevel: "network.topology.kubernetes.io/block"
