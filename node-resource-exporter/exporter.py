@@ -272,7 +272,7 @@ def collect_node_metrics(
 
     # --- Pobieranie Węzłów ---
     try:
-        logging.debug("Fetching Nodes...")
+        logging.info("Fetching Nodes...")
         # Użycie przekazanego klienta core_v1_api
         nodes_response = core_v1_api.list_node(watch=False, timeout_seconds=60)
         nodes_list = nodes_response.items
@@ -305,7 +305,7 @@ def collect_node_metrics(
 
     # --- Pobieranie Podów ---
     try:
-        logging.debug("Fetching Pods (all namespaces, non-terminal)...")
+        logging.info("Fetching Pods (all namespaces, non-terminal)...")
         # Filtrujemy po stronie API, aby zmniejszyć ilość danych
         field_selector = (
             "status.phase!=Succeeded,status.phase!=Failed,status.phase!=Unknown"
@@ -354,13 +354,13 @@ def collect_node_metrics(
         if node_name in kwok_node_names:
             if pod_namespace == "kube-system":
                 if pod_name.startswith("kube-proxy-"):
-                    logging.debug(
+                    logging.info(
                         f"[KWOK Node: {node_name}] Ignoring infra pod (kube-proxy): {pod_namespace}/{pod_name}"
                     )
                     is_infra_pod_on_kwok_node = True
                     processed_infra_pods += 1
                 elif pod_name.startswith("kindnet-"):
-                    logging.debug(
+                    logging.info(
                         f"[KWOK Node: {node_name}] Ignoring infra pod (kindnet): {pod_namespace}/{pod_name}"
                     )
                     is_infra_pod_on_kwok_node = True
@@ -383,7 +383,7 @@ def collect_node_metrics(
                     # Zapisz żądania tylko dla węzła KWOK
                     kindnet_requests_on_node[node_name]["cpu"] += kindnet_cpu_req
                     kindnet_requests_on_node[node_name]["memory"] += kindnet_mem_req
-                    logging.debug(
+                    logging.info(
                         f"[KWOK Node: {node_name}] Recorded kindnet requests: CPU={kindnet_cpu_req}, Mem={kindnet_mem_req}. Total for node now: {kindnet_requests_on_node[node_name]}"  # Dodano kontekst węzła
                     )
 
@@ -470,7 +470,7 @@ def collect_node_metrics(
         node_simulated_requests[node_name]["gpu"] += pod_effective_gpu_request
         # ----------------------------------------------------------
 
-    logging.debug(
+    logging.info(
         f"Aggregated EFFECTIVE pod requests for {len(node_simulated_requests)} nodes "
         f"from {pod_count} scheduled non-infrastructure pods."
         f" Ignored {processed_infra_pods} infrastructure pods (kube-proxy/kindnet)."
@@ -488,7 +488,7 @@ def collect_node_metrics(
 
         processed_node_names_current_cycle.add(node_name)
         log_prefix = f"[Node: {node_name}]"
-        logging.debug(f"{log_prefix} Processing...")
+        logging.info(f"{log_prefix} Processing...")
 
         hostname, datacenter, spine, block = get_node_labels(node.metadata)
         is_kwok = is_kwok_node(node)
@@ -504,7 +504,7 @@ def collect_node_metrics(
 
         ready_status = get_node_status_ready(node)
         node_status_ready.labels(**labels).set(ready_status)
-        logging.debug(f"{log_prefix} Status Ready: {ready_status}")
+        logging.info(f"{log_prefix} Status Ready: {ready_status}")
 
         capacity = getattr(node.status, "capacity", {}) or {}
         original_cap_cpu = parse_resource_quantity(capacity.get("cpu", "0"))
@@ -541,11 +541,11 @@ def collect_node_metrics(
             report_cap_cpu = adjusted_cap_cpu
             report_cap_mem = adjusted_cap_mem
 
-            logging.debug(
+            logging.info(
                 f"{log_prefix} Capacity (Original from K8s API) - CPU: {original_cap_cpu}, Mem: {original_cap_mem}, Pods: {report_cap_pods}"
             )
             if cpu_to_subtract > 0 or mem_to_subtract > 0:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} [KWOK Node] Subtracting Kindnet requests from Capacity - CPU: {cpu_to_subtract}, Mem: {mem_to_subtract}"
                 )
         # else: # Dla węzłów nie-KWOK nie robimy nic, używamy oryginalnych wartości
@@ -555,7 +555,7 @@ def collect_node_metrics(
         node_capacity_pods.labels(**labels).set(report_cap_pods)
         node_capacity_gpu_cards.labels(**labels).set(report_cap_gpu)
 
-        logging.debug(
+        logging.info(
             f"{log_prefix} Capacity (Reported by exporter{' - Adjusted for Kindnet' if is_current_node_kwok and (cpu_to_subtract > 0 or mem_to_subtract > 0) else ''}) "
             f"- CPU: {report_cap_cpu}, Mem: {report_cap_mem}, Pods: {report_cap_pods}, GPU ({found_gpu_key or 'none'}): {report_cap_gpu}"
         )
@@ -593,11 +593,11 @@ def collect_node_metrics(
             report_alloc_cpu = adjusted_alloc_cpu
             report_alloc_mem = adjusted_alloc_mem
 
-            logging.debug(
+            logging.info(
                 f"{log_prefix} Allocatable (Original from K8s API) - CPU: {original_alloc_cpu}, Mem: {original_alloc_mem}, Pods: {report_alloc_pods}"
             )
             if cpu_to_subtract > 0 or mem_to_subtract > 0:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} [KWOK Node] Subtracting Kindnet requests from Allocatable - CPU: {cpu_to_subtract}, Mem: {mem_to_subtract}"
                 )
         # else: # Dla węzłów nie-KWOK nie robimy nic, używamy oryginalnych wartości
@@ -607,7 +607,7 @@ def collect_node_metrics(
         node_allocatable_pods.labels(**labels).set(report_alloc_pods)
         node_allocatable_gpu_cards.labels(**labels).set(report_alloc_gpu)
 
-        logging.debug(
+        logging.info(
             f"{log_prefix} Allocatable (Reported by exporter{' - Adjusted for Kindnet' if is_current_node_kwok and (cpu_to_subtract > 0 or mem_to_subtract > 0) else ''}) "
             f"- CPU: {report_alloc_cpu}, Mem: {report_alloc_mem}, Pods: {report_alloc_pods}, GPU ({found_alloc_gpu_key or 'none'}): {report_alloc_gpu}"
         )
@@ -620,18 +620,18 @@ def collect_node_metrics(
         node_simulated_usage_gpu_cards.labels(**labels).set(sim_usage["gpu"])
         node_simulated_pod_count.labels(**labels).set(sim_usage["pods"])
 
-        logging.debug(
+        logging.info(
             f"{log_prefix} Simulated Usage ({'non-infra pods only' if is_current_node_kwok else 'all non-terminal pods'}) "
             f"- CPU: {sim_usage['cpu']}, Mem: {sim_usage['memory']}, GPU: {sim_usage['gpu']}, Pods: {sim_usage['pods']}"
         )
 
-        logging.debug(f"{log_prefix} Processing finished.")
+        logging.info(f"{log_prefix} Processing finished.")
 
     # --- Ustaw Metrykę Nieschedulowanych Podów ---
     cluster_unscheduled_pods_count.set(unscheduled_pod_count)
 
     # --- Czyszczenie Starych Metryk ---
-    logging.debug("Starting cleanup of metrics for removed nodes...")
+    logging.info("Starting cleanup of metrics for removed nodes...")
     previous_nodes = set(previous_node_labels.keys())
     current_nodes = set(current_node_labels.keys())
     removed_node_names = previous_nodes - current_nodes
@@ -654,7 +654,7 @@ def collect_node_metrics(
                     continue
 
                 try:
-                    logging.debug(
+                    logging.info(
                         f"Removing metrics for node: {node_name} with label values (in order): {label_values_in_order}"
                     )
                     # Usuń wszystkie metryki dla tego zestawu wartości etykiet
@@ -671,7 +671,7 @@ def collect_node_metrics(
                     node_simulated_pod_count.remove(*label_values_in_order)
                     node_simulated_usage_gpu_cards.remove(*label_values_in_order)
                     node_status_ready.remove(*label_values_in_order)
-                    logging.debug(f"Successfully removed metrics for node: {node_name}")
+                    logging.info(f"Successfully removed metrics for node: {node_name}")
                 except KeyError:
                     logging.warning(
                         f"Tried to remove metrics for node {node_name}, but the specific label combination was not found in the registry (or already removed). Label values: {label_values_in_order}"
@@ -686,7 +686,7 @@ def collect_node_metrics(
                     f"Node name {node_name} was marked for removal, but its labels were not found in previous_node_labels."
                 )
     else:
-        logging.debug("No nodes found for metric cleanup in this cycle.")
+        logging.info("No nodes found for metric cleanup in this cycle.")
 
     # --- Aktualizacja Stanu na Następny Cykl ---
     previous_node_labels = current_node_labels
@@ -704,7 +704,7 @@ if __name__ == "__main__":
     # --- Inicjalizacja Klienta K8s (Tylko raz) ---
     try:
         try:
-            logging.debug("Attempting to load incluster config...")
+            logging.info("Attempting to load incluster config...")
             kubernetes.config.load_incluster_config()
             logging.info("Using incluster Kubernetes config.")
         except kubernetes.config.ConfigException:

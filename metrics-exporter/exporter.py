@@ -268,7 +268,7 @@ def get_volcano_start_time(uid, conditions_list):
     global volcano_start_times_cache
     start_time_ts = volcano_start_times_cache.get(uid)
     if start_time_ts:
-        logging.debug(
+        logging.info(
             f"[get_volcano_start_time] UID: {uid} - Found start time in cache: {start_time_ts}"
         )
         return datetime.fromtimestamp(start_time_ts, tz=timezone.utc)
@@ -279,24 +279,24 @@ def get_volcano_start_time(uid, conditions_list):
             if isinstance(condition, dict) and condition.get("status") == "Running":
                 ts = parse_timestamp(condition.get("lastTransitionTime"))
                 if ts:
-                    logging.debug(
+                    logging.info(
                         f"[get_volcano_start_time] UID: {uid} - Found 'Running' condition with time: {ts}"
                     )
                     if earliest_running_time is None or ts < earliest_running_time:
                         earliest_running_time = ts
                 else:
-                    logging.debug(
+                    logging.info(
                         f"[get_volcano_start_time] UID: {uid} - Found 'Running' condition but failed to parse time: {condition.get('lastTransitionTime')}"
                     )
 
     if earliest_running_time:
-        logging.debug(
+        logging.info(
             f"[get_volcano_start_time] UID: {uid} - Determined earliest start time: {earliest_running_time}, caching."
         )
         volcano_start_times_cache[uid] = earliest_running_time.timestamp()
         return earliest_running_time
     else:
-        logging.debug(
+        logging.info(
             f"[get_volcano_start_time] UID: {uid} - No 'Running' condition found."
         )
         return None
@@ -385,19 +385,19 @@ def process_job(job_obj):
                 kueue_queue = job_labels.get("kueue.x-k8s.io/queue-name")
                 if kueue_queue:
                     queue_name = kueue_queue
-                    logging.debug(f"{log_prefix} Found Kueue queue label: {queue_name}")
+                    logging.info(f"{log_prefix} Found Kueue queue label: {queue_name}")
                 else:
                     # 2. Sprawdź etykietę YuniKorn
                     yunikorn_queue = job_labels.get("queue")
                     if yunikorn_queue:
                         queue_name = yunikorn_queue
-                        logging.debug(
+                        logging.info(
                             f"{log_prefix} Found YuniKorn queue label: {queue_name}"
                         )
                     else:
                         # 3. Fallback - brak znanej etykiety kolejki
                         queue_name = "<k8s-job-no-queue>"
-                        logging.debug(
+                        logging.info(
                             f"{log_prefix} No known queue label (Kueue/YuniKorn) found."
                         )
 
@@ -407,7 +407,7 @@ def process_job(job_obj):
                 )
                 queue_name = "<error>"
 
-        logging.debug(f"{log_prefix} Determined queue: {queue_name}")
+        logging.info(f"{log_prefix} Determined queue: {queue_name}")
 
         try:
             # --- Ekstrakcja informacji TAS ---
@@ -422,11 +422,11 @@ def process_job(job_obj):
                     and spec_data.template.metadata.annotations
                 ):
                     pod_template_annotations = spec_data.template.metadata.annotations
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Found Pod Template annotations: {pod_template_annotations}"
                     )
                 else:
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} No annotations found on Job's Pod Template metadata."
                     )
 
@@ -468,7 +468,7 @@ def process_job(job_obj):
                         tas_constraint_level = VOLCANO_TIER_MAP.get(
                             tier, f"volcano_tier_{tier}_unmapped"
                         )
-                        logging.debug(
+                        logging.info(
                             f"{log_prefix} Mapped Volcano tier {tier} to level: {tas_constraint_level}"
                         )
                     else:
@@ -480,7 +480,7 @@ def process_job(job_obj):
             tas_constraint_type = "error"
             tas_constraint_level = "error"
 
-        logging.debug(
+        logging.info(
             f"{log_prefix} Determined UNIFIED TAS constraints: Type={tas_constraint_type}, Level={tas_constraint_level}"
         )
 
@@ -495,7 +495,7 @@ def process_job(job_obj):
         }
         labels_used_this_call.append(base_labels)
 
-        logging.debug(
+        logging.info(
             f"{log_prefix} Processing start. Kind: {job_kind}, Queue: {queue_name}, TAS: {tas_constraint_type}/{tas_constraint_level}"
         )
 
@@ -506,9 +506,9 @@ def process_job(job_obj):
         final_status = None
         current_phase_str = "Unknown"
 
-        logging.debug(f"{log_prefix} Raw creation_time_input: {creation_time_input}")
+        logging.info(f"{log_prefix} Raw creation_time_input: {creation_time_input}")
         if creation_time_dt:
-            logging.debug(
+            logging.info(
                 f"{log_prefix} Parsed creation_time_dt: {creation_time_dt.isoformat()}"
             )
         else:
@@ -521,8 +521,8 @@ def process_job(job_obj):
             completion_time_input = getattr(status_data, "completion_time", None)
             conditions = getattr(status_data, "conditions", None)
 
-            logging.debug(f"{log_prefix} Raw start_time_input: {start_time_input}")
-            logging.debug(
+            logging.info(f"{log_prefix} Raw start_time_input: {start_time_input}")
+            logging.info(
                 f"{log_prefix} Raw completion_time_input: {completion_time_input}"
             )
 
@@ -533,13 +533,13 @@ def process_job(job_obj):
             )
 
             if completion_time_dt is None and completion_time_cond:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Using completion time from conditions: {completion_time_cond}"
                 )
                 completion_time_dt = completion_time_cond
             if final_status_cond:
                 final_status = final_status_cond
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Determined final status from conditions: {final_status}"
                 )
 
@@ -548,7 +548,7 @@ def process_job(job_obj):
             failed_count = getattr(status_data, "failed", 0) or 0
             active_count = getattr(status_data, "active", 0) or 0
             is_suspended = getattr(spec_data, "suspend", False)
-            logging.debug(
+            logging.info(
                 f"{log_prefix} K8s status counts: succeeded={succeeded_count}, failed={failed_count}, active={active_count}, suspended={is_suspended}"
             )
 
@@ -564,26 +564,24 @@ def process_job(job_obj):
                 current_phase_str = "Pending"
             else:
                 current_phase_str = "Unknown"
-            logging.debug(
+            logging.info(
                 f"{log_prefix} Determined current_phase_str: {current_phase_str}"
             )
 
         elif job_kind == "VolcanoJob":
             conditions_list = status_data.get("conditions")
-            logging.debug(f"{log_prefix} Raw conditions_list: {conditions_list}")
+            logging.info(f"{log_prefix} Raw conditions_list: {conditions_list}")
             start_time_dt = get_volcano_start_time(
                 uid, conditions_list
             )  # Logowanie jest wewnątrz tej funkcji
             current_phase_str = status_data.get("state", {}).get("phase", "Unknown")
-            logging.debug(
-                f"{log_prefix} Volcano current_phase_str: {current_phase_str}"
-            )
+            logging.info(f"{log_prefix} Volcano current_phase_str: {current_phase_str}")
 
             if current_phase_str in ["Completed", "Failed", "Aborted", "Terminated"]:
                 completion_time_input = status_data.get("state", {}).get(
                     "lastTransitionTime"
                 )
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Raw completion_time_input (from state): {completion_time_input}"
                 )
                 completion_time_dt = parse_timestamp(completion_time_input)
@@ -595,25 +593,25 @@ def process_job(job_obj):
                         f"{log_prefix} Could not parse completion time for phase {current_phase_str}"
                     )
                 else:
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Determined final status: {final_status} at {completion_time_dt.isoformat()}"
                     )
 
         # --- Koniec części specyficznej dla typu ---
 
         # --- Przetwarzanie i Eksport Metryk (wspólne) ---
-        logging.debug(
+        logging.info(
             f"{log_prefix} Final Timestamps - Creation: {creation_time_dt}, Start: {start_time_dt}, Completion: {completion_time_dt}"
         )
 
         if creation_time_dt:
             ts_val = creation_time_dt.timestamp()
-            logging.debug(f"{log_prefix} Exporting created_timestamp: {ts_val}")
+            logging.info(f"{log_prefix} Exporting created_timestamp: {ts_val}")
             unified_job_created_timestamp_seconds.labels(**base_labels).set(ts_val)
 
         if start_time_dt:
             ts_val = start_time_dt.timestamp()
-            logging.debug(f"{log_prefix} Exporting start_timestamp: {ts_val}")
+            logging.info(f"{log_prefix} Exporting start_timestamp: {ts_val}")
             unified_job_start_timestamp_seconds.labels(**base_labels).set(ts_val)
             if creation_time_dt:
                 wait_duration = (start_time_dt - creation_time_dt).total_seconds()
@@ -623,16 +621,14 @@ def process_job(job_obj):
                     )
                     wait_duration = 0
 
-                logging.debug(
-                    f"{log_prefix} Exporting wait_duration GAUGE: {wait_duration}"
-                )
+                logging.info(f"{log_prefix} Exporting wait_duration: {wait_duration}")
                 unified_job_wait_duration_seconds.labels(**base_labels).set(
                     wait_duration
                 )
 
                 # --- Obserwacja dla Histogramu (tylko raz) ---
                 if uid not in observed_wait_times_uids:
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Observing wait_duration HISTOGRAM ({wait_duration}) for the first time."
                     )
                     unified_job_wait_duration_seconds_histogram.labels(
@@ -640,11 +636,11 @@ def process_job(job_obj):
                     ).observe(wait_duration)
                     observed_wait_times_uids.add(uid)
                 else:
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Wait duration HISTOGRAM already observed for this UID."
                     )
             else:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Cannot calculate wait_duration, missing creation_time_dt."
                 )
 
@@ -654,7 +650,7 @@ def process_job(job_obj):
             labels_used_this_call.append(completion_labels)
 
             ts_val = completion_time_dt.timestamp()
-            logging.debug(
+            logging.info(
                 f"{log_prefix} Exporting completion_timestamp (status={final_status}): {ts_val}"
             )
             unified_job_completion_timestamp_seconds.labels(**completion_labels).set(
@@ -673,14 +669,14 @@ def process_job(job_obj):
                         f"{log_prefix} Negative execution duration calculated ({execution_duration}), setting to 0."
                     )
                     execution_duration = 0
-                logging.debug(
-                    f"{log_prefix} Exporting execution_duration GAUGE (status={final_status}): {execution_duration}"
+                logging.info(
+                    f"{log_prefix} Exporting execution_duration (status={final_status}): {execution_duration}"
                 )
                 unified_job_execution_duration_seconds.labels(**completion_labels).set(
                     execution_duration
                 )
             else:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Cannot calculate execution_duration, missing start_time_dt."
                 )
 
@@ -691,18 +687,18 @@ def process_job(job_obj):
                         f"{log_prefix} Negative total duration calculated ({total_duration}), setting to 0."
                     )
                     total_duration = 0
-                logging.debug(
-                    f"{log_prefix} Exporting total_duration GAUGE (status={final_status}): {total_duration}"
+                logging.info(
+                    f"{log_prefix} Exporting total_duration (status={final_status}): {total_duration}"
                 )
                 unified_job_total_duration_seconds.labels(**completion_labels).set(
                     total_duration
                 )
             else:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Cannot calculate total_duration, missing creation_time_dt."
                 )
 
-            logging.debug(f"{log_prefix} Entering TAS distance calculation for job")
+            logging.info(f"{log_prefix} Entering TAS distance calculation for job")
 
             # --- Topology‐Aware Scheduling: calculate pod‐distance metrics ---
             try:
@@ -781,7 +777,7 @@ def process_job(job_obj):
 
             # --- Obserwacja dla Histogramów Czasów Trwania (tylko raz) ---
             if uid not in observed_executiontotal_durations_uids:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Observing completion duration HISTOGRAMS for the first time (status={final_status})."
                 )
                 hist_duration_labels = {
@@ -793,11 +789,11 @@ def process_job(job_obj):
                     unified_job_execution_duration_seconds_histogram.labels(
                         **hist_duration_labels
                     ).observe(execution_duration)
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Observed execution_duration: {execution_duration}"
                     )
                 else:
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Cannot observe execution_duration histogram, value is None."
                     )
 
@@ -805,27 +801,27 @@ def process_job(job_obj):
                     unified_job_total_duration_seconds_histogram.labels(
                         **hist_duration_labels
                     ).observe(total_duration)
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Observed total_duration: {total_duration}"
                     )
                 else:
-                    logging.debug(
+                    logging.info(
                         f"{log_prefix} Cannot observe total_duration histogram, value is None."
                     )
 
                 observed_executiontotal_durations_uids.add(uid)
             else:
-                logging.debug(
+                logging.info(
                     f"{log_prefix} Completion duration HISTOGRAMS already observed for this UID."
                 )
 
         phase_value = JOB_STATUS_MAP.get(current_phase_str, JOB_STATUS_MAP["Unknown"])
-        logging.debug(
+        logging.info(
             f"{log_prefix} Exporting status_phase ({current_phase_str}): {phase_value}"
         )
         unified_job_status_phase.labels(**base_labels).set(phase_value)
 
-        logging.debug(f"{log_prefix} Processing finished.")
+        logging.info(f"{log_prefix} Processing finished.")
 
         return {
             "uid": uid,
@@ -878,7 +874,7 @@ def get_pod_placement_info(core_v1_api, job_uid, job_name, job_namespace, job_ki
 
             # jeśli pod nadal Pending i bez przypisanego node → nie możemy ocenić
             if phase == "Pending" and not node:
-                logging.debug(
+                logging.info(
                     f"[get_pod_placement_info] Pod {pod.metadata.name} Pending bez node"
                 )
                 return None
@@ -887,7 +883,7 @@ def get_pod_placement_info(core_v1_api, job_uid, job_name, job_namespace, job_ki
             if node:
                 placements[pod.metadata.name] = node
 
-        logging.debug(
+        logging.info(
             f"[get_pod_placement_info] Placements for {job_kind} {job_name}: {placements}"
         )
         return placements
@@ -940,14 +936,14 @@ def check_preference_met(pod_placements, topology_level_key, core_v1_api):
 
         # Optymalizacja: jeśli znajdziemy więcej niż jedną wartość, preferencja nie jest spełniona
         if len(topology_values) > 1:
-            logging.debug(
+            logging.info(
                 f"Preference not met for level '{topology_level_key}'. Found different values: {topology_values}"
             )
             return False
 
     # Jeśli pętla się zakończyła i mamy dokładnie jedną wartość (lub zero, jeśli nie było podów), preferencja jest spełniona
     preference_is_met = len(topology_values) == 1
-    logging.debug(
+    logging.info(
         f"Preference check result for level '{topology_level_key}': {preference_is_met}. Values found: {topology_values}"
     )
     return preference_is_met
@@ -983,7 +979,7 @@ def collect_metrics(
 
     # --- Pobieranie Standardowych Jobów ---
     try:
-        logging.debug("Fetching Kubernetes Jobs (batch/v1)...")
+        logging.info("Fetching Kubernetes Jobs (batch/v1)...")
         if TARGET_NAMESPACE:
             k8s_jobs_list = batch_v1_api.list_namespaced_job(
                 namespace=TARGET_NAMESPACE, watch=False, timeout_seconds=60
@@ -1009,7 +1005,7 @@ def collect_metrics(
 
     # --- Pobieranie Volcano Jobów ---
     try:
-        logging.debug("Fetching Volcano Jobs (batch.volcano.sh/v1alpha1)...")
+        logging.info("Fetching Volcano Jobs (batch.volcano.sh/v1alpha1)...")
         if TARGET_NAMESPACE:
             volcano_jobs_list = custom_objects_api.list_namespaced_custom_object(
                 group="batch.volcano.sh",
@@ -1107,7 +1103,7 @@ def collect_metrics(
             )
 
     # --- Sprawdzanie i Ustawianie Metryk Spełnienia Ograniczeń TAS ---
-    logging.debug("Checking and setting TAS constraint fulfillment metrics...")
+    logging.info("Checking and setting TAS constraint fulfillment metrics...")
     global job_tas_preference_status
     global job_tas_requirement_status
     jobs_tas_metrics_set = (
@@ -1180,7 +1176,7 @@ def collect_metrics(
         )
 
         if should_recalculate_preference:
-            logging.debug(
+            logging.info(
                 f"Recalculating PREFERENCE status for non-terminal job {uid} (current cache state: {job_tas_preference_status.get(uid, -1)})"
             )
             pod_placements = get_pod_placement_info(
@@ -1196,12 +1192,12 @@ def collect_metrics(
                     )
                     # Stan staje się definitywny: 1 (spełnione) lub 0 (niespełnione)
                     calculated_preference = 1 if is_met else 0
-                    logging.debug(
+                    logging.info(
                         f"Preference for {uid} calculated as: {calculated_preference} based on placements: {pod_placements}"
                     )
                 # else: pod_placements is empty {} -> pody jeszcze nie są gotowe, stan pozostaje -1
                 else:
-                    logging.debug(
+                    logging.info(
                         f"Preference for {uid} remains -1: No running/scheduled pods found yet."
                     )
             # else: pod_placements is None -> błąd API, stan pozostaje -1
@@ -1215,7 +1211,7 @@ def collect_metrics(
             job_tas_preference_status[uid] = calculated_preference
 
         elif should_recalculate_requirement:
-            logging.debug(
+            logging.info(
                 f"Recalculating REQUIREMENT status for non-terminal job {uid} (current cache state: {job_tas_requirement_status.get(uid, -1)})"
             )
             pod_placements = get_pod_placement_info(
@@ -1231,7 +1227,7 @@ def collect_metrics(
                     )
                     if is_collocated:
                         calculated_requirement = 1  # OK - stan definitywny
-                        logging.debug(
+                        logging.info(
                             f"Requirement for {uid} calculated as: 1 based on placements: {pod_placements}"
                         )
                     else:
@@ -1239,12 +1235,12 @@ def collect_metrics(
                         logging.error(
                             f"!!! TAS VIOLATION DETECTED !!! Job {uid} ('required' at level '{tas_level}') has pods placed incorrectly: {pod_placements}"
                         )
-                        logging.debug(
+                        logging.info(
                             f"Requirement for {uid} calculated as: 0 based on placements: {pod_placements}"
                         )
                 # else: pod_placements is empty {} -> pody jeszcze nie są gotowe, stan pozostaje -1
                 else:
-                    logging.debug(
+                    logging.info(
                         f"Requirement for {uid} remains -1: No running/scheduled pods found yet."
                     )
             # else: pod_placements is None -> błąd API, stan pozostaje -1
@@ -1269,7 +1265,7 @@ def collect_metrics(
                     unified_job_tas_preference_met.labels(**base_labels).set(
                         final_preference_value
                     )
-                    logging.debug(
+                    logging.info(
                         f"Set PREFERENCE metric for {uid} to {final_preference_value} (from cache/recalculation)"
                     )
                     jobs_tas_metrics_set.add(uid)
@@ -1285,7 +1281,7 @@ def collect_metrics(
                     unified_job_tas_requirement_met.labels(**base_labels).set(
                         final_requirement_value
                     )
-                    logging.debug(
+                    logging.info(
                         f"Set REQUIREMENT metric for {uid} to {final_requirement_value} (from cache/recalculation)"
                     )
                     jobs_tas_metrics_set.add(uid)
@@ -1303,7 +1299,7 @@ def collect_metrics(
     # --- Koniec Sprawdzania i Ustawiania Metryk TAS ---
 
     # --- Ustawianie i Czyszczenie metryki unified_job_concurrency_count ---
-    logging.debug(
+    logging.info(
         f"Setting concurrency counts. Found {len(current_phase_counts)} (queue, phase, namespace) combinations with jobs."
     )
 
@@ -1321,7 +1317,7 @@ def collect_metrics(
                     unified_job_phase=phase,
                     unified_job_namespace=namespace,
                 ).set(count)
-                logging.debug(
+                logging.info(
                     f"Set unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}} = {count}"
                 )
                 processed_keys_in_loop.add(key)
@@ -1342,11 +1338,11 @@ def collect_metrics(
             for phase in all_possible_phases:
                 try:
                     unified_job_concurrency_count.remove(queue, phase, namespace)
-                    logging.debug(
+                    logging.info(
                         f"Removed unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}}"
                     )
                 except KeyError:
-                    logging.debug(
+                    logging.info(
                         f"Metric unified_job_concurrency_count{{queue='{queue}', phase='{phase}', namespace='{namespace}'}} not found for removal (likely already gone or never existed)."
                     )
                 except Exception as e:
@@ -1359,7 +1355,7 @@ def collect_metrics(
     # --- Koniec Ustawiania i Czyszczenia metryki concurrency ---
 
     # --- Czyszczenie Starych Metryk Jobów ---
-    logging.debug("Starting cleanup of metrics for removed jobs...")
+    logging.info("Starting cleanup of metrics for removed jobs...")
     previous_uids = set(previous_job_labels_for_uid.keys())
     current_uids = current_job_uids_processed
     removed_uids = previous_uids - current_uids
@@ -1370,10 +1366,10 @@ def collect_metrics(
             removed_pref = job_tas_preference_status.pop(uid, None)
             removed_req = job_tas_requirement_status.pop(uid, None)
             if removed_pref is not None or removed_req is not None:
-                logging.debug(f"Removed cached TAS status for job UID: {uid}")
+                logging.info(f"Removed cached TAS status for job UID: {uid}")
             label_tuples_to_remove = previous_job_labels_for_uid.get(uid)
             if label_tuples_to_remove:
-                logging.debug(f"Removing metrics for job UID: {uid}")
+                logging.info(f"Removing metrics for job UID: {uid}")
                 for label_tuple in label_tuples_to_remove:
                     try:
                         label_dict = dict(label_tuple)
@@ -1386,7 +1382,7 @@ def collect_metrics(
                                 label_values = [
                                     label_dict[key] for key in target_label_names
                                 ]
-                                logging.debug(
+                                logging.info(
                                     f"  - Removing completion metrics with values: {label_values}"
                                 )
                                 unified_job_completion_timestamp_seconds.remove(
@@ -1410,7 +1406,7 @@ def collect_metrics(
                                 label_values = [
                                     label_dict[key] for key in target_label_names
                                 ]
-                                logging.debug(
+                                logging.info(
                                     f"  - Removing base metrics with values: {label_values}"
                                 )
                                 unified_job_created_timestamp_seconds.remove(
@@ -1424,11 +1420,11 @@ def collect_metrics(
 
                                 try:
                                     unified_job_tas_preference_met.remove(*label_values)
-                                    logging.debug(
+                                    logging.info(
                                         f"  - Removing preference metric with values: {label_values}"
                                     )
                                 except KeyError:
-                                    logging.debug(
+                                    logging.info(
                                         f"  - Preference metric not found for removal with labels: {label_values}"
                                     )
                                 except Exception as e:
@@ -1441,11 +1437,11 @@ def collect_metrics(
                                     unified_job_tas_requirement_met.remove(
                                         *label_values
                                     )
-                                    logging.debug(
+                                    logging.info(
                                         f"  - Removing requirement metric with values: {label_values}"
                                     )
                                 except KeyError:
-                                    logging.debug(
+                                    logging.info(
                                         f"  - Requirement metric not found for removal with labels: {label_values}"
                                     )
                                 except Exception as e:
@@ -1476,11 +1472,11 @@ def collect_metrics(
                     f"Job UID {uid} was marked for removal, but its labels were not found in previous_job_labels_for_uid."
                 )
     else:
-        logging.debug("No jobs found for metric cleanup in this cycle.")
+        logging.info("No jobs found for metric cleanup in this cycle.")
     # --- Koniec Sekcji Czyszczenia Jobów ---
 
     # --- Czyszczenie Starych Metryk Histogramów dla Nieaktywnych Przestrzeni Nazw ---
-    logging.debug("Starting cleanup of histogram metrics for inactive namespaces...")
+    logging.info("Starting cleanup of histogram metrics for inactive namespaces...")
     namespaces_to_clear = previous_histogram_namespaces - current_histogram_namespaces
 
     if namespaces_to_clear:
@@ -1493,14 +1489,14 @@ def collect_metrics(
         ]
 
         for namespace in namespaces_to_clear:
-            logging.debug(f"Removing histograms for namespace: {namespace}")
+            logging.info(f"Removing histograms for namespace: {namespace}")
             try:
                 unified_job_wait_duration_seconds_histogram.remove(namespace)
-                logging.debug(
+                logging.info(
                     f"  - Removed unified_job_wait_duration_seconds_histogram{{unified_job_namespace='{namespace}'}}"
                 )
             except KeyError:
-                logging.debug(
+                logging.info(
                     f"  - Metric unified_job_wait_duration_seconds_histogram{{unified_job_namespace='{namespace}'}} not found for removal."
                 )
             except Exception as e:
@@ -1514,11 +1510,11 @@ def collect_metrics(
                     unified_job_execution_duration_seconds_histogram.remove(
                         namespace, status
                     )
-                    logging.debug(
+                    logging.info(
                         f"  - Removed unified_job_execution_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}}"
                     )
                 except KeyError:
-                    logging.debug(
+                    logging.info(
                         f"  - Metric unified_job_execution_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}} not found for removal."
                     )
                 except Exception as e:
@@ -1530,11 +1526,11 @@ def collect_metrics(
                     unified_job_total_duration_seconds_histogram.remove(
                         namespace, status
                     )
-                    logging.debug(
+                    logging.info(
                         f"  - Removed unified_job_total_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}}"
                     )
                 except KeyError:
-                    logging.debug(
+                    logging.info(
                         f"  - Metric unified_job_total_duration_seconds_histogram{{unified_job_namespace='{namespace}', unified_job_status='{status}'}} not found for removal."
                     )
                 except Exception as e:
@@ -1543,7 +1539,7 @@ def collect_metrics(
                         exc_info=False,
                     )
     else:
-        logging.debug("No namespaces found for histogram cleanup in this cycle.")
+        logging.info("No namespaces found for histogram cleanup in this cycle.")
     # --- Koniec Sekcji Czyszczenia Histogramów ---
 
     # --- Aktualizacja Stanu na Następny Cykl ---
@@ -1556,7 +1552,7 @@ def collect_metrics(
         set(volcano_start_times_cache.keys()) - current_job_uids_processed
     )
     if volcano_uids_to_remove_from_cache:
-        logging.debug(
+        logging.info(
             f"Removing {len(volcano_uids_to_remove_from_cache)} UIDs from Volcano start time cache."
         )
         for uid in volcano_uids_to_remove_from_cache:
@@ -1565,7 +1561,7 @@ def collect_metrics(
     # --- Czyszczenie Zbioru Zaobserwowanych Czasów Oczekiwania (Histogram) ---
     uids_to_remove_from_observed = observed_wait_times_uids - current_job_uids_processed
     if uids_to_remove_from_observed:
-        logging.debug(
+        logging.info(
             f"Removing {len(uids_to_remove_from_observed)} UIDs from observed wait times set."
         )
         observed_wait_times_uids.difference_update(uids_to_remove_from_observed)
@@ -1575,7 +1571,7 @@ def collect_metrics(
         observed_executiontotal_durations_uids - current_job_uids_processed
     )
     if uids_to_remove_from_observed_completion:
-        logging.debug(
+        logging.info(
             f"Removing {len(uids_to_remove_from_observed_completion)} UIDs from observed completion durations set."
         )
         observed_executiontotal_durations_uids.difference_update(
@@ -1603,7 +1599,7 @@ if __name__ == "__main__":
 
     try:
         try:
-            logging.debug("Attempting to load incluster config...")
+            logging.info("Attempting to load incluster config...")
             kubernetes.config.load_incluster_config()
             logging.info("Using incluster Kubernetes config.")
         except kubernetes.config.ConfigException:
