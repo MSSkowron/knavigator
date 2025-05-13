@@ -9,8 +9,8 @@
   kubectl -n default delete job --all
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/tests-psocala/templates/nodes/nodes-cleanup.yaml
   kubectl -n yunikorn delete pod --all
+  kubectl -n monitoring delete pod --all
 ```
 ```bash
-  ./bin/knavigator -workflow resources/tests-psocala/gang/yunikorn/test1-gang-functionality/run-test-standard-TAS.yaml
-  ./bin/knavigator -workflow resources/tests-psocala/gang/yunikorn/test1-gang-functionality/run-test-standard-blocking-job.yaml
+  ./bin/knavigator -workflow resources/tests-psocala/gang/yunikorn/test3-heterogeneous/run-test-standard.yaml
 ```

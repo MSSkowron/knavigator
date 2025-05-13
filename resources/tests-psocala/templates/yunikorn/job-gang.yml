@@ -28,7 +28,7 @@ spec:
         queue: {{.queue}}
       annotations:
         yunikorn.apache.org/task-group-name: group-{{._NAME_}}
-        yunikorn.apache.org/schedulingPolicyParameters: "placeholderTimeoutInSeconds=5000 gangSchedulingStyle=Hard"
+        yunikorn.apache.org/schedulingPolicyParameters: "placeholderTimeoutInSeconds=50000 gangSchedulingStyle=Hard"
         yunikorn.apache.org/task-groups: |-
           [{
             "name": "group-{{._NAME_}}",
