@@ -120,7 +120,7 @@ def plot_grouped_bar(
             capsize=3,
             error_kw={"ecolor": "black", "elinewidth": 1.5},
         )
-    ax.set_title(title)
+    # ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_xticks(np.arange(N))
