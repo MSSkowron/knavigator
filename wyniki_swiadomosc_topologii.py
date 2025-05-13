@@ -92,7 +92,6 @@ def draw_correctness(df, scenario, output_dir):
             linewidth=0.5,
         )
 
-    ax.set_title(f"Scenariusz {scenario} – Poprawność rozmieszczenia")
     ax.set_xlabel("Krok")
     ax.set_ylabel("Poprawność rozmieszczenia [%]")
     ax.set_xticks(range(N))
@@ -149,7 +148,6 @@ def draw_distances(df, scenario, output_dir):
                 edgecolor="black",
                 linewidth=0.5,
             )
-        ax.set_title(f"Scenariusz {scenario} – {title_label}")
         ax.set_xlabel("Krok")
         ax.set_ylabel("Odległość [skoki]")
         ax.set_xticks(range(N))
@@ -224,7 +222,6 @@ def draw_wait_times(df, scenario, output_dir):
             linewidth=0.5,
         )
 
-    ax.set_title(f"Scenariusz {scenario} – Czas oczekiwania")
     ax.set_xlabel("System")
     ax.set_ylabel("Czas [s]")
     ax.set_xticks(range(N))
@@ -281,7 +278,6 @@ def draw_makespan(df, scenario, output_dir):
         edgecolor="black",
         linewidth=0.5,
     )
-    ax.set_title(f"Scenariusz {scenario} – Całkowity czas wykonania")
     ax.set_xlabel("System")
     ax.set_ylabel("Całkowity czas wykonania [s]")
     ax.set_xticks(x)
