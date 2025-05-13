@@ -10,6 +10,6 @@
   helm upgrade --install virtual-nodes charts/virtual-nodes -f resources/tests-psocala/templates/nodes/nodes-cleanup.yaml
 ```
 ```bash
-  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test1-gang-functionality/run-test-standard.yaml
+  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test1-gang-functionality/run-test-standard-TAS.yaml
   ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test1-gang-functionality/run-test-standard-blocking-job.yaml
 ```
