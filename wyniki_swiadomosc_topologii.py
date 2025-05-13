@@ -1,556 +1,309 @@
 #!/usr/bin/env python3
+"""
+Script do generowania wykresów świadomości topologii z pliku Excel.
+"""
+
 import os
+import re
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+from matplotlib.patches import Patch
 
-mpl.rcParams["hatch.linewidth"] = 0.5
+# Kolory wykresów dla porównania systemów
+colors = {"Kueue": "blue", "Volcano": "red"}
+# Sposób rysowania hatch wzorem z wyniki_wydajnoscskalowalnosc.py
+hatches_wait = {"Średni czas oczekiwania": "xxx", "Maksymalny czas oczekiwania": ""}
+# Ustawienia globalne Matplotlib
+plt.rcParams["hatch.linewidth"] = 0.5
 
 
-dir_out = "wyniki/wyniki_swiadomosc_topologii"
+def load_data(path, sheet):
+    """
+    Wczytuje dane z Excela i przygotowuje blokowe połączenie danych.
+    Zwraca DataFrame z kolumnami: Scenariusz, System, Metryka, Mean, Std.
+    """
+    raw = pd.read_excel(path, sheet_name=sheet)
+    return prepare_blocks(raw)
 
 
-# Wczytaj dane z pliku Excel
-def load_data():
-    df = pd.read_excel(
-        "wyniki_swiadomosc_topologii.xlsx", sheet_name="Świadomość topologii"
-    )
-
-    # Przetwarzamy dane - są one w dwóch blokach kolumn
+def prepare_blocks(df):
+    """
+    Łączy bloki danych z sufiksami '', '.1', filtruje nagłówki i konwertuje na odpowiednie typy.
+    """
     blocks = []
-
-    # Pierwszy blok kolumn (Kueue)
-    cols1 = [
-        "Scenariusz",
-        "System",
-        "Metryka",
-        "Powt. 1",
-        "Powt. 2",
-        "Powt. 3",
-        "Powt. 4",
-        "Powt. 5",
-        "Średnia (Obliczona)",
-        "Odch.Std (Obliczone)",
-    ]
-    block1 = df.iloc[:, 0:10].copy()
-    block1.columns = cols1
-    blocks.append(block1)
-
-    # Drugi blok kolumn (Volcano)
-    cols2 = [
-        "Scenariusz",
-        "System",
-        "Metryka",
-        "Powt. 1",
-        "Powt. 2",
-        "Powt. 3",
-        "Powt. 4",
-        "Powt. 5",
-        "Średnia (Obliczona)",
-        "Odch.Std (Obliczone)",
-    ]
-    block2 = df.iloc[:, 11:21].copy()
-    block2.columns = cols2
-    blocks.append(block2)
-
-    # Połącz bloki w jeden DataFrame
+    for suffix in ["", ".1"]:
+        cols = [
+            f"Scenariusz{suffix}",
+            f"System{suffix}",
+            f"Metryka{suffix}",
+            f"Średnia (Obliczona){suffix}",
+            f"Odch.Std (Obliczone){suffix}",
+        ]
+        block = df[cols].copy()
+        block.columns = ["Scenariusz", "System", "Metryka", "Mean", "Std"]
+        blocks.append(block)
     data = pd.concat(blocks, ignore_index=True)
-
-    # Usuń wiersze nagłówkowe i puste
-    data = data[data["Scenariusz"] != "Scenariusz"]
-    data = data[~data["Scenariusz"].isna()]
-
-    # Konwersja kolumn liczbowych
-    data["Średnia (Obliczona)"] = pd.to_numeric(
-        data["Średnia (Obliczona)"], errors="coerce"
-    )
-    data["Odch.Std (Obliczone)"] = pd.to_numeric(
-        data["Odch.Std (Obliczone)"], errors="coerce"
-    )
-
+    data = data[(data["Scenariusz"] != "Scenariusz") & (data["Metryka"] != "Metryka")]
+    data.dropna(subset=["Scenariusz", "Metryka"], inplace=True)
+    data["Mean"] = pd.to_numeric(data["Mean"], errors="coerce")
+    data["Std"] = pd.to_numeric(data["Std"], errors="coerce")
     return data
 
 
-# Funkcja do tworzenia grupowanych wykresów słupkowych
-def plot_grouped_bar(
-    x_labels, mean_dict, std_dict, title, xlabel, ylabel, labels, outfile
-):
-    fig, ax = plt.subplots(figsize=(10, 5))
-    N = len(x_labels)
+def draw_correctness(df, scenario, output_dir):
+    """
+    Rysuje wykres poprawności rozmieszczenia dla scenariusza.
+    Zapisuje 'T?_correctness.svg'.
+    """
+    df_s = df[df["Scenariusz"] == scenario]
+    pattern = r"Poprawność Rozmieszcz\. - Krok \d"
+    metrics = df_s[df_s["Metryka"].str.contains(pattern)]["Metryka"].unique().tolist()
+    metrics.sort(key=lambda m: int(re.search(r"Krok (\d)", m).group(1)))
+    x_labels = [m.split(" - ")[1].split(" [")[0] for m in metrics]
+
+    systems = ["Kueue", "Volcano"]
+    mean_vals, std_vals = {sys: [] for sys in systems}, {sys: [] for sys in systems}
+    for m in metrics:
+        for sys in systems:
+            row = df_s[(df_s["Metryka"] == m) & (df_s["System"] == sys)]
+            if not row.empty:
+                mean_vals[sys].append(row["Mean"].iat[0])
+                std_vals[sys].append(row["Std"].iat[0])
+            else:
+                mean_vals[sys].append(0)
+                std_vals[sys].append(0)
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    N, M = len(x_labels), len(systems)
+    width = 0.8 / M
+    offsets = [(-0.4 + width / 2 + i * width) for i in range(M)]
+    for i, sys in enumerate(systems):
+        ax.bar(
+            [j + offsets[i] for j in range(N)],
+            mean_vals[sys],
+            width,
+            yerr=std_vals[sys],
+            capsize=3,
+            label=sys,
+            facecolor=colors[sys],
+            alpha=0.8,
+            edgecolor="black",
+            linewidth=0.5,
+        )
+
+    ax.set_title(f"Scenariusz {scenario} – Poprawność rozmieszczenia")
+    ax.set_xlabel("Krok")
+    ax.set_ylabel("Poprawność rozmieszczenia [%]")
+    ax.set_xticks(range(N))
+    ax.set_xticklabels(x_labels)
+    ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, f"{scenario}_correctness.svg"))
+    plt.close()
+
+
+def draw_distances(df, scenario, output_dir):
+    """
+    Dwa wykresy odległości: avg i max per krok.
+    Zapisuje 'T?_avg_distances.svg' i 'T?_max_distances.svg'.
+    """
+    df_s = df[df["Scenariusz"] == scenario]
+    avg_metrics = sorted(
+        {m for m in df_s["Metryka"] if m.startswith("Śr. odl.")},
+        key=lambda m: int(re.search(r"Krok (\d)", m).group(1)),
+    )
+    max_metrics = sorted(
+        {m for m in df_s["Metryka"] if m.startswith("Maks. odl.")},
+        key=lambda m: int(re.search(r"Krok (\d)", m).group(1)),
+    )
+
+    def plot_metrics(metrics, title_label, filename):
+        labels = [m.split(" - ")[1].split(" [")[0] for m in metrics]
+        systems = ["Kueue", "Volcano"]
+        mean_vals, std_vals = {sys: [] for sys in systems}, {sys: [] for sys in systems}
+        for m in metrics:
+            for sys in systems:
+                row = df_s[(df_s["Metryka"] == m) & (df_s["System"] == sys)]
+                if not row.empty:
+                    mean_vals[sys].append(row["Mean"].iat[0])
+                    std_vals[sys].append(row["Std"].iat[0])
+                else:
+                    mean_vals[sys].append(0)
+                    std_vals[sys].append(0)
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        N, M = len(labels), len(systems)
+        width = 0.8 / M
+        offsets = [(-0.4 + width / 2 + i * width) for i in range(M)]
+        for i, sys in enumerate(systems):
+            ax.bar(
+                [j + offsets[i] for j in range(N)],
+                mean_vals[sys],
+                width,
+                yerr=std_vals[sys],
+                capsize=3,
+                label=sys,
+                facecolor=colors[sys],
+                alpha=0.8,
+                edgecolor="black",
+                linewidth=0.5,
+            )
+        ax.set_title(f"Scenariusz {scenario} – {title_label}")
+        ax.set_xlabel("Krok")
+        ax.set_ylabel("Odległość [skoki]")
+        ax.set_xticks(range(N))
+        ax.set_xticklabels(labels)
+        ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, filename))
+        plt.close()
+
+    plot_metrics(
+        avg_metrics, "Średnia odległość topologiczna", f"{scenario}_avg_distances.svg"
+    )
+    plot_metrics(
+        max_metrics,
+        "Maksymalna odległość topologiczna",
+        f"{scenario}_max_distances.svg",
+    )
+
+
+def draw_wait_times(df, scenario, output_dir):
+    """
+    Dodatkowy wykres dla T4: średni i maksymalny czas oczekiwania per system.
+    Zapisuje 'T4_wait_times.svg'.
+    """
+    if scenario != "T4":
+        return
+    df_s = df[df["Scenariusz"] == scenario]
+    # Filtracja unikalnych metryk oczekiwania tylko dla T4
+    wait_metrics_set = {m for m in df_s["Metryka"] if "czas oczekiwania" in m}
+    # Sortuj: średni (Śr.) przed maksymalny (Maks.)
+    wait_metrics = sorted(wait_metrics_set, key=lambda m: m.startswith("Maks."))
+    # Etykiety: pełne z nazwą metryki i krokiem, bez jednostek
+    labels = [
+        m.split(" [")[0].replace("Śr.", "Średni").replace("Maks.", "Maksymalny")
+        for m in wait_metrics
+    ]
+
+    systems = ["Kueue", "Volcano"]
+    mean_vals = {lbl: [] for lbl in labels}
+    std_vals = {lbl: [] for lbl in labels}
+    for m, lbl in zip(wait_metrics, labels):
+        for sys in systems:
+            row = df_s[(df_s["Metryka"] == m) & (df_s["System"] == sys)]
+            if not row.empty:
+                mean_vals[lbl].append(row["Mean"].iat[0])
+                std_vals[lbl].append(row["Std"].iat[0])
+            else:
+                mean_vals[lbl].append(0)
+                std_vals[lbl].append(0)
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    N = len(systems)
     M = len(labels)
     width = 0.8 / M
     offsets = [(-0.4 + width / 2 + i * width) for i in range(M)]
 
-    for i, (system, metric_type) in enumerate(labels):
-        means = mean_dict[(system, metric_type)]
-        stds = std_dict[(system, metric_type)]
-
-        bars = ax.bar(
-            np.arange(N) + offsets[i],
-            means,
+    for i, lbl in enumerate(labels):
+        # Wybierz hatch po typie metryki
+        if lbl.startswith("Średni czas oczekiwania"):
+            hatch_style = hatches_wait["Średni czas oczekiwania"]
+        else:
+            hatch_style = hatches_wait["Maksymalny czas oczekiwania"]
+        ax.bar(
+            [j + offsets[i] for j in range(N)],
+            mean_vals[lbl],
             width,
-            label=f"{system} {metric_type}",
-            facecolor=colors[system],
-            alpha=0.8,
+            yerr=std_vals[lbl],
+            capsize=3,
+            facecolor=[colors[sys] for sys in systems],
+            hatch=[hatch_style] * N,
             edgecolor="black",
             linewidth=0.5,
-            hatch=hatches.get(metric_type, ""),
-            yerr=stds,
-            capsize=3,
-            error_kw={"ecolor": "black", "elinewidth": 1.5},
         )
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_xticks(np.arange(N))
-    ax.set_xticklabels(x_labels)
-    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0)
+    ax.set_title(f"Scenariusz {scenario} – Czas oczekiwania")
+    ax.set_xlabel("System")
+    ax.set_ylabel("Czas [s]")
+    ax.set_xticks(range(N))
+    ax.set_xticklabels(systems)
+
+    metric_handles = [
+        Patch(
+            facecolor="white",
+            edgecolor="black",
+            hatch=hatches_wait["Średni czas oczekiwania"],
+            label="Średni czas oczekiwania",
+        ),
+        Patch(
+            facecolor="white",
+            edgecolor="black",
+            hatch=hatches_wait["Maksymalny czas oczekiwania"],
+            label="Maksymalny czas oczekiwania",
+        ),
+    ]
+    handles = metric_handles
+    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
     plt.tight_layout()
-    plt.savefig(os.path.join(dir_out, outfile), bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{scenario}_wait_times.svg"))
     plt.close()
 
 
-# Przygotuj mapowanie metryki do klucza pliku i etykiety wyświetlania
-file_key_map = {
-    # Metryki poprawności rozmieszczenia
-    "Poprawność Rozmieszcz. - Krok 1 (Twarde spine) [%]": "Correctness_Step1_Spine",
-    "Poprawność Rozmieszcz. - Krok 2 (Miękkie spine) [%]": "Correctness_Step2_Spine",
-    "Poprawność Rozmieszcz. - Krok 1 (Twarde block) [%]": "Correctness_Step1_Block",
-    "Poprawność Rozmieszcz. - Krok 2 (Miękkie block) [%]": "Correctness_Step2_Block",
-    "Poprawność Rozmieszcz. - Krok 1 (Twarde hostname) [%]": "Correctness_Step1_Hostname",
-    "Poprawność Rozmieszcz. - Krok 2 (Miękkie hostname) [%]": "Correctness_Step2_Hostname",
-    "Poprawność Rozmieszcz. - Krok 2 (Twarde spine) [%]": "Correctness_Step2_Spine_Hard",
-    # Metryki odległości topologicznej - średnie
-    "Śr. odl. top. - Krok 1 (Twarde spine) [skoki]": "Mean_Distance_Step1_Spine",
-    "Śr. odl. top. - Krok 2 (Miękkie spine) [skoki]": "Mean_Distance_Step2_Spine",
-    "Śr. odl. top. - Krok 1 (Twarde block) [skoki]": "Mean_Distance_Step1_Block",
-    "Śr. odl. top. - Krok 2 (Miękkie block) [skoki]": "Mean_Distance_Step2_Block",
-    "Śr. odl. top. - Krok 1 (Twarde hostname) [skoki]": "Mean_Distance_Step1_Hostname",
-    "Śr. odl. top. - Krok 2 (Miękkie hostname) [skoki]": "Mean_Distance_Step2_Hostname",
-    "Śr. odl. top. - Krok 2 (Twarde spine) [skoki]": "Mean_Distance_Step2_Spine_Hard",
-    # Metryki odległości topologicznej - maksymalne
-    "Maks. odl. top. - Krok 1 (Twarde spine) [skoki]": "Max_Distance_Step1_Spine",
-    "Maks. odl. top. - Krok 2 (Miękkie spine) [skoki]": "Max_Distance_Step2_Spine",
-    "Maks. odl. top. - Krok 1 (Twarde block) [skoki]": "Max_Distance_Step1_Block",
-    "Maks. odl. top. - Krok 2 (Miękkie block) [skoki]": "Max_Distance_Step2_Block",
-    "Maks. odl. top. - Krok 1 (Twarde hostname) [skoki]": "Max_Distance_Step1_Hostname",
-    "Maks. odl. top. - Krok 2 (Miękkie hostname) [skoki]": "Max_Distance_Step2_Hostname",
-    "Maks. odl. top. - Krok 2 (Twarde spine) [skoki]": "Max_Distance_Step2_Spine_Hard",
-    # Metryki czasu oczekiwania (tylko dla T4)
-    "Śr. czas oczekiwania - Krok 2 (A + B) [s]": "Mean_Wait_Time_Step2",
-    "Maks. czas oczekiwania - Krok 2 (A + B) [s]": "Max_Wait_Time_Step2",
-    # Makespan
-    "Makespan [s]": "Makespan",
-}
+def draw_makespan(df, scenario, output_dir):
+    """
+    Rysuje wykres makespanu (całkowitego czasu wykonania) dla scenariusza.
+    Zapisuje 'T?_makespan.svg'.
+    """
+    df_s = df[df["Scenariusz"] == scenario]
+    m_df = df_s[df_s["Metryka"] == "Makespan [s]"]
+    systems = ["Kueue", "Volcano"]
+    makespan_mean, makespan_std = [], []
+    for sys in systems:
+        row = m_df[m_df["System"] == sys]
+        if not row.empty:
+            makespan_mean.append(row["Mean"].iat[0])
+            makespan_std.append(row["Std"].iat[0])
+        else:
+            makespan_mean.append(0)
+            makespan_std.append(0)
 
-# Mapowanie etykiet wyświetlania
-display_label_map = {
-    # Poprawność rozmieszczenia
-    "Correctness_Step1_Spine": "Poprawność rozmieszczenia [%]",
-    "Correctness_Step2_Spine": "Poprawność rozmieszczenia [%]",
-    "Correctness_Step1_Block": "Poprawność rozmieszczenia [%]",
-    "Correctness_Step2_Block": "Poprawność rozmieszczenia [%]",
-    "Correctness_Step1_Hostname": "Poprawność rozmieszczenia [%]",
-    "Correctness_Step2_Hostname": "Poprawność rozmieszczenia [%]",
-    "Correctness_Step2_Spine_Hard": "Poprawność rozmieszczenia [%]",
-    # Odległości topologiczne
-    "Mean_Distance_Step1_Spine": "Odległość topologiczna [skoki]",
-    "Mean_Distance_Step2_Spine": "Odległość topologiczna [skoki]",
-    "Mean_Distance_Step1_Block": "Odległość topologiczna [skoki]",
-    "Mean_Distance_Step2_Block": "Odległość topologiczna [skoki]",
-    "Mean_Distance_Step1_Hostname": "Odległość topologiczna [skoki]",
-    "Mean_Distance_Step2_Hostname": "Odległość topologiczna [skoki]",
-    "Mean_Distance_Step2_Spine_Hard": "Odległość topologiczna [skoki]",
-    "Max_Distance_Step1_Spine": "Odległość topologiczna [skoki]",
-    "Max_Distance_Step2_Spine": "Odległość topologiczna [skoki]",
-    "Max_Distance_Step1_Block": "Odległość topologiczna [skoki]",
-    "Max_Distance_Step2_Block": "Odległość topologiczna [skoki]",
-    "Max_Distance_Step1_Hostname": "Odległość topologiczna [skoki]",
-    "Max_Distance_Step2_Hostname": "Odległość topologiczna [skoki]",
-    "Max_Distance_Step2_Spine_Hard": "Odległość topologiczna [skoki]",
-    # Czas oczekiwania
-    "Mean_Wait_Time_Step2": "Czas oczekiwania [s]",
-    "Max_Wait_Time_Step2": "Czas oczekiwania [s]",
-    # Makespan
-    "Makespan": "Całkowity czas wykonania [s]",
-}
-
-# Mapowanie tytułów wykresów
-title_label_map = {
-    "Correctness": "Poprawność rozmieszczenia",
-    "Distance": "Odległość topologiczna",
-    "Wait_Time": "Czas oczekiwania",
-    "Makespan": "Całkowity czas wykonania",
-}
-
-# Mapowanie typów metryk
-metric_type_map = {
-    # Poprawność
-    "Poprawność Rozmieszcz. - Krok 1 (Twarde spine) [%]": "Krok 1",
-    "Poprawność Rozmieszcz. - Krok 2 (Miękkie spine) [%]": "Krok 2",
-    "Poprawność Rozmieszcz. - Krok 1 (Twarde block) [%]": "Krok 1",
-    "Poprawność Rozmieszcz. - Krok 2 (Miękkie block) [%]": "Krok 2",
-    "Poprawność Rozmieszcz. - Krok 1 (Twarde hostname) [%]": "Krok 1",
-    "Poprawność Rozmieszcz. - Krok 2 (Miękkie hostname) [%]": "Krok 2",
-    "Poprawność Rozmieszcz. - Krok 2 (Twarde spine) [%]": "Krok 2",
-    # Średnie odległości
-    "Śr. odl. top. - Krok 1 (Twarde spine) [skoki]": "Średnia",
-    "Śr. odl. top. - Krok 2 (Miękkie spine) [skoki]": "Średnia",
-    "Śr. odl. top. - Krok 1 (Twarde block) [skoki]": "Średnia",
-    "Śr. odl. top. - Krok 2 (Miękkie block) [skoki]": "Średnia",
-    "Śr. odl. top. - Krok 1 (Twarde hostname) [skoki]": "Średnia",
-    "Śr. odl. top. - Krok 2 (Miękkie hostname) [skoki]": "Średnia",
-    "Śr. odl. top. - Krok 2 (Twarde spine) [skoki]": "Średnia",
-    # Maksymalne odległości
-    "Maks. odl. top. - Krok 1 (Twarde spine) [skoki]": "Maksymalna",
-    "Maks. odl. top. - Krok 2 (Miękkie spine) [skoki]": "Maksymalna",
-    "Maks. odl. top. - Krok 1 (Twarde block) [skoki]": "Maksymalna",
-    "Maks. odl. top. - Krok 2 (Miękkie block) [skoki]": "Maksymalna",
-    "Maks. odl. top. - Krok 1 (Twarde hostname) [skoki]": "Maksymalna",
-    "Maks. odl. top. - Krok 2 (Miękkie hostname) [skoki]": "Maksymalna",
-    "Maks. odl. top. - Krok 2 (Twarde spine) [skoki]": "Maksymalna",
-    # Czas oczekiwania
-    "Śr. czas oczekiwania - Krok 2 (A + B) [s]": "Średni",
-    "Maks. czas oczekiwania - Krok 2 (A + B) [s]": "Maksymalny",
-    # Makespan
-    "Makespan [s]": "",
-}
-
-# Grupowanie metryk według typu wykresu
-metric_groups = {
-    "T1": {
-        "Correctness": [
-            "Poprawność Rozmieszcz. - Krok 1 (Twarde spine) [%]",
-            "Poprawność Rozmieszcz. - Krok 2 (Miękkie spine) [%]",
-        ],
-        "Distance": [
-            "Śr. odl. top. - Krok 1 (Twarde spine) [skoki]",
-            "Śr. odl. top. - Krok 2 (Miękkie spine) [skoki]",
-            "Maks. odl. top. - Krok 1 (Twarde spine) [skoki]",
-            "Maks. odl. top. - Krok 2 (Miękkie spine) [skoki]",
-        ],
-        "Makespan": ["Makespan [s]"],
-    },
-    "T2": {
-        "Correctness": [
-            "Poprawność Rozmieszcz. - Krok 1 (Twarde block) [%]",
-            "Poprawność Rozmieszcz. - Krok 2 (Miękkie block) [%]",
-        ],
-        "Distance": [
-            "Śr. odl. top. - Krok 1 (Twarde block) [skoki]",
-            "Śr. odl. top. - Krok 2 (Miękkie block) [skoki]",
-            "Maks. odl. top. - Krok 1 (Twarde block) [skoki]",
-            "Maks. odl. top. - Krok 2 (Miękkie block) [skoki]",
-        ],
-        "Makespan": ["Makespan [s]"],
-    },
-    "T3": {
-        "Correctness": [
-            "Poprawność Rozmieszcz. - Krok 1 (Twarde hostname) [%]",
-            "Poprawność Rozmieszcz. - Krok 2 (Miękkie hostname) [%]",
-        ],
-        "Distance": [
-            "Śr. odl. top. - Krok 1 (Twarde hostname) [skoki]",
-            "Śr. odl. top. - Krok 2 (Miękkie hostname) [skoki]",
-            "Maks. odl. top. - Krok 1 (Twarde hostname) [skoki]",
-            "Maks. odl. top. - Krok 2 (Miękkie hostname) [skoki]",
-        ],
-        "Makespan": ["Makespan [s]"],
-    },
-    "T4": {
-        "Correctness": [
-            "Poprawność Rozmieszcz. - Krok 2 (Twarde spine) [%]",
-        ],
-        "Distance": [
-            "Śr. odl. top. - Krok 2 (Twarde spine) [skoki]",
-            "Maks. odl. top. - Krok 2 (Twarde spine) [skoki]",
-        ],
-        "Wait_Time": [
-            "Śr. czas oczekiwania - Krok 2 (A + B) [s]",
-            "Maks. czas oczekiwania - Krok 2 (A + B) [s]",
-        ],
-        "Makespan": ["Makespan [s]"],
-    },
-}
-
-# Systemy i ich kolory
-systems = ["Kueue", "Volcano"]
-colors = {"Kueue": "blue", "Volcano": "red"}
-
-# Wzory wypełnienia dla różnych typów metryk
-hatches = {
-    "Krok 1": "////",
-    "Krok 2": "",
-    "Średnia": "////",
-    "Maksymalna": "",
-    "Średni": "////",
-    "Maksymalny": "",
-}
-
-
-def main():
-    # Utworzenie katalogu na wykresy
-    os.makedirs(dir_out, exist_ok=True)
-
-    # Wczytanie danych
-    data = load_data()
-
-    # Generowanie wykresów dla każdego scenariusza
-    scenarios = ["T1", "T2", "T3", "T4"]
-    for scenario in scenarios:
-        df_scenario = data[data["Scenariusz"] == scenario]
-        if df_scenario.empty:
-            continue
-
-        # Przetwarzanie każdej grupy metryk
-        for group_name, metrics in metric_groups[scenario].items():
-            if group_name == "Correctness":
-                # Wykres poprawności rozmieszczenia
-                labels = []
-                mean_dict = {}
-                std_dict = {}
-
-                for system in systems:
-                    for metric in metrics:
-                        metric_type = metric_type_map[metric]
-                        label = (system, metric_type)
-                        labels.append(label)
-
-                        df_filtered = df_scenario[
-                            (df_scenario["System"] == system)
-                            & (df_scenario["Metryka"] == metric)
-                        ]
-
-                        mean_value = (
-                            df_filtered["Średnia (Obliczona)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-                        std_value = (
-                            df_filtered["Odch.Std (Obliczone)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-
-                        mean_dict[label] = [mean_value]
-                        std_dict[label] = [std_value]
-
-                # Wygeneruj wykres dla poprawności rozmieszczenia
-                title = f"Scenariusz {scenario} – {title_label_map[group_name]}"
-                outfile = f"{scenario}_{group_name}.svg"
-                xlabel = "Scenariusz"
-                ylabel = display_label_map[file_key_map[metrics[0]]]
-
-                plot_grouped_bar(
-                    [scenario],  # Używamy scenariusza jako etykiety osi X
-                    mean_dict,
-                    std_dict,
-                    title,
-                    xlabel,
-                    ylabel,
-                    labels,
-                    outfile,
-                )
-
-            elif group_name == "Distance":
-                # Wykres odległości topologicznych (średnie i maksymalne)
-                # Dzielimy metryki na 'Średnia' i 'Maksymalna'
-                mean_metrics = [m for m in metrics if "Śr. odl. top." in m]
-                max_metrics = [m for m in metrics if "Maks. odl. top." in m]
-
-                # Przygotuj dane dla średnich odległości
-                labels_mean = []
-                mean_dict_mean = {}
-                std_dict_mean = {}
-
-                for system in systems:
-                    for metric in mean_metrics:
-                        step_info = "Krok 1" if "Krok 1" in metric else "Krok 2"
-                        label = (system, step_info)
-                        labels_mean.append(label)
-
-                        df_filtered = df_scenario[
-                            (df_scenario["System"] == system)
-                            & (df_scenario["Metryka"] == metric)
-                        ]
-
-                        mean_value = (
-                            df_filtered["Średnia (Obliczona)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-                        std_value = (
-                            df_filtered["Odch.Std (Obliczone)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-
-                        mean_dict_mean[label] = [mean_value]
-                        std_dict_mean[label] = [std_value]
-
-                # Wygeneruj wykres dla średnich odległości
-                title_mean = f"Scenariusz {scenario} – Średnie odległości topologiczne"
-                outfile_mean = f"{scenario}_Mean_Distance.svg"
-                xlabel = "Scenariusz"
-                ylabel = "Średnia odległość topologiczna [skoki]"
-
-                plot_grouped_bar(
-                    [scenario],
-                    mean_dict_mean,
-                    std_dict_mean,
-                    title_mean,
-                    xlabel,
-                    ylabel,
-                    labels_mean,
-                    outfile_mean,
-                )
-
-                # Przygotuj dane dla maksymalnych odległości
-                labels_max = []
-                mean_dict_max = {}
-                std_dict_max = {}
-
-                for system in systems:
-                    for metric in max_metrics:
-                        step_info = "Krok 1" if "Krok 1" in metric else "Krok 2"
-                        label = (system, step_info)
-                        labels_max.append(label)
-
-                        df_filtered = df_scenario[
-                            (df_scenario["System"] == system)
-                            & (df_scenario["Metryka"] == metric)
-                        ]
-
-                        mean_value = (
-                            df_filtered["Średnia (Obliczona)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-                        std_value = (
-                            df_filtered["Odch.Std (Obliczone)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-
-                        mean_dict_max[label] = [mean_value]
-                        std_dict_max[label] = [std_value]
-
-                # Wygeneruj wykres dla maksymalnych odległości
-                title_max = (
-                    f"Scenariusz {scenario} – Maksymalne odległości topologiczne"
-                )
-                outfile_max = f"{scenario}_Max_Distance.svg"
-                xlabel = "Scenariusz"
-                ylabel = "Maksymalna odległość topologiczna [skoki]"
-
-                plot_grouped_bar(
-                    [scenario],
-                    mean_dict_max,
-                    std_dict_max,
-                    title_max,
-                    xlabel,
-                    ylabel,
-                    labels_max,
-                    outfile_max,
-                )
-
-            elif group_name == "Wait_Time" and scenario == "T4":
-                # Wykres czasów oczekiwania (tylko dla T4)
-                labels = []
-                mean_dict = {}
-                std_dict = {}
-
-                for system in systems:
-                    for metric in metrics:
-                        metric_type = metric_type_map[metric]
-                        label = (system, metric_type)
-                        labels.append(label)
-
-                        df_filtered = df_scenario[
-                            (df_scenario["System"] == system)
-                            & (df_scenario["Metryka"] == metric)
-                        ]
-
-                        mean_value = (
-                            df_filtered["Średnia (Obliczona)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-                        std_value = (
-                            df_filtered["Odch.Std (Obliczone)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-
-                        mean_dict[label] = [mean_value]
-                        std_dict[label] = [std_value]
-
-                # Wygeneruj wykres dla czasów oczekiwania
-                title = f"Scenariusz {scenario} – {title_label_map[group_name]}"
-                outfile = f"{scenario}_{group_name}.svg"
-                xlabel = "Scenariusz"
-                ylabel = display_label_map[file_key_map[metrics[0]]]
-
-                plot_grouped_bar(
-                    [scenario],
-                    mean_dict,
-                    std_dict,
-                    title,
-                    xlabel,
-                    ylabel,
-                    labels,
-                    outfile,
-                )
-
-            elif group_name == "Makespan":
-                # Wykres makespan
-                labels = []
-                mean_dict = {}
-                std_dict = {}
-
-                for system in systems:
-                    for metric in metrics:
-                        label = (system, "")  # Puste oznaczenie typu metryki
-                        labels.append(label)
-
-                        df_filtered = df_scenario[
-                            (df_scenario["System"] == system)
-                            & (df_scenario["Metryka"] == metric)
-                        ]
-
-                        mean_value = (
-                            df_filtered["Średnia (Obliczona)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-                        std_value = (
-                            df_filtered["Odch.Std (Obliczone)"].values[0]
-                            if not df_filtered.empty
-                            else 0
-                        )
-
-                        mean_dict[label] = [mean_value]
-                        std_dict[label] = [std_value]
-
-                # Wygeneruj wykres dla makespan
-                title = f"Scenariusz {scenario} – {title_label_map[group_name]}"
-                outfile = f"{scenario}_{group_name}.svg"
-                xlabel = "Scenariusz"
-                ylabel = display_label_map[file_key_map[metrics[0]]]
-
-                plot_grouped_bar(
-                    [scenario],
-                    mean_dict,
-                    std_dict,
-                    title,
-                    xlabel,
-                    ylabel,
-                    labels,
-                    outfile,
-                )
+    fig, ax = plt.subplots(figsize=(6, 4))
+    x = list(range(len(systems)))
+    ax.bar(
+        x,
+        makespan_mean,
+        color=[colors[sys] for sys in systems],
+        yerr=makespan_std,
+        capsize=3,
+        alpha=0.8,
+        edgecolor="black",
+        linewidth=0.5,
+    )
+    ax.set_title(f"Scenariusz {scenario} – Całkowity czas wykonania")
+    ax.set_xlabel("System")
+    ax.set_ylabel("Całkowity czas wykonania [s]")
+    ax.set_xticks(x)
+    ax.set_xticklabels(systems)
+    ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, f"{scenario}_makespan.svg"))
+    plt.close()
 
 
 if __name__ == "__main__":
-    main()
+    input_file = "wyniki_swiadomosc_topologii.xlsx"
+    sheet = "Świadomość topologii"
+    output_base = "wyniki/wyniki_swiadomosc_topologii"
+    os.makedirs(output_base, exist_ok=True)
+    data = load_data(input_file, sheet)
+    scenarios = ["T1", "T2", "T3", "T4"]
+    for scen in scenarios:
+        df_s = data[data["Scenariusz"] == scen]
+        if df_s.empty:
+            continue
+        draw_correctness(data, scen, output_base)
+        draw_distances(data, scen, output_base)
+        draw_wait_times(data, scen, output_base)
+        draw_makespan(data, scen, output_base)
