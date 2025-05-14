@@ -141,8 +141,8 @@ grafana:
       default_timezone: Europe/Warsaw
   resources:
     requests:
-      cpu: "500m"
-      memory: "512Mi"
+      cpu: 1250m
+      memory: 2048Mi
     limits:
       cpu: "3000m"
       memory: "4096Mi"
@@ -167,8 +167,8 @@ prometheus:
     podMonitorNamespaceSelector: {}
     resources:
         requests:
-          cpu: "500m"
-          memory: "512Mi"
+          cpu: 1250m
+          memory: 2048Mi
         limits:
           cpu: "3000m"
           memory: "4096Mi"

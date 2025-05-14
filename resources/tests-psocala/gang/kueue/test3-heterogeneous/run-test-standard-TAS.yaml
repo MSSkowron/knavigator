@@ -182,7 +182,7 @@ tasks:
     type: Repeat
     params:
       count: 100
-      interval: 2s
+      interval: 1s
       tasks:
         - id: big-memory-job
           type: SubmitObj
@@ -199,8 +199,8 @@ tasks:
               image: ubuntu
               cpu: 3
               memory: 8Gi
-              ttl: 1m
-              jitter: 1.5m
+              ttl: 90s
+              jitter: 135s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"
         - id: big-cpu-job
@@ -218,8 +218,8 @@ tasks:
               image: ubuntu
               cpu: 4
               memory: 2Gi
-              ttl: 1m
-              jitter: 1.5m
+              ttl: 90s
+              jitter: 135s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"
         - id: small-balanced-job
@@ -237,8 +237,8 @@ tasks:
               image: ubuntu
               cpu: 1
               memory: 1Gi
-              ttl: 20s
-              jitter: 30s
+              ttl: 40s
+              jitter: 60s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"
         - id: small-memory-job
@@ -256,7 +256,7 @@ tasks:
               image: ubuntu
               cpu: 1
               memory: 2Gi
-              ttl: 20s
-              jitter: 30s
+              ttl: 40s
+              jitter: 60s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 name: test-gang-3
-description: test gang heterogeneous for yunikorn
+description: test backfill for yunikorn
 tasks:
   - id: configure-nodes-cleanup
     type: Configure
@@ -55,32 +55,31 @@ tasks:
   - id: register-job
     type: RegisterObj
     params:
-      template: "resources/tests-psocala/templates/yunikorn/job-gang.yml"
+      template: "resources/tests-psocala/templates/volcano/job-gang.yaml"
       nameFormat: "{{.jobName}}-{{._ENUM_}}"
-      podNameFormat: "{{._NAME_}}-.*"
-      podCount: "{{.parallelism}}"
+      podNameFormat: "{{._NAME_}}-test-[0-9]+"
+      podCount: "{{.replicas}}"
   - id: configure
     type: Configure
-    description: set up yunikorn config
     params:
       configmaps:
-        - name: yunikorn-configs
-          namespace: yunikorn
+        - name: volcano-scheduler-configmap
+          namespace: volcano-system
           op: create
           data:
-            queues.yaml: |
-              partitions:
-                - name: default
-                  queues:
-                  - name: root
-                    queues:
-                    - name: sandbox
-                      submitacl: '*'
-                      properties:
-                        application.sort.policy: fifo
-                      resources:
-                        max:
-                          {memory: 22900Gi, vcore: 16600}
+            volcano-scheduler.conf: |
+              actions: "enqueue, allocate, backfill"
+              tiers:
+                - plugins:
+                    - name: priority
+                    - name: gang
+                    - name: conformance
+                - plugins:
+                    - name: drf
+                    - name: predicates
+                    - name: proportion
+                    - name: nodeorder
+                    - name: binpack
       timeout: 1m
   - id: main-loop
     type: Repeat
@@ -95,12 +94,8 @@ tasks:
             count: 2
             params:
               jobName: big-memory-job
-              namespace: default
-              parallelism: 8
-              completions: 8
-              applicationId: big-memory-job
-              queue: root.sandbox
-              image: ubuntu
+              replicas: 8
+              queue: default
               cpu: 3
               memory: 8Gi
               ttl: 90s
@@ -112,12 +107,8 @@ tasks:
             count: 2
             params:
               jobName: big-cpu-job
-              namespace: default
-              parallelism: 8
-              completions: 8
-              applicationId: big-cpu-job
-              queue: root.sandbox
-              image: ubuntu
+              replicas: 8
+              queue: default
               cpu: 4
               memory: 2Gi
               ttl: 90s
@@ -129,12 +120,8 @@ tasks:
             count: 3
             params:
               jobName: small-balanced-job
-              namespace: default
-              parallelism: 3
-              completions: 3
-              applicationId: small-balanced-job
-              queue: root.sandbox
-              image: ubuntu
+              replicas: 3
+              queue: default
               cpu: 1
               memory: 1Gi
               ttl: 40s
@@ -146,12 +133,8 @@ tasks:
             count: 3
             params:
               jobName: small-memory-job
-              namespace: default
-              parallelism: 5
-              completions: 5
-              applicationId: small-memory-job
-              queue: root.sandbox
-              image: ubuntu
+              replicas: 5
+              queue: default
               cpu: 1
               memory: 3Gi
               ttl: 40s
@@ -163,12 +146,8 @@ tasks:
             count: 3
             params:
               jobName: small-cpu-job
-              namespace: default
-              parallelism: 5
-              completions: 5
-              applicationId: small-cpu-job
-              queue: root.sandbox
-              image: ubuntu
+              replicas: 5
+              queue: default
               cpu: 2
               memory: 1Gi
               ttl: 40s
