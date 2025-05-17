@@ -33,36 +33,36 @@ tasks:
                       - name: tenant-a
                         submitacl: '*'
                         properties:
-                          weight: "3" # EXPLICIT WEIGHT 3
-                          priority.offset: "3000"
+                          application.sort.policy: fifo
+                          priority.offset: "0"
                         resources:
                           guaranteed:
-                            memory: 48000Mi   # GUARANTEE 3/6
-                            vcore: 48000m # GUARANTEE 3/6
+                            memory: 48000Mi
+                            vcore: 48000m
                           max:
                             memory: 96000Mi
                             vcore: 96000m
                       - name: tenant-b
                         submitacl: '*'
                         properties:
-                          weight: "2" # EXPLICIT WEIGHT 2
-                          priority.offset: "2000"
+                          application.sort.policy: fifo
+                          priority.offset: "0"
                         resources:
                           guaranteed:
-                            memory: 32000Mi   # GUARANTEE 2/6
-                            vcore: 32000m # GUARANTEE 2/6
+                            memory: 32000Mi
+                            vcore: 32000m
                           max:
                             memory: 96000Mi
                             vcore: 96000m
                       - name: tenant-c
                         submitacl: '*'
                         properties:
-                          weight: "1" # EXPLICIT WEIGHT 1
-                          priority.offset: "1000"
+                          application.sort.policy: fifo
+                          priority.offset: "0"
                         resources:
                           guaranteed:
-                            memory: 16000Mi   # GUARANTEE 1/6
-                            vcore: 16000m # GUARANTEE 1/6
+                            memory: 16000Mi
+                            vcore: 16000m
                           max:
                             memory: 96000Mi
                             vcore: 96000m
