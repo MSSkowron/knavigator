@@ -4,6 +4,7 @@ import os
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import Optional
 
 import kubernetes
 import kubernetes.client
@@ -302,7 +303,33 @@ def get_volcano_start_time(uid, conditions_list):
         return None
 
 
-def process_job(job_obj):
+def get_k8s_job_pod_scheduled_time(
+    core_v1_api,
+    job_name: str,
+    job_namespace: str,
+) -> Optional[datetime]:
+    """
+    Zwraca najwcześniejszy timestamp przejścia warunku PodScheduled==True
+    dla podów należących wyłącznie do Job o nazwie job_name.
+    """
+    pods = core_v1_api.list_namespaced_pod(
+        namespace=job_namespace,
+        label_selector=f"job-name={job_name}",
+        timeout_seconds=10,
+    ).items
+
+    earliest: Optional[datetime] = None
+    for pod in pods:
+        for cond in pod.status.conditions or []:
+            if cond.type == "PodScheduled" and cond.status == "True":
+                ts = parse_timestamp(cond.last_transition_time)
+                if ts and (earliest is None or ts < earliest):
+                    earliest = ts
+
+    return earliest
+
+
+def process_job(job_obj, core_v1_api: kubernetes.client.CoreV1Api):
     """Przetwarza pojedynczy obiekt Job (K8s lub Volcano) i eksportuje metryki."""
     global observed_wait_times_uids
     global observed_executiontotal_durations_uids
@@ -517,7 +544,35 @@ def process_job(job_obj):
             )
 
         if job_kind == "Job":
+            # 1) Spróbuj pobrać czas z pola status.start_time (fallback dla starych wersji)
             start_time_input = getattr(status_data, "start_time", None)
+            parsed_start_time = parse_timestamp(start_time_input)
+
+            # 2) Pobierz najwcześniejszy czas PodScheduled (faktyczne scheduling)
+            scheduled_time = get_k8s_job_pod_scheduled_time(
+                core_v1_api, name, namespace
+            )
+
+            # 3) Wybierz jako start to, co faktycznie nastąpiło wcześniej:
+            #    - jeśli jest scheduled_time, użyj go,
+            #    - w przeciwnym razie fallback na parsed_start_time (np. dla bardzo starych workerów),
+            #    - lub zostaw None, jeśli nic nie ma.
+            if scheduled_time:
+                start_time_dt = scheduled_time
+                logging.info(
+                    f"{log_prefix} Using pod-scheduled time as start: {start_time_dt.isoformat()}"
+                )
+            elif parsed_start_time:
+                start_time_dt = parsed_start_time
+                logging.info(
+                    f"{log_prefix} Using fallback start_time from status.start_time: {start_time_dt.isoformat()}"
+                )
+            else:
+                start_time_dt = None
+                logging.info(
+                    f"{log_prefix} Could not determine start_time_dt for Job (no scheduled pods and no status.start_time)."
+                )
+
             completion_time_input = getattr(status_data, "completion_time", None)
             conditions = getattr(status_data, "conditions", None)
 
@@ -526,7 +581,6 @@ def process_job(job_obj):
                 f"{log_prefix} Raw completion_time_input: {completion_time_input}"
             )
 
-            start_time_dt = parse_timestamp(start_time_input)
             completion_time_dt = parse_timestamp(completion_time_input)
             final_status_cond, completion_time_cond = get_k8s_job_final_status(
                 conditions
@@ -1057,7 +1111,7 @@ def collect_metrics(
 
     for job_obj in all_jobs_raw:
         # Przechwyć wynik z process_job (oczekiwany dict lub None)
-        process_result = process_job(job_obj)
+        process_result = process_job(job_obj, core_v1_api)
 
         if process_result and isinstance(process_result, dict):
             uid = process_result.get("uid")
