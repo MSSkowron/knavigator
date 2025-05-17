@@ -544,39 +544,25 @@ def process_job(job_obj, core_v1_api: kubernetes.client.CoreV1Api):
             )
 
         if job_kind == "Job":
-            # 1) Spróbuj pobrać czas z pola status.start_time (fallback dla starych wersji)
-            start_time_input = getattr(status_data, "start_time", None)
-            parsed_start_time = parse_timestamp(start_time_input)
-
-            # 2) Pobierz najwcześniejszy czas PodScheduled (faktyczne scheduling)
+            # Pobierz najwcześniejszy czas PodScheduled (faktyczne scheduling)
             scheduled_time = get_k8s_job_pod_scheduled_time(
                 core_v1_api, name, namespace
             )
 
-            # 3) Wybierz jako start to, co faktycznie nastąpiło wcześniej:
-            #    - jeśli jest scheduled_time, użyj go,
-            #    - w przeciwnym razie fallback na parsed_start_time (np. dla bardzo starych workerów),
-            #    - lub zostaw None, jeśli nic nie ma.
             if scheduled_time:
                 start_time_dt = scheduled_time
                 logging.info(
-                    f"{log_prefix} Using pod-scheduled time as start: {start_time_dt.isoformat()}"
-                )
-            elif parsed_start_time:
-                start_time_dt = parsed_start_time
-                logging.info(
-                    f"{log_prefix} Using fallback start_time from status.start_time: {start_time_dt.isoformat()}"
+                    f"{log_prefix} Raw start_time_input: {start_time_dt.isoformat()}"
                 )
             else:
                 start_time_dt = None
                 logging.info(
-                    f"{log_prefix} Could not determine start_time_dt for Job (no scheduled pods and no status.start_time)."
+                    f"{log_prefix} Could not determine start_time_dt for Job (no scheduled pods)."
                 )
 
             completion_time_input = getattr(status_data, "completion_time", None)
             conditions = getattr(status_data, "conditions", None)
 
-            logging.info(f"{log_prefix} Raw start_time_input: {start_time_input}")
             logging.info(
                 f"{log_prefix} Raw completion_time_input: {completion_time_input}"
             )
