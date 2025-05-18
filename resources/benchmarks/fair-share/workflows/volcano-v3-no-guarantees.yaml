@@ -6,15 +6,11 @@ description: |
   w heterogenicznym klastrze z węzłami o różnych profilach zasobów. Tworzy trzy oddzielne
   przestrzenie nazw i kolejki z równymi wagami, ale różnymi dominującymi zasobami.
 
-  Volcano implementuje mechanizm fair-sharing poprzez plugin DRF oraz konfigurację wag
-  w definicjach kolejek.
-
   Scenariusz testu:
   1. Konfiguracja heterogenicznego klastra z 12 węzłami o różnych profilach zasobów
   2. Konfiguracja Volcano z włączonym pluginem DRF
-  3. Utworzenie trzech kolejek o równych wagach
+  3. Utworzenie trzech kolejek o równych wagach odpowiadających tenantom
   4. Sekwencyjne wysłanie zadań w trzech rundach
-  5. Weryfikacja sprawiedliwego podziału dominujących zasobów
 tasks:
   # Configure Volcano
   - id: configure-volcano
@@ -26,7 +22,7 @@ tasks:
           op: create
           data:
             volcano-scheduler.conf: |
-              actions: "enqueue, allocate, reclaim"
+              actions: "enqueue, allocate, preempt, reclaim"
               tiers:
               - plugins:
                 - name: priority
@@ -149,7 +145,7 @@ tasks:
         reclaimable: true
         priority: 1
         weight: 1
-        capability: # << Keep capability high (e.g., cluster total)
+        capability: # cluster total
           cpu: 384000m
           memory: 1536000Mi
           nvidia.com/gpu: 16
@@ -164,7 +160,7 @@ tasks:
         reclaimable: true
         priority: 1
         weight: 1
-        capability: # << Keep capability high (e.g., cluster total)
+        capability: # cluster total
           cpu: 384000m
           memory: 1536000Mi
           nvidia.com/gpu: 16
@@ -179,7 +175,7 @@ tasks:
         reclaimable: true
         priority: 1
         weight: 1
-        capability: # << Keep capability high (e.g., cluster total)
+        capability: # cluster total
           cpu: 384000m
           memory: 1536000Mi
           nvidia.com/gpu: 16
@@ -238,7 +234,7 @@ tasks:
   - id: wait-between-rounds1
     type: Sleep
     params:
-      timeout: 9600s
+      timeout: 30s
 
   # Runda 2: Drugi batch zadań dla wszystkich najemców
   - id: submit-jobs-tenant-a-batch2

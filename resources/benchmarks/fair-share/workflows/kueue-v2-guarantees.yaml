@@ -69,8 +69,6 @@ tasks:
       nodes:
         - type: cpu-node # Homogeneous nodes
           count: 6
-          labels: # Add labels for ResourceFlavor matching
-            node-pool: cpu-mem-pool
           resources:
             cpu: 16100m # ~16 CPU available
             memory: "16050Mi" # ~16 GB available

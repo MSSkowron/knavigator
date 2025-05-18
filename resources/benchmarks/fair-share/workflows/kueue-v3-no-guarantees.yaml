@@ -2,19 +2,15 @@ name: kueue-fair-share-benchmark-v3
 description: |
   Fair Share benchmark dla schedulera Kueue w środowisku heterogenicznym.
 
-  Test sprawdza działanie mechanizmu fair sharing (Dominant Resource Fairness)
-  pomiędzy najemcami o różnych profilach obciążenia w heterogenicznym klastrze.
-
-  Test tworzy trzy przestrzenie nazw z ClusterQueue w kohorcie, każdy o innych
-  wymaganiach zasobowych, następnie wysyła zadania do wszystkich najemców
-  i weryfikuje sprawiedliwy podział zasobów zgodnie z zasadami DRF.
+  Test sprawdza, czy Kueue prawidłowo implementuje mechanizm DRF (Dominant Resource Fairness)
+  w heterogenicznym klastrze z węzłami o różnych profilach zasobów. Tworzy trzy oddzielne
+  przestrzenie nazw i kolejki z równymi wagami, ale różnymi dominującymi zasobami.
 
   Scenariusz testu:
   1. Konfiguracja heterogenicznego klastra z 12 węzłami o różnych profilach zasobów
   2. Konfiguracja Kueue z włączonym mechanizmem fairSharing
-  3. Utworzenie trzech najemców o różnych profilach obciążenia
+  3. Utworzenie trzech kolejek o równych wagach odpowiadających tenantom
   4. Sekwencyjne wysłanie zadań w trzech rundach
-  5. Weryfikacja sprawiedliwego podziału dominujących zasobów
 tasks:
   # Configure Kueue
   - id: configure-kueue

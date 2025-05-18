@@ -1,8 +1,6 @@
-name: volcano-fair-share-benchmark-v2-no-guarantees
+name: volcano-fair-share-benchmark-v2-guarantees
 description: |
-  Weighted Fair Share benchmark for Volcano (No Guarantees).
-  Tests proportional resource sharing (3:2:1 weights) in a homogeneous cluster
-  with identical jobs under high load, without guarantees influencing the share.
+  Weighted Fair Share benchmark for Volcano (Guarantees).
 tasks:
   # Configure Volcano
   - id: configure-volcano
@@ -43,8 +41,8 @@ tasks:
         - type: cpu-node # Homogeneous nodes
           count: 6
           resources:
-            cpu: 16100m
-            memory: "16050Mi"
+            cpu: 16100m # ~16 CPU available
+            memory: "16050Mi" # ~16 GB available
             pods: 110
       timeout: 5m
 
