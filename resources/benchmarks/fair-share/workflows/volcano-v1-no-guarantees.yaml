@@ -201,7 +201,7 @@ tasks:
   - id: wait-between-rounds1
     type: Sleep
     params:
-      timeout: 9600s
+      timeout: 60s
 
   # Runda 2: Drugi batch zadań dla wszystkich tenantów (25 zadań każdy)
   - id: submit-jobs-tenant-a-batch2

@@ -4,7 +4,6 @@ description: |
   Tests proportional resource sharing (3:2:1 weights) in a homogeneous cluster
   with identical jobs under high load, using explicit weights and guarantees.
 tasks:
-  # Configure YuniKorn (with weights, no guarantees)
   - id: configure-yunikorn
     type: Configure
     params:
