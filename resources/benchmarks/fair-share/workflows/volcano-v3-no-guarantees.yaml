@@ -197,7 +197,7 @@ tasks:
   - id: wait-between-tenants1a
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 5s
 
   - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
@@ -215,7 +215,7 @@ tasks:
   - id: wait-between-tenants1b
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 5s
 
   - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
@@ -234,7 +234,7 @@ tasks:
   - id: wait-between-rounds1
     type: Sleep
     params:
-      timeout: 30s
+      timeout: 5s
 
   # Runda 2: Drugi batch zadań dla wszystkich najemców
   - id: submit-jobs-tenant-a-batch2
@@ -253,7 +253,7 @@ tasks:
   - id: wait-between-tenants2a
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 5s
 
   - id: submit-jobs-tenant-b-batch2
     type: SubmitObj
@@ -271,7 +271,7 @@ tasks:
   - id: wait-between-tenants2b
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 5s
 
   - id: submit-jobs-tenant-c-batch2
     type: SubmitObj
@@ -290,7 +290,7 @@ tasks:
   - id: wait-between-rounds2
     type: Sleep
     params:
-      timeout: 30s
+      timeout: 5s
 
   # Runda 3: Trzeci batch zadań dla wszystkich najemców
   - id: submit-jobs-tenant-a-batch3
@@ -309,7 +309,7 @@ tasks:
   - id: wait-between-tenants3a
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 5s
 
   - id: submit-jobs-tenant-b-batch3
     type: SubmitObj
@@ -327,7 +327,7 @@ tasks:
   - id: wait-between-tenants3b
     type: Sleep
     params:
-      timeout: 10s
+      timeout: 5s
 
   - id: submit-jobs-tenant-c-batch3
     type: SubmitObj
