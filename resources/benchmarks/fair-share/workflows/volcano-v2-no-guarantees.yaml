@@ -188,7 +188,7 @@ tasks:
   - id: wait1r
     type: Sleep
     params:
-      timeout: 9600s
+      timeout: 10s
 
   # Round 2 (A:30, B:30, C:30)
   - id: submit-jobs-tenant-a-batch2
