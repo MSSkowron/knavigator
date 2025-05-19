@@ -367,7 +367,7 @@ tasks:
   - id: phase1-history-building
     type: Repeat
     params:
-      duration: 5m
+      duration: 10m
       interval: 5s
       tasks:
         # Tenant A: High Load (submit frequently)
