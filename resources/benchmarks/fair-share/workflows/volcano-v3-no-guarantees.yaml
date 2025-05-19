@@ -194,11 +194,6 @@ tasks:
         memory: 4000Mi # 4GB RAM
         ttl: "5m"
 
-  - id: wait-between-tenants1a
-    type: Sleep
-    params:
-      timeout: 5s
-
   - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
     params:
@@ -211,11 +206,6 @@ tasks:
         cpu: 1000m # 1 rdzeń CPU
         memory: 16000Mi # 16GB RAM
         ttl: "5m"
-
-  - id: wait-between-tenants1b
-    type: Sleep
-    params:
-      timeout: 5s
 
   - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
@@ -250,11 +240,6 @@ tasks:
         memory: 4000Mi # 4GB RAM
         ttl: "5m"
 
-  - id: wait-between-tenants2a
-    type: Sleep
-    params:
-      timeout: 5s
-
   - id: submit-jobs-tenant-b-batch2
     type: SubmitObj
     params:
@@ -268,71 +253,10 @@ tasks:
         memory: 16000Mi # 16GB RAM
         ttl: "5m"
 
-  - id: wait-between-tenants2b
-    type: Sleep
-    params:
-      timeout: 5s
-
   - id: submit-jobs-tenant-c-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 50
-      params:
-        namespace: tenant-c
-        replicas: 1
-        queue: tenant-c-queue
-        cpu: 1000m # 1 rdzeń CPU
-        memory: 4000Mi # 4GB RAM
-        gpu: 1 # 1 GPU
-        ttl: "5m"
-
-  - id: wait-between-rounds2
-    type: Sleep
-    params:
-      timeout: 5s
-
-  # Runda 3: Trzeci batch zadań dla wszystkich najemców
-  - id: submit-jobs-tenant-a-batch3
-    type: SubmitObj
-    params:
-      refTaskId: register-job-batch-3
-      count: 100
-      params:
-        namespace: tenant-a
-        replicas: 1
-        queue: tenant-a-queue
-        cpu: 4000m # 4 rdzenie CPU
-        memory: 4000Mi # 4GB RAM
-        ttl: "5m"
-
-  - id: wait-between-tenants3a
-    type: Sleep
-    params:
-      timeout: 5s
-
-  - id: submit-jobs-tenant-b-batch3
-    type: SubmitObj
-    params:
-      refTaskId: register-job-batch-3
-      count: 100
-      params:
-        namespace: tenant-b
-        replicas: 1
-        queue: tenant-b-queue
-        cpu: 1000m # 1 rdzeń CPU
-        memory: 16000Mi # 16GB RAM
-        ttl: "5m"
-
-  - id: wait-between-tenants3b
-    type: Sleep
-    params:
-      timeout: 5s
-
-  - id: submit-jobs-tenant-c-batch3
-    type: SubmitObj
-    params:
-      refTaskId: register-job-batch-3
       count: 50
       params:
         namespace: tenant-c

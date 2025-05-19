@@ -232,6 +232,7 @@ tasks:
               - cpu
               - memory
               - pods
+              - nvidia.com/gpu
             flavors:
               - name: cpu-flavor
                 resources:
@@ -244,6 +245,9 @@ tasks:
                   - name: pods
                     nominalQuota: 0
                     borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
               - name: ram-flavor
                 resources:
                   - name: cpu
@@ -255,6 +259,9 @@ tasks:
                   - name: pods
                     nominalQuota: 0
                     borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
               - name: gpu-flavor
                 resources:
                   - name: cpu
@@ -266,6 +273,9 @@ tasks:
                   - name: pods
                     nominalQuota: 0
                     borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 16
 
   - id: create-cluster-queue-b
     type: SubmitObj
@@ -290,6 +300,7 @@ tasks:
               - cpu
               - memory
               - pods
+              - nvidia.com/gpu
             flavors:
               - name: ram-flavor
                 resources:
@@ -302,6 +313,9 @@ tasks:
                   - name: pods
                     nominalQuota: 0
                     borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
               - name: cpu-flavor
                 resources:
                   - name: cpu
@@ -313,6 +327,9 @@ tasks:
                   - name: pods
                     nominalQuota: 0
                     borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 0
               - name: gpu-flavor
                 resources:
                   - name: cpu
@@ -324,6 +341,9 @@ tasks:
                   - name: pods
                     nominalQuota: 0
                     borrowingLimit: 1320
+                  - name: nvidia.com/gpu
+                    nominalQuota: 0
+                    borrowingLimit: 16
 
   - id: create-cluster-queue-c
     type: SubmitObj
@@ -363,7 +383,7 @@ tasks:
                     borrowingLimit: 1320
                   - name: nvidia.com/gpu
                     nominalQuota: 0
-                    borrowingLimit: 16 # Może pożyczać GPU (do limitu klastra)
+                    borrowingLimit: 16
               - name: cpu-flavor
                 resources:
                   - name: cpu
@@ -520,11 +540,6 @@ tasks:
         memory: 4000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants1a
-    type: Sleep
-    params:
-      timeout: 5s
-
   - id: submit-jobs-tenant-b-batch1
     type: SubmitObj
     params:
@@ -538,11 +553,6 @@ tasks:
         cpu: 1000m
         memory: 16000Mi
         ttl: "5m"
-
-  - id: wait-between-tenants1b
-    type: Sleep
-    params:
-      timeout: 5s
 
   - id: submit-jobs-tenant-c-batch1
     type: SubmitObj
@@ -579,11 +589,6 @@ tasks:
         memory: 4000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants2a
-    type: Sleep
-    params:
-      timeout: 5s
-
   - id: submit-jobs-tenant-b-batch2
     type: SubmitObj
     params:
@@ -598,74 +603,10 @@ tasks:
         memory: 16000Mi
         ttl: "5m"
 
-  - id: wait-between-tenants2b
-    type: Sleep
-    params:
-      timeout: 5s
-
   - id: submit-jobs-tenant-c-batch2
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 50
-      params:
-        namespace: tenant-c
-        queueName: tenant-c-queue
-        replicas: 1
-        completionMode: NonIndexed
-        cpu: 1000m
-        memory: 4000Mi
-        gpu: 1
-        ttl: "5m"
-
-  - id: wait-between-rounds2
-    type: Sleep
-    params:
-      timeout: 5s
-
-  # Runda 3: Trzeci batch zadań dla wszystkich najemców
-  - id: submit-jobs-tenant-a-batch3
-    type: SubmitObj
-    params:
-      refTaskId: register-job-batch-3
-      count: 100
-      params:
-        namespace: tenant-a
-        queueName: tenant-a-queue
-        replicas: 1
-        completionMode: NonIndexed
-        cpu: 4000m
-        memory: 4000Mi
-        ttl: "5m"
-
-  - id: wait-between-tenants3a
-    type: Sleep
-    params:
-      timeout: 5s
-
-  - id: submit-jobs-tenant-b-batch3
-    type: SubmitObj
-    params:
-      refTaskId: register-job-batch-3
-      count: 100
-      params:
-        namespace: tenant-b
-        queueName: tenant-b-queue
-        replicas: 1
-        completionMode: NonIndexed
-        cpu: 1000m
-        memory: 16000Mi
-        ttl: "5m"
-
-  - id: wait-between-tenants3b
-    type: Sleep
-    params:
-      timeout: 5s
-
-  - id: submit-jobs-tenant-c-batch3
-    type: SubmitObj
-    params:
-      refTaskId: register-job-batch-3
       count: 50
       params:
         namespace: tenant-c
