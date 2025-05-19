@@ -211,7 +211,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-1
-      count: 50
+      count: 20
       params:
         namespace: tenant-c
         replicas: 1
@@ -257,7 +257,7 @@ tasks:
     type: SubmitObj
     params:
       refTaskId: register-job-batch-2
-      count: 50
+      count: 20
       params:
         namespace: tenant-c
         replicas: 1
