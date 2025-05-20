@@ -49,7 +49,7 @@ tasks:
     params:
       timeout: 5s
 
-  # Configure nodes (10 nodes, 10 CPU/40GB each = 100 CPU/400GB total)
+  # Configure nodes (10 nodes, 10 CPU/10GB each = 100 CPU/100 GB total)
   - id: configure-nodes
     type: Configure
     params:
@@ -58,8 +58,8 @@ tasks:
           count: 10
           resources:
             cpu: 10100m # ~10 CPU available per node
-            memory: "10050Mi" # ~40 GB available per node
-            pods: 110
+            memory: "10050Mi" # ~10 GB available per node
+            pods: 10000
       timeout: 5m
 
   # Create namespaces for the three tenants
@@ -167,45 +167,56 @@ tasks:
           cpu: 100000m # ~100 CPU
           memory: 100000Mi # ~100 GiB
 
-  # --- Phase 1: Build Usage History (5 minutes) ---
+  # --- Phase 1: Build Usage History ---
+  # We use a Repeat block to simulate continuous load over the duration.
+  # Inside the loop, submit tasks sequentially for each tenant.
   - id: phase1-history-building
     type: Repeat
     params:
       duration: 10m
-      interval: 5s
+      interval: 6s
       tasks:
         # Tenant A: High Load
         - type: SubmitObj
           params:
             refTaskId: register-job-phase1-tenant-a
-            count: 2
+            count: 6
             params:
               namespace: tenant-a
               queue: tenant-a-queue
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "30s"
+              ttl: "60s"
 
         # Tenant B: Medium Load
         - type: SubmitObj
           params:
             refTaskId: register-job-phase1-tenant-b
-            count: 1
+            count: 4
             params:
               namespace: tenant-b
               queue: tenant-b-queue
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "30s"
+              ttl: "60s"
 
         # Tenant C: No Load (do nothing in this step of the loop)
 
   # --- Short pause to ensure Phase 1 load generation finishes ---
   - id: stabilize-after-phase1
     type: Sleep
-    params: { timeout: 60s }
+    params:
+      timeout: 70s
+
+  - id: remove-all-jobs
+    type: DeleteAllJobs
+
+  - id: stabilize-after-jobs-cleanup
+    type: Sleep
+    params:
+      timeout: 30s
 
   # --- Phase 2: Saturation Burst and Initial Observation ---
   # Submit a burst of jobs SIMULTANEOUSLY using Parallel task
@@ -213,38 +224,41 @@ tasks:
     type: Parallel
     params:
       tasks:
+        # Tenant A – 60 podów × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-a
-            count: 50
+            count: 60
             params:
               namespace: tenant-a
               queue: tenant-a-queue
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "2m" # Longer TTL for observation
+              ttl: "5m"
 
+        # Tenant B – 40 pody × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-b
-            count: 50
+            count: 40
             params:
               namespace: tenant-b
               queue: tenant-b-queue
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "2m" # Longer TTL for observation
+              ttl: "5m"
 
+        # Tenant C – 20 podów × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-c
-            count: 50
+            count: 20
             params:
               namespace: tenant-c
               queue: tenant-c-queue
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
-              ttl: "2m" # Longer TTL for observation
+              ttl: "5m"
