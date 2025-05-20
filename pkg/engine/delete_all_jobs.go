@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -56,7 +56,7 @@ func (t *DeleteAllJobsTask) Exec(ctx context.Context) error {
 			Namespace(metav1.NamespaceAll).
 			List(ctx, metav1.ListOptions{})
 		if err != nil {
-			if apierrors.IsNotFound(err) {
+			if k8serrors.IsNotFound(err) {
 				log.Infof("Task %s: resource %s not found, skipping", t.ID(), gvr.String())
 				continue
 			}
@@ -73,7 +73,7 @@ func (t *DeleteAllJobsTask) Exec(ctx context.Context) error {
 				Resource(gvr).
 				Namespace(ns).
 				Delete(ctx, name, delOpts); err != nil {
-				if apierrors.IsNotFound(err) {
+				if k8serrors.IsNotFound(err) {
 					log.Infof("Task %s: %s %s/%s already deleted, skipping", t.ID(), gvr.String(), ns, name)
 					continue
 				}
@@ -95,7 +95,7 @@ func (t *DeleteAllJobsTask) Exec(ctx context.Context) error {
 					Namespace(metav1.NamespaceAll).
 					List(ctx, metav1.ListOptions{})
 				if err != nil {
-					if apierrors.IsNotFound(err) {
+					if k8serrors.IsNotFound(err) {
 						return true, nil
 					}
 					return false, err
