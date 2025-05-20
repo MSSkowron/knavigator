@@ -38,22 +38,22 @@ tasks:
                 resourceName: c1f6bfd2.kueue.x-k8s.io
               controller:
                 groupKindConcurrency:
-                  Job.batch: 5
-                  Pod: 5
-                  Workload.kueue.x-k8s.io: 5
-                  LocalQueue.kueue.x-k8s.io: 1
-                  ClusterQueue.kueue.x-k8s.io: 1
+                  Job.batch: 200 # aby obsłużyć szybkie generowanie wielu Jobów
+                  Pod: 200 # żeby Kueue mógł jednocześnie monitorować statusy ~200 Podów
+                  Workload.kueue.x-k8s.io: 200 # wysoki concurrency dla obiektów Workload
+                  LocalQueue.kueue.x-k8s.io: 1 # te obiekty rzadko się zmieniają, warto zostawić nisko
+                  ClusterQueue.kueue.x-k8s.io: 1 # jeden wątek to zwykle wystarcza
                   ResourceFlavor.kueue.x-k8s.io: 1
               clientConnection:
-                qps: 50
-                burst: 100
+                qps: 200
+                burst: 400
               waitForPodsReady:
                 enable: true
                 timeout: 5m
-                blockAdmission: true
+                blockAdmission: false # NIE blokujemy przyjęć nowych Workloadów, nawet jeśli stare Pody nie są Ready
                 requeuingStrategy:
                   timestamp: Eviction
-                  backoffLimitCount: null # null indicates infinite requeuing
+                  backoffLimitCount: null
                   backoffBaseSeconds: 60
                   backoffMaxSeconds: 3600
               integrations:
@@ -90,7 +90,7 @@ tasks:
           resources:
             cpu: 10100m # ~10 CPU available per node
             memory: "10050Mi" # ~10 GB available per node
-            pods: 110
+            pods: 10000
       timeout: 5m
 
   # Create namespaces for the three tenants
@@ -216,7 +216,7 @@ tasks:
                     borrowingLimit: 100000Mi # Allow up to cluster capacity
                   - name: pods
                     nominalQuota: 0 # NO GUARANTEE
-                    borrowingLimit: 1100 # Allow up to cluster capacity
+                    borrowingLimit: 100000 # Allow up to cluster capacity
 
   - id: create-cluster-queue-b
     type: SubmitObj
@@ -252,7 +252,7 @@ tasks:
                     borrowingLimit: 100000Mi # Allow up to cluster capacity
                   - name: pods
                     nominalQuota: 0 # NO GUARANTEE
-                    borrowingLimit: 1100 # Allow up to cluster capacity
+                    borrowingLimit: 100000 # Allow up to cluster capacity
 
   - id: create-cluster-queue-c
     type: SubmitObj
@@ -288,7 +288,7 @@ tasks:
                     borrowingLimit: 100000Mi # Allow up to cluster capacity
                   - name: pods
                     nominalQuota: 0 # NO GUARANTEE
-                    borrowingLimit: 1100 # Allow up to cluster capacity
+                    borrowingLimit: 100000 # Allow up to cluster capacity
 
   # !!! Create the DUMMY ClusterQueue to enable borrowing up to cluster capacity !!!
   - id: create-dummy-cluster-queue
@@ -326,9 +326,9 @@ tasks:
                     borrowingLimit: 0Mi
                     lendingLimit: 100000Mi # Lend everything
                   - name: pods
-                    nominalQuota: 1100 # <<< Full cluster capacity
+                    nominalQuota: 100000 # <<< Full cluster capacity
                     borrowingLimit: 0
-                    lendingLimit: 1100 # Lend everything
+                    lendingLimit: 100000 # Lend everything
 
   # Create local queues for all tenants
   - id: create-local-queue-a
@@ -368,13 +368,13 @@ tasks:
     type: Repeat
     params:
       duration: 10m
-      interval: 5s
+      interval: 6s
       tasks:
-        # Tenant A: High Load (submit frequently)
+        # Tenant A: High Load
         - type: SubmitObj
           params:
             refTaskId: register-job-phase1-tenant-a
-            count: 2
+            count: 6
             params:
               namespace: tenant-a
               queueName: tenant-a-queue
@@ -382,13 +382,13 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "30s"
+              ttl: "60s"
 
-        # Tenant B: Medium Load (submit less frequently than A)
+        # Tenant B: Medium Load
         - type: SubmitObj
           params:
             refTaskId: register-job-phase1-tenant-b
-            count: 1
+            count: 4
             params:
               namespace: tenant-b
               queueName: tenant-b-queue
@@ -396,21 +396,22 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "30s"
+              ttl: "60s"
 
         # Tenant C: No Load (do nothing in this step of the loop)
 
   # --- Short pause to ensure Phase 1 load generation finishes ---
   - id: stabilize-after-phase1
     type: Sleep
-    params: { timeout: 60s }
+    params:
+      timeout: 70s
 
-  # --- Phase 2: Saturation Burst and Initial Observation ---
-  # Submit a large batch of jobs SIMULTANEOUSLY for all tenants using Parallel task
+  # Phase 2: Saturation Burst and Initial Observation
   - id: phase2-parallel-burst
     type: Parallel
     params:
       tasks:
+        # Tenant A – 50 podów × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-a
@@ -422,12 +423,13 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "2m" # Longer TTL for observation
+              ttl: "5m"
 
+        # Tenant B – 33 pody × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-b
-            count: 50
+            count: 33
             params:
               namespace: tenant-b
               queueName: tenant-b-queue
@@ -435,12 +437,13 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "2m" # Longer TTL for observation
+              ttl: "5m"
 
+        # Tenant C – 17 podów × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-c
-            count: 50
+            count: 17
             params:
               namespace: tenant-c
               queueName: tenant-c-queue
@@ -448,4 +451,4 @@ tasks:
               completionMode: NonIndexed
               cpu: 1000m
               memory: 1000Mi
-              ttl: "2m" # Longer TTL for observation
+              ttl: "5m"
