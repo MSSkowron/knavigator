@@ -187,6 +187,9 @@ func (eng *Eng) GetTask(cfg *config.Task) (Runnable, error) {
 	case TaskParallel:
 		return newParallelTask(eng, cfg)
 
+	case TaskDeleteAllJobs:
+		return newDeleteAllJobsTask(eng.dynamicClient, cfg)
+
 	default:
 		return nil, fmt.Errorf("unsupported task type %q", cfg.Type)
 	}

@@ -41,6 +41,8 @@ const (
 	TaskRepeat   = "Repeat"
 	TaskParallel = "Parallel"
 
+	TaskDeleteAllJobs = "DeleteAllJobs"
+
 	OpCreate    = "create"
 	OpDelete    = "delete"
 	OpCmpEqual  = "equal"
