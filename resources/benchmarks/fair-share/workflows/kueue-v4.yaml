@@ -38,22 +38,22 @@ tasks:
                 resourceName: c1f6bfd2.kueue.x-k8s.io
               controller:
                 groupKindConcurrency:
-                  Job.batch: 200 # aby obsłużyć szybkie generowanie wielu Jobów
-                  Pod: 200 # żeby Kueue mógł jednocześnie monitorować statusy ~200 Podów
-                  Workload.kueue.x-k8s.io: 200 # wysoki concurrency dla obiektów Workload
-                  LocalQueue.kueue.x-k8s.io: 1 # te obiekty rzadko się zmieniają, warto zostawić nisko
-                  ClusterQueue.kueue.x-k8s.io: 1 # jeden wątek to zwykle wystarcza
+                  Job.batch: 5
+                  Pod: 5
+                  Workload.kueue.x-k8s.io: 5
+                  LocalQueue.kueue.x-k8s.io: 1
+                  ClusterQueue.kueue.x-k8s.io: 1
                   ResourceFlavor.kueue.x-k8s.io: 1
               clientConnection:
-                qps: 200
-                burst: 400
+                qps: 50
+                burst: 100
               waitForPodsReady:
                 enable: true
                 timeout: 5m
-                blockAdmission: false # NIE blokujemy przyjęć nowych Workloadów, nawet jeśli stare Pody nie są Ready
+                blockAdmission: true
                 requeuingStrategy:
                   timestamp: Eviction
-                  backoffLimitCount: null
+                  backoffLimitCount: null # null indicates infinite requeuing
                   backoffBaseSeconds: 60
                   backoffMaxSeconds: 3600
               integrations:
@@ -406,16 +406,24 @@ tasks:
     params:
       timeout: 70s
 
+  - id: remove-all-jobs
+    type: DeleteAllJobs
+
+  - id: stabilize-after-jobs-cleanup
+    type: Sleep
+    params:
+      timeout: 30s
+
   # Phase 2: Saturation Burst and Initial Observation
   - id: phase2-parallel-burst
     type: Parallel
     params:
       tasks:
-        # Tenant A – 50 podów × 1 CPU 1 RAM
+        # Tenant A – 60 podów × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-a
-            count: 50
+            count: 60
             params:
               namespace: tenant-a
               queueName: tenant-a-queue
@@ -425,11 +433,11 @@ tasks:
               memory: 1000Mi
               ttl: "5m"
 
-        # Tenant B – 33 pody × 1 CPU 1 RAM
+        # Tenant B – 40 pody × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-b
-            count: 33
+            count: 40
             params:
               namespace: tenant-b
               queueName: tenant-b-queue
@@ -439,11 +447,11 @@ tasks:
               memory: 1000Mi
               ttl: "5m"
 
-        # Tenant C – 17 podów × 1 CPU 1 RAM
+        # Tenant C – 20 podów × 1 CPU 1 RAM
         - type: SubmitObj
           params:
             refTaskId: register-job-phase2-c
-            count: 17
+            count: 20
             params:
               namespace: tenant-c
               queueName: tenant-c-queue
