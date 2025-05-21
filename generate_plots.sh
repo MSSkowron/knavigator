@@ -25,7 +25,7 @@ main() {
     # List of scripts to run (adjust paths if needed)
     local scripts=(
         "wyniki_swiadomosc_topologii.py"
-        "wyniki_wydajnoscskalowalnosc.py"
+        "wyniki_wydajnosc_skalowalnosc.py"
         "wyniki_sprawiedliwosc.py"
     )
 
