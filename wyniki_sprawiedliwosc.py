@@ -251,24 +251,24 @@ if __name__ == "__main__":
         general_metrics = [
             (
                 "Makespan (Faza 2) [s]",
-                f"{scen}_makespan_faza2.svg",
-                "Czas wykonania faza 2 [s]",
+                f"{scen}_makespan_phase2.svg",
+                "Całkowity zakres czasowy (Faza 2) [s]",
             ),
-            ("Makespan [s]", f"{scen}_makespan.svg", "Makespan [s]"),
+            ("Makespan [s]", f"{scen}_makespan.svg", "Całkowity zakres czasowy [s]"),
             (
                 "Śr. JFI CPU (w nasyceniu)",
                 f"{scen}_jfi_cpu.svg",
-                "Średnia JFI CPU (w nasyceniu)",
+                "Śr. JFI CPU (w nasyceniu)",
             ),
             (
                 "Śr. JFI GPU (w nasyceniu)",
                 f"{scen}_jfi_gpu.svg",
-                "Średnia JFI GPU (w nasyceniu)",
+                "Śr. JFI GPU (w nasyceniu)",
             ),
             (
                 "Śr. JFI Pamięć (w nasyceniu)",
                 f"{scen}_jfi_ram.svg",
-                "Średnia JFI Pamięć (w nasyceniu)",
+                "Śr. JFI Pamięć (w nasyceniu)",
             ),
         ]
         for metric, filename, ylabel in general_metrics:
@@ -278,33 +278,33 @@ if __name__ == "__main__":
         tenant_metrics = [
             (
                 "Śr. Czas Oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
-                f"{scen}_czek_faza2.svg",
-                "Średni czas oczekiwania per-tenant [s]",
+                f"{scen}_wait_time_phase2.svg",
+                "Śr. czas oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
             ),
             (
                 "Śr. Czas Oczekiwania (wszystkie zadadania) [s]",
-                f"{scen}_czek_wszystkie.svg",
-                "Średni czas oczekiwania per-tenant [s]",
+                f"{scen}_wait_time.svg",
+                "Śr. czas oczekiwania [s]",
             ),
             (
                 "Śr. Liczba Uruchomionych Podów (w nasyceniu)",
-                f"{scen}_liczba_podow.svg",
-                "Średnia liczba podów per-tenant",
+                f"{scen}_no_pods.svg",
+                "Śr. liczba Podów (w nasyceniu)",
             ),
             (
                 "Śr. Udział CPU (w nasyceniu) [%]",
-                f"{scen}_udzial_cpu.svg",
-                "Udział CPU per-tenant [%]",
+                f"{scen}_cpu_share.svg",
+                "Śr. udział CPU (w nasyceniu) [%]",
             ),
             (
                 "Śr. Udział GPU (w nasyceniu) [%]",
-                f"{scen}_udzial_gpu.svg",
-                "Udział GPU per-tenant [%]",
+                f"{scen}_gpu_share.svg",
+                "Śr. udział GPU (w nasyceniu) [%]",
             ),
             (
                 "Śr. Udział Pamięć (w nasyceniu) [%]",
-                f"{scen}_udzial_pamiec.svg",
-                "Udział pamięci per-tenant [%]",
+                f"{scen}_ram_share.svg",
+                "Śr. udział pamięci (w nasyceniu) [%]",
             ),
         ]
         for metric, filename, ylabel in tenant_metrics:
