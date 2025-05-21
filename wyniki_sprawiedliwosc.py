@@ -121,7 +121,8 @@ def draw_wait_times(df, scenario, output_dir):
     target = "Średni czas oczekiwania"
     fig, ax = plt.subplots(figsize=(10, 6))
     width = 0.35
-    x = np.arange(len(systems))
+    scale = width if len(variants) == 1 else 1
+    x = np.arange(len(systems)) * scale
 
     # Dla każdego wariantu rysujemy słupki z offsetem
     for i, var in enumerate(variants):
@@ -133,7 +134,7 @@ def draw_wait_times(df, scenario, output_dir):
             if data:
                 heights.append(data["mean"])
                 errs.append(data["std"])
-                pos.append(j + offset)
+                pos.append(j * scale + offset)
                 cols.append(colors[sys])
                 hatches_list.append(hatches_variant.get(var, ""))
 
@@ -231,9 +232,12 @@ def draw_jfi(df, scenario, output_dir):
         grouped_labels[key].append((sys, res, var))
 
     x_labels = sorted(grouped_labels.keys())
-    width = 0.35
 
     fig, ax = plt.subplots(figsize=(10, 6))
+
+    width = 0.35
+    scale = width if len(variants) == 1 else 1
+    x_ticks = np.arange(len(x_labels)) * scale
 
     for i, var in enumerate(variants):
         heights = []
@@ -250,7 +254,7 @@ def draw_jfi(df, scenario, output_dir):
             if label:
                 heights.append(mean_vals[label])
                 errs.append(std_vals[label])
-                positions.append(j + offset)
+                positions.append(j * scale + offset)
                 colors_list.append(colors[sys])
                 hatches_list.append(hatches_variant.get(var, ""))
 
@@ -270,7 +274,7 @@ def draw_jfi(df, scenario, output_dir):
 
     ax.set_xlabel("System-Zasób")
     ax.set_ylabel("JFI")
-    ax.set_xticks(range(len(x_labels)))
+    ax.set_xticks(x_ticks)
     ax.set_xticklabels(x_labels, rotation=45, ha="right")
     ax.set_ylim(0, 1.1)
 
@@ -320,7 +324,8 @@ def draw_running_pods(df, scenario, output_dir):
 
     fig, ax = plt.subplots(figsize=(10, 6))
     width = 0.35
-    x = np.arange(len(systems))
+    scale = width if len(variants) == 1 else 1
+    x = np.arange(len(systems)) * scale
 
     for i, var in enumerate(variants):
         heights, errs, pos, cols, hatches_list = [], [], [], [], []
@@ -331,7 +336,7 @@ def draw_running_pods(df, scenario, output_dir):
             if key in grouped_data:
                 heights.append(grouped_data[key]["mean"])
                 errs.append(grouped_data[key]["std"])
-                pos.append(j + offset)
+                pos.append(j * scale + offset)
                 cols.append(colors[sys])
                 hatches_list.append(hatches_variant.get(var, ""))
         ax.bar(
@@ -407,7 +412,8 @@ def draw_makespan(df, scenario, output_dir):
     # Rysowanie
     fig, ax = plt.subplots(figsize=(10, 6))
     width = 0.35
-    x = np.arange(len(systems))
+    scale = width if len(variants) == 1 else 1
+    x = np.arange(len(systems)) * scale
 
     # Dla każdego wariantu – budujemy listy wysokości, błędów, pozycji, kolorów i hatchy
     for i, var in enumerate(variants):
@@ -419,7 +425,7 @@ def draw_makespan(df, scenario, output_dir):
             if data:
                 heights.append(data["mean"])
                 errs.append(data["std"])
-                pos.append(j + offset)
+                pos.append(j * scale + offset)
                 cols.append(colors[sys])
                 hatches_list.append(hatches_variant.get(var, ""))
 
@@ -519,6 +525,8 @@ def draw_resource_shares(df, scenario, output_dir):
 
     x_labels = sorted(grouped_labels.keys())
     width = 0.35
+    scale = width if len(variants) == 1 else 1
+    x_ticks = np.arange(len(x_labels)) * scale
 
     for i, var in enumerate(variants):
         heights = []
@@ -535,7 +543,7 @@ def draw_resource_shares(df, scenario, output_dir):
             if label:
                 heights.append(mean_vals[label])
                 errs.append(std_vals[label])
-                positions.append(j + offset)
+                positions.append(j * scale + offset)
                 colors_list.append(colors[sys])
                 hatches_list.append(hatches_variant.get(var, ""))
 
@@ -555,7 +563,7 @@ def draw_resource_shares(df, scenario, output_dir):
 
     ax.set_xlabel("System-Zasób")
     ax.set_ylabel("Udział zasobów [%]")
-    ax.set_xticks(range(len(x_labels)))
+    ax.set_xticks(x_ticks)
     ax.set_xticklabels(x_labels, rotation=45, ha="right")
 
     if not (len(variants) == 1 and variants[0] == "Brak"):
@@ -618,10 +626,19 @@ def draw_metrics_comparison(df, scenario, output_dir):
                         "std": rows["Std"].values[0],
                     }
 
+        system_variant_keys = sorted(grouped_data.keys())
+        variants_in_metric = list(set([v for _, v in system_variant_keys]))
+        width = 0.35
+        scale = (
+            width
+            if len(variants_in_metric) == 1 and variants_in_metric[0] == "Brak"
+            else 1
+        )
+
         fig, ax = plt.subplots(figsize=(10, 6))
 
-        system_variant_keys = sorted(grouped_data.keys())
-        positions = np.arange(len(system_variant_keys))
+        x_ticks = np.arange(len(system_variant_keys)) * scale
+        positions = [i * scale for i in range(len(system_variant_keys))]
         heights = [grouped_data[key]["mean"] for key in system_variant_keys]
         errs = [grouped_data[key]["std"] for key in system_variant_keys]
         colors_list = [colors[sys] for sys, _ in system_variant_keys]
@@ -643,14 +660,14 @@ def draw_metrics_comparison(df, scenario, output_dir):
         ax.set_ylabel(metric)
         metric_name = metric.split(" [")[0] if " [" in metric else metric
         ax.set_title(f"Scenariusz {scenario} - {metric_name}")
-        ax.set_xticks(positions)
+        ax.set_xticks(x_ticks)
         ax.set_xticklabels([f"{sys}-{var}" for sys, var in system_variant_keys])
 
         # Legendy: warianty i systemy (jeśli jest sens)
         handles = []
 
-        if not (len(variants) == 1 and variants[0] == "Brak"):
-            for var in set(var for _, var in system_variant_keys):
+        if not (len(variants_in_metric) == 1 and variants_in_metric[0] == "Brak"):
+            for var in variants_in_metric:
                 handles.append(
                     Patch(
                         facecolor="white",
@@ -663,9 +680,10 @@ def draw_metrics_comparison(df, scenario, output_dir):
         for sys in set(sys for sys, _ in system_variant_keys):
             handles.append(Patch(facecolor=colors[sys], edgecolor="black", label=sys))
 
-        ax.legend(
-            handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
-        )
+        if handles:
+            ax.legend(
+                handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
+            )
 
         safe_metric_name = metric_name.replace(" ", "_").replace("/", "_na_")
 
