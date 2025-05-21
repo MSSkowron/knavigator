@@ -289,7 +289,7 @@ def draw_makespan(df, scenario, output_dir):
 
 
 if __name__ == "__main__":
-    input_file = "wyniki_swiadomosc_topologii.xlsx"
+    input_file = "Wyniki.xlsx"
     sheet = "Świadomość topologii"
     output_base = "wyniki/wyniki_swiadomosc_topologii"
     os.makedirs(output_base, exist_ok=True)

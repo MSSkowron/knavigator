@@ -8,9 +8,7 @@ import pandas as pd
 
 mpl.rcParams["hatch.linewidth"] = 0.5
 
-df = pd.read_excel(
-    "wyniki_wydajnosciskalowalnosc.xlsx", sheet_name="Wydajność i Skalowalność"
-)
+df = pd.read_excel("Wyniki.xlsx", sheet_name="Wydajność i Skalowalność")
 
 blocks = []
 for suffix in ["", ".1", ".2"]:

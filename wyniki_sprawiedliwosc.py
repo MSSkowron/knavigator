@@ -233,7 +233,7 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
 
 
 if __name__ == "__main__":
-    input_file = "wyniki_sprawiedliwosc.xlsx"
+    input_file = "Wyniki.xlsx"
     sheet = "Sprawiedliwość"
     output_base = "wyniki/wyniki_sprawiedliwosc"
     os.makedirs(output_base, exist_ok=True)
