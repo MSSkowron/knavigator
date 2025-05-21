@@ -8,29 +8,6 @@ import pandas as pd
 
 mpl.rcParams["hatch.linewidth"] = 0.5
 
-df = pd.read_excel("Wyniki.xlsx", sheet_name="Wydajność i Skalowalność")
-
-blocks = []
-for suffix in ["", ".1", ".2"]:
-    cols = [
-        f"Scenariusz{suffix}",
-        f"Kombinacja{suffix}",
-        f"System{suffix}",
-        f"Metryka{suffix}",
-        f"Średnia (Obliczona){suffix}",
-        f"Odch.Std (Obliczone){suffix}",
-    ]
-    block = df[cols].copy()
-    block.columns = ["Scenariusz", "Kombinacja", "System", "Metryka", "Mean", "Std"]
-    blocks.append(block)
-
-data = pd.concat(blocks, ignore_index=True)
-data = data[data["Scenariusz"] != "Scenariusz"]
-data = data[data["Metryka"] != "Metryka"]
-data.dropna(subset=["Scenariusz", "Metryka"], inplace=True)
-data["Mean"] = pd.to_numeric(data["Mean"], errors="coerce")
-data["Std"] = pd.to_numeric(data["Std"], errors="coerce")
-
 file_key_map = {
     "Makespan [s]": "Makespan",
     "Śr. Wykorz. CPU (w nasyceniu) [%]": "CPU_Utilization",
@@ -79,23 +56,59 @@ colors = {"Kueue": "blue", "Volcano": "red", "YuniKorn": "green"}
 hatches = {"CPU": "////", "RAM": "", "GPU": "xxx"}
 
 
+def load_data(path, sheet):
+    """
+    Wczytuje dane z Excela i przygotowuje blokowe połączenie danych.
+    """
+    df = pd.read_excel(path, sheet_name=sheet)
+    return prepare_blocks(df)
+
+
+def prepare_blocks(df):
+    """
+    Łączy bloki danych z sufiksami '', '.1', '.2', filtruje nagłówki i konwertuje na odpowiednie typy.
+    """
+    blocks = []
+    for suffix in ["", ".1", ".2"]:
+        cols = [
+            f"Scenariusz{suffix}",
+            f"Kombinacja{suffix}",
+            f"System{suffix}",
+            f"Metryka{suffix}",
+            f"Średnia (Obliczona){suffix}",
+            f"Odch.Std (Obliczone){suffix}",
+        ]
+        block = df[cols].copy()
+        block.columns = ["Scenariusz", "Kombinacja", "System", "Metryka", "Mean", "Std"]
+        blocks.append(block)
+    data = pd.concat(blocks, ignore_index=True)
+    data = data[data["Scenariusz"] != "Scenariusz"]
+    data = data[data["Metryka"] != "Metryka"]
+    data.dropna(subset=["Scenariusz", "Metryka"], inplace=True)
+    data["Mean"] = pd.to_numeric(data["Mean"], errors="coerce")
+    data["Std"] = pd.to_numeric(data["Std"], errors="coerce")
+    return data
+
+
 def sort_key(combo):
+    """
+    Klucz sortujący kombinacje w formacie 'WxH' według wartości liczbowych.
+    """
     if isinstance(combo, str) and "x" in combo:
         try:
             w, h = combo.split("x")
             return (int(w), int(h))
-        except:
+        except Exception:
             return combo
     return combo
 
 
-dir_out = "wyniki/wyniki_wydajnosc_i_skalowalnosc"
-os.makedirs(dir_out, exist_ok=True)
-
-
 def plot_grouped_bar(
-    x_labels, mean_dict, std_dict, title, xlabel, ylabel, labels, outfile
+    x_labels, mean_dict, std_dict, title, xlabel, ylabel, labels, outfile, output_dir
 ):
+    """
+    Pomocnicza funkcja do rysowania grupowanych wykresów słupkowych.
+    """
     fig, ax = plt.subplots(figsize=(8, 4))
     N = len(x_labels)
     M = len(labels)
@@ -104,7 +117,7 @@ def plot_grouped_bar(
     for i, (tool, resource) in enumerate(labels):
         means = mean_dict[(tool, resource)]
         stds = std_dict[(tool, resource)]
-        bars = ax.bar(
+        ax.bar(
             np.arange(N) + offsets[i],
             means,
             width,
@@ -118,26 +131,23 @@ def plot_grouped_bar(
             capsize=3,
             error_kw={"ecolor": "black", "elinewidth": 1.5},
         )
-    # ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels(x_labels)
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0)
     plt.tight_layout()
-    plt.savefig(os.path.join(dir_out, outfile), bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, outfile), bbox_inches="tight")
     plt.close()
 
 
-db_util = list(type_map_util.keys())
-db_std = list(type_map_std.keys())
-scenarios = ["V1", "V2", "V3"]
-for scen in scenarios:
-    df_s = data[data["Scenariusz"] == scen]
-    if df_s.empty:
-        continue
+def draw_resource_utilization(df, scenario, output_dir):
+    """
+    Rysuje wykres wykorzystania zasobów (CPU, RAM, GPU) dla danego scenariusza.
+    """
+    df_s = df[df["Scenariusz"] == scenario]
     combos = sorted(df_s["Kombinacja"].dropna().unique(), key=sort_key)
-    # Wykres wykorzystania zasobów (CPU, RAM, GPU)
+    db_util = list(type_map_util.keys())
     labels_util = []
     mean_util = {}
     std_util = {}
@@ -155,18 +165,27 @@ for scen in scenarios:
             ).reindex(combos)
             mean_util[label] = piv_mean.get(tool, pd.Series([0] * len(combos))).tolist()
             std_util[label] = piv_std.get(tool, pd.Series([0] * len(combos))).tolist()
+
     plot_grouped_bar(
         combos,
         mean_util,
         std_util,
-        f"Scenariusz {scen} – Wykorzystanie zasobów",
+        f"Scenariusz {scenario} – Wykorzystanie zasobów",
         "Kombinacje węzłów i zadań",
         "Wykorzystanie zasobów (%)",
         labels_util,
-        f"{scen}_Wykorzystanie_zasobow.svg",
+        f"{scenario}_Wykorzystanie_zasobow.svg",
+        output_dir,
     )
 
-    # Wykres równomierności rozłożenia zasobów (std CPU, std RAM)
+
+def draw_resource_distribution(df, scenario, output_dir):
+    """
+    Rysuje wykres równomierności rozłożenia zasobów (std CPU, std RAM) dla danego scenariusza.
+    """
+    df_s = df[df["Scenariusz"] == scenario]
+    combos = sorted(df_s["Kombinacja"].dropna().unique(), key=sort_key)
+    db_std = list(type_map_std.keys())
     labels_std = []
     mean_std = {}
     std_std = {}
@@ -184,18 +203,28 @@ for scen in scenarios:
             ).reindex(combos)
             mean_std[label] = piv_mean.get(tool, pd.Series([0] * len(combos))).tolist()
             std_std[label] = piv_std.get(tool, pd.Series([0] * len(combos))).tolist()
+
     plot_grouped_bar(
         combos,
         mean_std,
         std_std,
-        f"Scenariusz {scen} – Równomierność rozłożenia zasobów",
+        f"Scenariusz {scenario} – Równomierność rozłożenia zasobów",
         "Kombinacje węzłów i zadań",
         "Równomierność rozłożenia zasobów (%)",
         labels_std,
-        f"{scen}_Rownomiernosc_zasobow.svg",
+        f"{scenario}_Rownomiernosc_zasobow.svg",
+        output_dir,
     )
 
-    # Pozostałe metryki (Makespan i Narzuty zasobów)
+
+def draw_other_metrics(df, scenario, output_dir):
+    """
+    Rysuje wykresy dla pozostałych metryk: Makespan i narzutów zasobów.
+    """
+    df_s = df[df["Scenariusz"] == scenario]
+    combos = sorted(
+        df_s["Kombinacja"].dropna().unique(), key=sort_key
+    )  # REFAKTOR: compute combos here
     for raw_metric, file_key in file_key_map.items():
         if file_key in ["Makespan", "CPU_Overhead", "RAM_Overhead"]:
             df_m = df_s[df_s["Metryka"] == raw_metric]
@@ -216,13 +245,31 @@ for scen in scenarios:
                 for tool in tools
             }
             labels_single = [(tool, "") for tool in tools]
+
             plot_grouped_bar(
                 combos,
                 {(tool, ""): mean_vals[tool] for tool in tools},
                 {(tool, ""): std_vals[tool] for tool in tools},
-                f"Scenariusz {scen} – {title_label_map[file_key]}",
+                f"Scenariusz {scenario} – {title_label_map[file_key]}",
                 "Kombinacje węzłów i zadań",
                 display_label_map[file_key],
                 labels_single,
-                f"{scen}_{file_key}.svg",
+                f"{scenario}_{file_key}.svg",
+                output_dir,
             )
+
+
+if __name__ == "__main__":
+    input_file = "Wyniki.xlsx"
+    sheet = "Wydajność i Skalowalność"
+    output_base = "wyniki/wyniki_wydajnosc_i_skalowalnosc"
+    os.makedirs(output_base, exist_ok=True)
+    data = load_data(input_file, sheet)
+    scenarios = ["V1", "V2", "V3"]
+    for scen in scenarios:
+        df_s = data[data["Scenariusz"] == scen]
+        if df_s.empty:
+            continue
+        draw_resource_utilization(data, scen, output_base)
+        draw_resource_distribution(data, scen, output_base)
+        draw_other_metrics(data, scen, output_base)
