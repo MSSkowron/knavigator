@@ -112,6 +112,6 @@ tasks:
           count: 35
           resources:
             cpu: 100100m
-            memory: 102450Mi
+            memory: 100050Mi
             pods: 110
       timeout: 5m

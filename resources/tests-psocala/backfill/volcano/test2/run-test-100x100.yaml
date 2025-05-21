@@ -15,6 +15,17 @@
 name: test-backfill-2
 description: test greedy backfill for volcano
 tasks:
+- id: cleanup-nodes
+  type: Configure
+  params:
+    nodes:
+      - type: test-backfill
+        count: 0
+        resources:
+          cpu: 100100m
+          memory: 100050Mi
+          pods: 110
+    timeout: 5m
 - id: register-job
   type: RegisterObj
   params:
@@ -83,3 +94,14 @@ tasks:
       cpu: 10
       memory: "10Gi"
       queue: default
+- id: configure-nodes
+  type: Configure
+  params:
+    nodes:
+      - type: test-backfill
+        count: 100
+        resources:
+          cpu: 100100m
+          memory: 100050Mi
+          pods: 110
+    timeout: 5m

@@ -20,8 +20,8 @@ metadata:
   labels:
     kueue.x-k8s.io/queue-name: {{.queueName}}
 spec:
-  completions: {{.completions}}
-  parallelism: {{.parallelism}}
+  completions: {{.replicas}}
+  parallelism: {{.replicas}}
   completionMode: Indexed
   suspend: true
   template:

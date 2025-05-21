@@ -13,7 +13,7 @@
 # limitations under the License.
 
 name: test-gang-3
-description: test backfill for yunikorn
+description: test gang heterogeneous with extensive load for yunikorn
 tasks:
   - id: configure-nodes-cleanup
     type: Configure
@@ -55,36 +55,37 @@ tasks:
   - id: register-job
     type: RegisterObj
     params:
-      template: "resources/tests-psocala/templates/volcano/job-gang.yaml"
+      template: "resources/tests-psocala/templates/yunikorn/job-gang.yml"
       nameFormat: "{{.jobName}}-{{._ENUM_}}"
-      podNameFormat: "{{._NAME_}}-test-[0-9]+"
-      podCount: "{{.replicas}}"
+      podNameFormat: "{{._NAME_}}-.*"
+      podCount: "{{.parallelism}}"
   - id: configure
     type: Configure
+    description: set up yunikorn config
     params:
       configmaps:
-        - name: volcano-scheduler-configmap
-          namespace: volcano-system
+        - name: yunikorn-configs
+          namespace: yunikorn
           op: create
           data:
-            volcano-scheduler.conf: |
-              actions: "enqueue, allocate, backfill"
-              tiers:
-                - plugins:
-                    - name: priority
-                    - name: gang
-                    - name: conformance
-                - plugins:
-                    - name: drf
-                    - name: predicates
-                    - name: proportion
-                    - name: nodeorder
-                    - name: binpack
+            queues.yaml: |
+              partitions:
+                - name: default
+                  queues:
+                  - name: root
+                    queues:
+                    - name: sandbox
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fifo
+                      resources:
+                        max:
+                          {memory: 10400Gi, vcore: 5200}
       timeout: 1m
   - id: main-loop
     type: Repeat
     params:
-      count: 50
+      count: 100
       interval: 2s
       tasks:
         - id: big-memory-job
@@ -94,8 +95,12 @@ tasks:
             count: 2
             params:
               jobName: big-memory-job
-              replicas: 8
-              queue: default
+              namespace: default
+              parallelism: 8
+              completions: 8
+              applicationId: big-memory-job
+              queue: root.sandbox
+              image: ubuntu
               cpu: 3
               memory: 8Gi
               ttl: 120s
@@ -107,8 +112,12 @@ tasks:
             count: 2
             params:
               jobName: big-cpu-job
-              replicas: 8
-              queue: default
+              namespace: default
+              parallelism: 8
+              completions: 8
+              applicationId: big-cpu-job
+              queue: root.sandbox
+              image: ubuntu
               cpu: 4
               memory: 2Gi
               ttl: 120s
@@ -120,8 +129,12 @@ tasks:
             count: 3
             params:
               jobName: small-balanced-job
-              replicas: 3
-              queue: default
+              namespace: default
+              parallelism: 3
+              completions: 3
+              applicationId: small-balanced-job
+              queue: root.sandbox
+              image: ubuntu
               cpu: 1
               memory: 1Gi
               ttl: 60s
@@ -133,8 +146,12 @@ tasks:
             count: 3
             params:
               jobName: small-memory-job
-              replicas: 5
-              queue: default
+              namespace: default
+              parallelism: 5
+              completions: 5
+              applicationId: small-memory-job
+              queue: root.sandbox
+              image: ubuntu
               cpu: 1
               memory: 3Gi
               ttl: 60s
@@ -146,8 +163,12 @@ tasks:
             count: 3
             params:
               jobName: small-cpu-job
-              replicas: 5
-              queue: default
+              namespace: default
+              parallelism: 5
+              completions: 5
+              applicationId: small-cpu-job
+              queue: root.sandbox
+              image: ubuntu
               cpu: 2
               memory: 1Gi
               ttl: 60s

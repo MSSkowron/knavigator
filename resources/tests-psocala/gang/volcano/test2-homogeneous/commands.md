@@ -11,8 +11,10 @@
   kubectl -n volcano-system delete pod --all
 ```
 ```bash
-  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test3-heterogeneous/run-test-standard.yaml
-  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test3-heterogeneous/run-test-large.yaml
+  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test2-homogeneous/run-test-small-cluster-10-pods.yaml
+  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test2-homogeneous/run-test-small-cluster-100-pods.yaml
+  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test2-homogeneous/run-test-big-cluster-10-pods.yaml
+  ./bin/knavigator -workflow resources/tests-psocala/gang/volcano/test2-homogeneous/run-test-big-cluster-100-pods.yaml
 ```
 
 ```bash

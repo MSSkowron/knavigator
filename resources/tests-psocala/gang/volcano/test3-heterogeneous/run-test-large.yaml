@@ -13,7 +13,7 @@
 # limitations under the License.
 
 name: test-gang-3
-description: test backfill for yunikorn
+description: test heterogeneous gang scheduling large scenario for volcano
 tasks:
   - id: configure-nodes-cleanup
     type: Configure
@@ -84,7 +84,7 @@ tasks:
   - id: main-loop
     type: Repeat
     params:
-      count: 50
+      count: 100
       interval: 2s
       tasks:
         - id: big-memory-job
