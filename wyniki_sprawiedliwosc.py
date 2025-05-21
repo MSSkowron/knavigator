@@ -121,7 +121,7 @@ def draw_wait_times(df, scenario, output_dir):
     target = "Średni czas oczekiwania"
     fig, ax = plt.subplots(figsize=(10, 6))
     width = 0.35
-    scale = width if len(variants) == 1 else 1
+    scale = width * 1.1 if len(variants) == 1 else 1
     x = np.arange(len(systems)) * scale
 
     # Dla każdego wariantu rysujemy słupki z offsetem
@@ -236,7 +236,7 @@ def draw_jfi(df, scenario, output_dir):
     fig, ax = plt.subplots(figsize=(10, 6))
 
     width = 0.35
-    scale = width if len(variants) == 1 else 1
+    scale = width * 1.1 if len(variants) == 1 else 1
     x_ticks = np.arange(len(x_labels)) * scale
 
     for i, var in enumerate(variants):
@@ -324,7 +324,7 @@ def draw_running_pods(df, scenario, output_dir):
 
     fig, ax = plt.subplots(figsize=(10, 6))
     width = 0.35
-    scale = width if len(variants) == 1 else 1
+    scale = width * 1.1 if len(variants) == 1 else 1
     x = np.arange(len(systems)) * scale
 
     for i, var in enumerate(variants):
@@ -412,7 +412,7 @@ def draw_makespan(df, scenario, output_dir):
     # Rysowanie
     fig, ax = plt.subplots(figsize=(10, 6))
     width = 0.35
-    scale = width if len(variants) == 1 else 1
+    scale = width * 1.1 if len(variants) == 1 else 1
     x = np.arange(len(systems)) * scale
 
     # Dla każdego wariantu – budujemy listy wysokości, błędów, pozycji, kolorów i hatchy
@@ -525,7 +525,7 @@ def draw_resource_shares(df, scenario, output_dir):
 
     x_labels = sorted(grouped_labels.keys())
     width = 0.35
-    scale = width if len(variants) == 1 else 1
+    scale = width * 1.1 if len(variants) == 1 else 1
     x_ticks = np.arange(len(x_labels)) * scale
 
     for i, var in enumerate(variants):
@@ -627,13 +627,14 @@ def draw_metrics_comparison(df, scenario, output_dir):
                     }
 
         system_variant_keys = sorted(grouped_data.keys())
-        variants_in_metric = list(set([v for _, v in system_variant_keys]))
         width = 0.35
-        scale = (
-            width
-            if len(variants_in_metric) == 1 and variants_in_metric[0] == "Brak"
-            else 1
-        )
+        variants_in_metric = list(set([v for _, v in system_variant_keys]))
+
+        # Jeśli tylko jeden wariant ("Brak"), ustaw niewielki odstęp między słupkami
+        if len(variants_in_metric) == 1 and variants_in_metric[0] == "Brak":
+            scale = width * 1.1
+        else:
+            scale = 1
 
         fig, ax = plt.subplots(figsize=(10, 6))
 
