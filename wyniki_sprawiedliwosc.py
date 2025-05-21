@@ -15,7 +15,11 @@ colors = {"Kueue": "blue", "Volcano": "red", "YuniKorn": "green"}
 
 # Hatches dla różnych zasobów i wariantów (inspirowane poprzednimi skryptami)
 hatches = {"CPU": "////", "RAM": "", "GPU": "xxx"}
-hatches_variant = {"Z gwarancjami": "xxx", "Bez gwarancji": ""}
+hatches_variant = {
+    "Z gwarancjami": "xxx",
+    "Bez gwarancji": "",
+    "Brak": "",  # Scenariusze F3 i F4
+}
 
 # Ustawienia globalne Matplotlib
 plt.rcParams["hatch.linewidth"] = 0.5
@@ -65,13 +69,14 @@ def prepare_blocks(df):
     # Konwersja na typy numeryczne
     data["Mean"] = pd.to_numeric(data["Mean"], errors="coerce")
     data["Std"] = pd.to_numeric(data["Std"], errors="coerce")
+    data["Wariant"] = data["Wariant"].fillna("Brak")
     return data
 
 
 def draw_wait_times(df, scenario, output_dir):
     """
     Rysuje wykres średniego czasu oczekiwania dla danego scenariusza,
-    ze słupkami ułożonymi w grupach po systemach, analogicznie do wykresu JFI.
+    ze słupkami ułożonymi w grupach po systemach.
     """
     # Filtrowanie danych po scenariuszu
     df_s = df[df["Scenariusz"] == scenario]
@@ -92,11 +97,11 @@ def draw_wait_times(df, scenario, output_dir):
         elif "maks." in low or "maksymalny" in low:
             wait_types[metric] = "Maksymalny czas oczekiwania"
 
-    # Lista systemów i wariantów (w ustalonej kolejności)
+    # Lista systemów i wariantów
     systems = df_s["System"].unique().tolist()
-    variants = [v for v in df_s["Wariant"].unique().tolist() if isinstance(v, str)]
+    variants = df_s["Wariant"].unique().tolist()
 
-    # Grupujemy dane w słownik (sys, var) -> {typ: {mean, std}}
+    # Grupujemy dane (sys, var) -> {typ: {mean, std}}
     grouped = {}
     for sys in systems:
         for var in variants:
@@ -120,7 +125,7 @@ def draw_wait_times(df, scenario, output_dir):
 
     # Dla każdego wariantu rysujemy słupki z offsetem
     for i, var in enumerate(variants):
-        heights, errs, pos, cols, hatches = [], [], [], [], []
+        heights, errs, pos, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
 
         for j, sys in enumerate(systems):
@@ -130,7 +135,7 @@ def draw_wait_times(df, scenario, output_dir):
                 errs.append(data["std"])
                 pos.append(j + offset)
                 cols.append(colors[sys])
-                hatches.append(hatches_variant[var])
+                hatches_list.append(hatches_variant.get(var, ""))
 
         ax.bar(
             pos,
@@ -139,7 +144,7 @@ def draw_wait_times(df, scenario, output_dir):
             yerr=errs,
             capsize=3,
             color=cols,
-            hatch=hatches,
+            hatch=hatches_list,
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
@@ -152,14 +157,20 @@ def draw_wait_times(df, scenario, output_dir):
     ax.set_xticks(x)
     ax.set_xticklabels(systems, rotation=45, ha="right")
 
-    # Legenda wariantów
-    handles = [
-        Patch(
-            facecolor="white", edgecolor="black", hatch=hatches_variant[var], label=var
+    # Legenda wariantów, jeśli ma sens
+    if not (len(variants) == 1 and variants[0] == "Brak"):
+        handles = [
+            Patch(
+                facecolor="white",
+                edgecolor="black",
+                hatch=hatches_variant.get(var, ""),
+                label=var,
+            )
+            for var in variants
+        ]
+        ax.legend(
+            handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
         )
-        for var in variants
-    ]
-    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_czasy_oczekiwania.svg"))
@@ -187,12 +198,10 @@ def draw_jfi(df, scenario, output_dir):
         elif "GPU" in metric:
             resource_types[metric] = "GPU"
 
-    # Zbieramy systemy i warianty
     systems = df_s["System"].unique().tolist()
     variants = df_s["Wariant"].unique().tolist()
-    variants = [v for v in variants if isinstance(v, str)]  # Filtrujemy None/NaN
 
-    # Przygotowujemy dane do wykresu
+    # Przygotowujemy dane
     labels = []
     mean_vals = {}
     std_vals = {}
@@ -213,10 +222,7 @@ def draw_jfi(df, scenario, output_dir):
                     mean_vals[label] = rows["Mean"].values[0]
                     std_vals[label] = rows["Std"].values[0]
 
-    # Rysujemy wykres
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    # Grupujemy dane dla wykresu
+    # Grupujemy etykiety dla osi X
     grouped_labels = {}
     for sys, res, var in labels:
         key = f"{sys}-{res}"
@@ -224,11 +230,11 @@ def draw_jfi(df, scenario, output_dir):
             grouped_labels[key] = []
         grouped_labels[key].append((sys, res, var))
 
-    # Sortujemy, aby zachować kolejność
-    x_labels = sorted(list(grouped_labels.keys()))
-    width = 0.35  # szerokość słupka
+    x_labels = sorted(grouped_labels.keys())
+    width = 0.35
 
-    # Rysujemy słupki dla każdego wariantu
+    fig, ax = plt.subplots(figsize=(10, 6))
+
     for i, var in enumerate(variants):
         heights = []
         errs = []
@@ -239,13 +245,14 @@ def draw_jfi(df, scenario, output_dir):
         for j, key in enumerate(x_labels):
             sys, res = key.split("-")
             label = next((l for l in grouped_labels[key] if l[2] == var), None)
+            offset = (i - 0.5 * (len(variants) - 1)) * width
 
             if label:
                 heights.append(mean_vals[label])
                 errs.append(std_vals[label])
-                positions.append(j + (i - 0.5 * (len(variants) - 1)) * width)
+                positions.append(j + offset)
                 colors_list.append(colors[sys])
-                hatches_list.append(hatches_variant[var])
+                hatches_list.append(hatches_variant.get(var, ""))
 
         ax.bar(
             positions,
@@ -254,28 +261,25 @@ def draw_jfi(df, scenario, output_dir):
             yerr=errs,
             capsize=3,
             color=colors_list,
-            hatch=hatches_list[
-                0
-            ],  # Używamy tego samego hatcha dla wszystkich słupków wariantu
+            hatch=hatches_list[0] if hatches_list else "",
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
             label=var,
         )
 
-    # Etykiety i tytuł
     ax.set_xlabel("System-Zasób")
     ax.set_ylabel("JFI")
     ax.set_xticks(range(len(x_labels)))
     ax.set_xticklabels(x_labels, rotation=45, ha="right")
-    ax.set_ylim(0, 1.1)  # JFI jest między 0 a 1
+    ax.set_ylim(0, 1.1)
 
-    # Legenda z białym tłem patchy
-    leg = ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
-    for handle in leg.legend_handles:
-        handle.set_facecolor("white")
-        handle.set_edgecolor("black")
-        handle.set_alpha(1)
+    if not (len(variants) == 1 and variants[0] == "Brak"):
+        leg = ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+        for handle in leg.legend_handles:
+            handle.set_facecolor("white")
+            handle.set_edgecolor("black")
+            handle.set_alpha(1)
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_jfi.svg"))
@@ -285,7 +289,7 @@ def draw_jfi(df, scenario, output_dir):
 def draw_running_pods(df, scenario, output_dir):
     """
     Rysuje wykres liczby uruchomionych podów dla danego scenariusza,
-    ze słupkami ułożonymi w grupach po systemach, analogicznie do wykresu JFI.
+    ze słupkami ułożonymi w grupach po systemach.
     """
     df_s = df[df["Scenariusz"] == scenario]
 
@@ -296,11 +300,9 @@ def draw_running_pods(df, scenario, output_dir):
     if not pod_metrics:
         return
 
-    # Zbieramy listę systemów i wariantów (warianty w ustalonej kolejności)
     systems = df_s["System"].unique().tolist()
-    variants = [v for v in df_s["Wariant"].unique().tolist() if isinstance(v, str)]
+    variants = df_s["Wariant"].unique().tolist()
 
-    # Przygotowujemy mapę (system, wariant) -> {'mean':…, 'std':…}
     grouped_data = {}
     for sys in systems:
         for metric in pod_metrics:
@@ -316,20 +318,14 @@ def draw_running_pods(df, scenario, output_dir):
                         "std": rows["Std"].values[0],
                     }
 
-    # Rysujemy wykres
     fig, ax = plt.subplots(figsize=(10, 6))
-    width = 0.35  # szerokość pojedynczego słupka
+    width = 0.35
     x = np.arange(len(systems))
 
-    # Dla każdego wariantu dodajemy po grupie słupków
     for i, var in enumerate(variants):
-        heights = []
-        errs = []
-        pos = []
-        cols = []
-        hatches = []
-        # obliczamy przesunięcie wewnątrz grupy
+        heights, errs, pos, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+
         for j, sys in enumerate(systems):
             key = (sys, var)
             if key in grouped_data:
@@ -337,7 +333,7 @@ def draw_running_pods(df, scenario, output_dir):
                 errs.append(grouped_data[key]["std"])
                 pos.append(j + offset)
                 cols.append(colors[sys])
-                hatches.append(hatches_variant[var])
+                hatches_list.append(hatches_variant.get(var, ""))
         ax.bar(
             pos,
             heights,
@@ -345,33 +341,31 @@ def draw_running_pods(df, scenario, output_dir):
             yerr=errs,
             capsize=3,
             color=cols,
-            hatch=hatches,
+            hatch=hatches_list,
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
             label=var,
         )
 
-    # Etykiety i osie
     ax.set_xlabel("System")
     ax.set_ylabel("Liczba podów")
     ax.set_xticks(x)
     ax.set_xticklabels(systems, rotation=45, ha="right")
 
-    # Legenda wariantów
-    leg_handles = []
-    for var in variants:
-        leg_handles.append(
+    if not (len(variants) == 1 and variants[0] == "Brak"):
+        leg_handles = [
             Patch(
                 facecolor="white",
                 edgecolor="black",
-                hatch=hatches_variant[var],
+                hatch=hatches_variant.get(var, ""),
                 label=var,
             )
+            for var in variants
+        ]
+        ax.legend(
+            handles=leg_handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
         )
-    ax.legend(
-        handles=leg_handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
-    )
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_liczba_podow.svg"))
@@ -392,7 +386,7 @@ def draw_makespan(df, scenario, output_dir):
 
     # Lista systemów i wariantów (w ustalonej kolejności)
     systems = df_s["System"].unique().tolist()
-    variants = [v for v in df_s["Wariant"].unique().tolist() if isinstance(v, str)]
+    variants = df_s["Wariant"].unique().tolist()
 
     # Grupujemy dane: (system, wariant) -> {mean, std}
     grouped = {}
@@ -417,7 +411,7 @@ def draw_makespan(df, scenario, output_dir):
 
     # Dla każdego wariantu – budujemy listy wysokości, błędów, pozycji, kolorów i hatchy
     for i, var in enumerate(variants):
-        heights, errs, pos, cols, hatches = [], [], [], [], []
+        heights, errs, pos, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
 
         for j, sys in enumerate(systems):
@@ -427,7 +421,7 @@ def draw_makespan(df, scenario, output_dir):
                 errs.append(data["std"])
                 pos.append(j + offset)
                 cols.append(colors[sys])
-                hatches.append(hatches_variant[var])
+                hatches_list.append(hatches_variant.get(var, ""))
 
         ax.bar(
             pos,
@@ -436,7 +430,7 @@ def draw_makespan(df, scenario, output_dir):
             yerr=errs,
             capsize=3,
             color=cols,
-            hatch=hatches,
+            hatch=hatches_list,
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
@@ -449,14 +443,23 @@ def draw_makespan(df, scenario, output_dir):
     ax.set_xticks(x)
     ax.set_xticklabels(systems, rotation=45, ha="right")
 
-    # Legenda wariantów
-    legend_handles = [
-        Patch(facecolor="white", edgecolor="black", hatch=hatches_variant[v], label=v)
-        for v in variants
-    ]
-    ax.legend(
-        handles=legend_handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
-    )
+    # Legenda wariantów (jeśli są istotne)
+    if not (len(variants) == 1 and variants[0] == "Brak"):
+        legend_handles = [
+            Patch(
+                facecolor="white",
+                edgecolor="black",
+                hatch=hatches_variant.get(v, ""),
+                label=v,
+            )
+            for v in variants
+        ]
+        ax.legend(
+            handles=legend_handles,
+            loc="upper left",
+            bbox_to_anchor=(1, 1),
+            frameon=False,
+        )
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_makespan.svg"))
@@ -469,12 +472,10 @@ def draw_resource_shares(df, scenario, output_dir):
     """
     df_s = df[df["Scenariusz"] == scenario]
 
-    # Filtrujemy metryki udziałów zasobów
     resource_metrics = [m for m in df_s["Metryka"].unique() if "Udział" in m]
     if not resource_metrics:
         return
 
-    # Określamy typy zasobów z metryk
     resource_types = {}
     for metric in resource_metrics:
         if "CPU" in metric:
@@ -484,12 +485,9 @@ def draw_resource_shares(df, scenario, output_dir):
         elif "GPU" in metric:
             resource_types[metric] = "GPU"
 
-    # Zbieramy systemy i warianty
     systems = df_s["System"].unique().tolist()
     variants = df_s["Wariant"].unique().tolist()
-    variants = [v for v in variants if isinstance(v, str)]  # Filtrujemy None/NaN
 
-    # Przygotowujemy dane do wykresu
     labels = []
     mean_vals = {}
     std_vals = {}
@@ -510,10 +508,8 @@ def draw_resource_shares(df, scenario, output_dir):
                     mean_vals[label] = rows["Mean"].values[0]
                     std_vals[label] = rows["Std"].values[0]
 
-    # Rysujemy wykres
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Grupujemy dane dla wykresu
     grouped_labels = {}
     for sys, res, var in labels:
         key = f"{sys}-{res}"
@@ -521,11 +517,9 @@ def draw_resource_shares(df, scenario, output_dir):
             grouped_labels[key] = []
         grouped_labels[key].append((sys, res, var))
 
-    # Sortujemy, aby zachować kolejność
-    x_labels = sorted(list(grouped_labels.keys()))
-    width = 0.35  # szerokość słupka
+    x_labels = sorted(grouped_labels.keys())
+    width = 0.35
 
-    # Rysujemy słupki dla każdego wariantu
     for i, var in enumerate(variants):
         heights = []
         errs = []
@@ -536,13 +530,14 @@ def draw_resource_shares(df, scenario, output_dir):
         for j, key in enumerate(x_labels):
             sys, res = key.split("-")
             label = next((l for l in grouped_labels[key] if l[2] == var), None)
+            offset = (i - 0.5 * (len(variants) - 1)) * width
 
             if label:
                 heights.append(mean_vals[label])
                 errs.append(std_vals[label])
-                positions.append(j + (i - 0.5 * (len(variants) - 1)) * width)
+                positions.append(j + offset)
                 colors_list.append(colors[sys])
-                hatches_list.append(hatches_variant[var])
+                hatches_list.append(hatches_variant.get(var, ""))
 
         ax.bar(
             positions,
@@ -551,29 +546,31 @@ def draw_resource_shares(df, scenario, output_dir):
             yerr=errs,
             capsize=3,
             color=colors_list,
-            hatch=hatches_list[
-                0
-            ],  # Używamy tego samego hatcha dla wszystkich słupków wariantu
+            hatch=hatches_list[0] if hatches_list else "",
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
             label=var,
         )
 
-    # Etykiety i tytuł
     ax.set_xlabel("System-Zasób")
     ax.set_ylabel("Udział zasobów [%]")
     ax.set_xticks(range(len(x_labels)))
     ax.set_xticklabels(x_labels, rotation=45, ha="right")
 
-    # Legenda wariantów
-    handles = [
-        Patch(
-            facecolor="white", edgecolor="black", hatch=hatches_variant[var], label=var
+    if not (len(variants) == 1 and variants[0] == "Brak"):
+        handles = [
+            Patch(
+                facecolor="white",
+                edgecolor="black",
+                hatch=hatches_variant.get(var, ""),
+                label=var,
+            )
+            for var in variants
+        ]
+        ax.legend(
+            handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
         )
-        for var in variants
-    ]
-    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_udzialy_zasobow.svg"))
@@ -587,7 +584,6 @@ def draw_metrics_comparison(df, scenario, output_dir):
     """
     df_s = df[df["Scenariusz"] == scenario]
 
-    # Filtrujemy metryki, które nie zostały jeszcze obsłużone
     excluded_keywords = [
         "Udział",
         "JFI",
@@ -602,23 +598,19 @@ def draw_metrics_comparison(df, scenario, output_dir):
     ]
 
     for metric in other_metrics:
-        # Zbieramy systemy i warianty dla tej metryki
         metric_df = df_s[df_s["Metryka"] == metric]
         systems = metric_df["System"].unique().tolist()
         variants = metric_df["Wariant"].unique().tolist()
-        variants = [v for v in variants if isinstance(v, str)]  # Filtrujemy None/NaN
 
         if not systems or not variants:
             continue
 
-        # Przygotowujemy dane do wykresu
         grouped_data = {}
         for sys in systems:
             for variant in variants:
                 rows = metric_df[
                     (metric_df["System"] == sys) & (metric_df["Wariant"] == variant)
                 ]
-
                 if not rows.empty:
                     key = (sys, variant)
                     grouped_data[key] = {
@@ -626,20 +618,15 @@ def draw_metrics_comparison(df, scenario, output_dir):
                         "std": rows["Std"].values[0],
                     }
 
-        # Rysujemy wykres
         fig, ax = plt.subplots(figsize=(10, 6))
 
-        # Sortujemy systemy i warianty
         system_variant_keys = sorted(grouped_data.keys())
-
-        # Przygotowujemy dane do wykresu
         positions = np.arange(len(system_variant_keys))
         heights = [grouped_data[key]["mean"] for key in system_variant_keys]
         errs = [grouped_data[key]["std"] for key in system_variant_keys]
         colors_list = [colors[sys] for sys, _ in system_variant_keys]
-        hatches_list = [hatches_variant[var] for _, var in system_variant_keys]
+        hatches_list = [hatches_variant.get(var, "") for _, var in system_variant_keys]
 
-        # Rysujemy słupki
         ax.bar(
             positions,
             heights,
@@ -652,33 +639,34 @@ def draw_metrics_comparison(df, scenario, output_dir):
             linewidth=0.5,
         )
 
-        # Etykiety i tytuł
         ax.set_xlabel("System-Wariant")
         ax.set_ylabel(metric)
-        # Usuwamy jednostkę miary z tytułu
         metric_name = metric.split(" [")[0] if " [" in metric else metric
         ax.set_title(f"Scenariusz {scenario} - {metric_name}")
         ax.set_xticks(positions)
         ax.set_xticklabels([f"{sys}-{var}" for sys, var in system_variant_keys])
 
-        # Dodajemy legendę dla wariantów
+        # Legendy: warianty i systemy (jeśli jest sens)
         handles = []
-        for var, hatch in hatches_variant.items():
-            if var in [v for _, v in system_variant_keys]:
+
+        if not (len(variants) == 1 and variants[0] == "Brak"):
+            for var in set(var for _, var in system_variant_keys):
                 handles.append(
-                    Patch(facecolor="white", edgecolor="black", hatch=hatch, label=var)
+                    Patch(
+                        facecolor="white",
+                        edgecolor="black",
+                        hatch=hatches_variant.get(var, ""),
+                        label=var,
+                    )
                 )
 
-        # Dodajemy legendę dla systemów
-        for sys, color in colors.items():
-            if sys in [s for s, _ in system_variant_keys]:
-                handles.append(Patch(facecolor=color, edgecolor="black", label=sys))
+        for sys in set(sys for sys, _ in system_variant_keys):
+            handles.append(Patch(facecolor=colors[sys], edgecolor="black", label=sys))
 
         ax.legend(
             handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
         )
 
-        # Tworzymy bezpieczną nazwę pliku
         safe_metric_name = metric_name.replace(" ", "_").replace("/", "_na_")
 
         plt.tight_layout()
