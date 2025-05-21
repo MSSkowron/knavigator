@@ -5,3 +5,5 @@ kind-config-resources.yaml
 prompt.MD
 test.json
 tutorial.md
+/wyniki/wyniki_*/**
+!/wyniki/wyniki_*/
