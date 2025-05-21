@@ -181,8 +181,8 @@ tasks:
   - id: main-loop
     type: Repeat
     params:
-      count: 100
-      interval: 1s
+      count: 50
+      interval: 2s
       tasks:
         - id: big-memory-job
           type: SubmitObj
@@ -199,8 +199,8 @@ tasks:
               image: ubuntu
               cpu: 3
               memory: 8Gi
-              ttl: 90s
-              jitter: 135s
+              ttl: 120s
+              jitter: 180s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"
         - id: big-cpu-job
@@ -218,8 +218,8 @@ tasks:
               image: ubuntu
               cpu: 4
               memory: 2Gi
-              ttl: 90s
-              jitter: 135s
+              ttl: 120s
+              jitter: 180s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"
         - id: small-balanced-job
@@ -237,8 +237,8 @@ tasks:
               image: ubuntu
               cpu: 1
               memory: 1Gi
-              ttl: 40s
-              jitter: 60s
+              ttl: 60s
+              jitter: 90s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"
         - id: small-memory-job
@@ -255,8 +255,27 @@ tasks:
               completionMode: Indexed
               image: ubuntu
               cpu: 1
-              memory: 2Gi
-              ttl: 40s
-              jitter: 60s
+              memory: 3Gi
+              ttl: 60s
+              jitter: 90s
+              topologyType: "required"
+              topologyLevel: "network.topology.kubernetes.io/block"
+        - id: small-cpu-job
+          type: SubmitObj
+          params:
+            refTaskId: register-job
+            count: 3
+            params:
+              jobName: small-cpu-job
+              queueName: default-local-queue
+              namespace: default
+              replicas: 5
+              backoffLimit: 0
+              completionMode: Indexed
+              image: ubuntu
+              cpu: 2
+              memory: 1Gi
+              ttl: 60s
+              jitter: 90s
               topologyType: "required"
               topologyLevel: "network.topology.kubernetes.io/block"

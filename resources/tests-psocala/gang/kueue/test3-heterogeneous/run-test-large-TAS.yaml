@@ -86,33 +86,33 @@ tasks:
     type: Configure
     params:
       nodes:
-        - type: test-gang1
-          count: 2
-          namePrefix: test-gang1
+        - type: gang-test-small
+          count: 50
+          namePrefix: gang-test-small
           labels:
-            gang.topology.kubernetes.io/block: test-block
+            network.topology.kubernetes.io/block: test-block
           resources:
-            cpu: 10100m
-            memory: 10050Mi
-            pods: 110
-        - type: test-gang3
-          count: 1
-          namePrefix: test-gang3
+            cpu: 8100m
+            memory: "16050Mi"
+            pods: 310
+        - type: gang-test-medium
+          count: 50
+          namePrefix: gang-test-medium
           labels:
-            gang.topology.kubernetes.io/block: test-block
+            network.topology.kubernetes.io/block: test-block
           resources:
-            cpu: 10100m
-            memory: 10050Mi
-            pods: 110
-        - type: test-gang2
-          count: 70
-          namePrefix: test-gang2
+            cpu: 32100m
+            memory: "64050Mi"
+            pods: 310
+        - type: gang-test-big
+          count: 50
+          namePrefix: gang-test-big
           labels:
-            gang.topology.kubernetes.io/block: test-block
+            network.topology.kubernetes.io/block: test-block
           resources:
-            cpu: 1100m
-            memory: 1050Mi
-            pods: 110
+            cpu: 64100m
+            memory: "128050Mi"
+            pods: 310
       timeout: 5m
   - id: register-topology
     type: RegisterObj
@@ -134,7 +134,7 @@ tasks:
     type: RegisterObj
     params:
       template: "resources/tests-psocala/templates/kueue/TAS/job.yaml"
-      nameFormat: "job-{{._NAME_}}-{{._ENUM_}}"
+      nameFormat: "job-{{.jobName}}-{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
       timeout: 1m
@@ -146,7 +146,7 @@ tasks:
       params:
         name: "gang-topology"
         levels:
-          - nodeLabel: "gang.topology.kubernetes.io/block"
+          - nodeLabel: "network.topology.kubernetes.io/block"
           - nodeLabel: "kubernetes.io/hostname"
   - id: create-resource-flavor
     type: SubmitObj
@@ -166,9 +166,9 @@ tasks:
       params:
         name: default-cluster-queue
         flavor: topology-resource-flavor
-        cpu: 100
-        memory: 100Gi
-        pods: 110
+        cpu: 5200
+        memory: 10400Gi
+        pods: 100000
   - id: create-local-queue
     type: SubmitObj
     params:
@@ -178,22 +178,104 @@ tasks:
         name: default-local-queue
         namespace: default
         clusterQueue: default-cluster-queue
-  - id: big-cpu-job
-    type: SubmitObj
+  - id: main-loop
+    type: Repeat
     params:
-      refTaskId: register-job
-      count: 1
-      params:
-        jobName: big-cpu-job
-        queueName: default-local-queue
-        namespace: default
-        replicas: 8
-        backoffLimit: 0
-        completionMode: Indexed
-        image: ubuntu
-        cpu: 4
-        memory: 2Gi
-        ttl: 2m
-        jitter: 2m
-        topologyType: "required"
-        topologyLevel: "gang.topology.kubernetes.io/block"
+      count: 100
+      interval: 2s
+      tasks:
+        - id: big-memory-job
+          type: SubmitObj
+          params:
+            refTaskId: register-job
+            count: 2
+            params:
+              jobName: big-memory-job
+              queueName: default-local-queue
+              namespace: default
+              replicas: 8
+              backoffLimit: 0
+              completionMode: Indexed
+              image: ubuntu
+              cpu: 3
+              memory: 8Gi
+              ttl: 120s
+              jitter: 180s
+              topologyType: "required"
+              topologyLevel: "network.topology.kubernetes.io/block"
+        - id: big-cpu-job
+          type: SubmitObj
+          params:
+            refTaskId: register-job
+            count: 2
+            params:
+              jobName: big-cpu-job
+              queueName: default-local-queue
+              namespace: default
+              replicas: 8
+              backoffLimit: 0
+              completionMode: Indexed
+              image: ubuntu
+              cpu: 4
+              memory: 2Gi
+              ttl: 120s
+              jitter: 180s
+              topologyType: "required"
+              topologyLevel: "network.topology.kubernetes.io/block"
+        - id: small-balanced-job
+          type: SubmitObj
+          params:
+            refTaskId: register-job
+            count: 3
+            params:
+              jobName: small-balanced-job
+              queueName: default-local-queue
+              namespace: default
+              replicas: 3
+              backoffLimit: 0
+              completionMode: Indexed
+              image: ubuntu
+              cpu: 1
+              memory: 1Gi
+              ttl: 60s
+              jitter: 90s
+              topologyType: "required"
+              topologyLevel: "network.topology.kubernetes.io/block"
+        - id: small-memory-job
+          type: SubmitObj
+          params:
+            refTaskId: register-job
+            count: 3
+            params:
+              jobName: small-memory-job
+              queueName: default-local-queue
+              namespace: default
+              replicas: 5
+              backoffLimit: 0
+              completionMode: Indexed
+              image: ubuntu
+              cpu: 1
+              memory: 3Gi
+              ttl: 60s
+              jitter: 90s
+              topologyType: "required"
+              topologyLevel: "network.topology.kubernetes.io/block"
+        - id: small-cpu-job
+          type: SubmitObj
+          params:
+            refTaskId: register-job
+            count: 3
+            params:
+              jobName: small-cpu-job
+              queueName: default-local-queue
+              namespace: default
+              replicas: 5
+              backoffLimit: 0
+              completionMode: Indexed
+              image: ubuntu
+              cpu: 2
+              memory: 1Gi
+              ttl: 60s
+              jitter: 90s
+              topologyType: "required"
+              topologyLevel: "network.topology.kubernetes.io/block"
