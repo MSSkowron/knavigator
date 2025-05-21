@@ -16,4 +16,5 @@
 ```
 ```bash
   ./bin/knavigator -workflow resources/tests-psocala/gang/kueue/test3-heterogeneous/run-test-standard-TAS.yaml
+  ./bin/knavigator -workflow resources/tests-psocala/gang/kueue/test3-heterogeneous/run-test-large-TAS.yaml
 ```

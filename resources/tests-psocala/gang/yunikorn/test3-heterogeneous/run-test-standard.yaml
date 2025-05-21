@@ -80,13 +80,13 @@ tasks:
                         application.sort.policy: fifo
                       resources:
                         max:
-                          {memory: 22900Gi, vcore: 16600}
+                          {memory: 10400Gi, vcore: 5200}
       timeout: 1m
   - id: main-loop
     type: Repeat
     params:
-      count: 100
-      interval: 1s
+      count: 50
+      interval: 2s
       tasks:
         - id: big-memory-job
           type: SubmitObj
@@ -103,8 +103,8 @@ tasks:
               image: ubuntu
               cpu: 3
               memory: 8Gi
-              ttl: 90s
-              jitter: 135s
+              ttl: 120s
+              jitter: 180s
         - id: big-cpu-job
           type: SubmitObj
           params:
@@ -120,8 +120,8 @@ tasks:
               image: ubuntu
               cpu: 4
               memory: 2Gi
-              ttl: 90s
-              jitter: 135s
+              ttl: 120s
+              jitter: 180s
         - id: small-balanced-job
           type: SubmitObj
           params:
@@ -137,8 +137,8 @@ tasks:
               image: ubuntu
               cpu: 1
               memory: 1Gi
-              ttl: 40s
-              jitter: 60s
+              ttl: 60s
+              jitter: 90s
         - id: small-memory-job
           type: SubmitObj
           params:
@@ -154,8 +154,8 @@ tasks:
               image: ubuntu
               cpu: 1
               memory: 3Gi
-              ttl: 40s
-              jitter: 60s
+              ttl: 60s
+              jitter: 90s
         - id: small-cpu-job
           type: SubmitObj
           params:
@@ -171,5 +171,5 @@ tasks:
               image: ubuntu
               cpu: 2
               memory: 1Gi
-              ttl: 40s
-              jitter: 60s
+              ttl: 60s
+              jitter: 90s
