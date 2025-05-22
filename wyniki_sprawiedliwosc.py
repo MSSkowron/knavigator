@@ -345,7 +345,15 @@ def draw_resource_share_combined(df, scenario, output_dir):
     ]
 
     width = 0.25
-    x = np.arange(len(combos))
+    # Dostosuj szerokość i skale na podstawie liczby systemów
+    if len(systems) == 2:
+        # Dla 2 systemów znacznie zmniejsz odstępy
+        scale = 0.3
+    else:
+        # Dla 3 systemów użyj standardowych wartości
+        scale = 1.0
+
+    x = np.arange(len(combos)) * scale
 
     fig, ax = plt.subplots(figsize=(14, 8))
 
@@ -393,7 +401,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
             )
             # Użyj wzorka dla zasobu
             hatches_list.append(hatches_resource.get(res, ""))
-            positions.append(idx + offset)
+            positions.append(idx * scale + offset)
 
         ax.bar(
             positions,
@@ -527,7 +535,15 @@ def draw_jfi_combined(df, scenario, output_dir):
     combos = [(sys, res) for sys in systems for res in available_resources]
 
     width = 0.25
-    x = np.arange(len(combos))
+    # Dostosuj szerokość i skale na podstawie liczby systemów
+    if len(systems) == 2:
+        # Dla 2 systemów znacznie zmniejsz odstępy
+        scale = 0.4
+    else:
+        # Dla 3 systemów użyj standardowych wartości
+        scale = 1.0
+
+    x = np.arange(len(combos)) * scale
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -573,7 +589,7 @@ def draw_jfi_combined(df, scenario, output_dir):
             )
             # Użyj wzorka dla zasobu
             hatches_list.append(hatches_resource.get(res, ""))
-            positions.append(idx + offset)
+            positions.append(idx * scale + offset)
 
         ax.bar(
             positions,
