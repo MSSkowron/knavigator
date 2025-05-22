@@ -159,6 +159,21 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
     ax.set_ylabel(ylabel)
     ax.set_xticks(x)
     ax.set_xticklabels(systems)
+
+    # Legenda dla systemów
+    system_handles = [
+        Patch(facecolor=colors[sys], edgecolor="black", label=sys) for sys in systems
+    ]
+    system_legend = ax.legend(
+        handles=system_handles,
+        title="Systemy",
+        loc="upper left",
+        bbox_to_anchor=(1, 1),
+        frameon=False,
+    )
+    ax.add_artist(system_legend)
+
+    # Legenda dla wariantów - tylko jeśli mamy więcej niż jeden wariant i nie jest "Brak"
     if not (len(variants) == 1 and variants[0] == "Brak"):
         handles = [
             Patch(
@@ -170,7 +185,11 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
             for var in variants
         ]
         ax.legend(
-            handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
+            handles=handles,
+            title="Warianty",
+            loc="upper left",
+            bbox_to_anchor=(1, 0.7),
+            frameon=False,
         )
 
     plt.tight_layout()
@@ -258,6 +277,21 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
     ax.set_ylabel(ylabel)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
+
+    # Legenda dla systemów
+    system_handles = [
+        Patch(facecolor=colors[sys], edgecolor="black", label=sys) for sys in systems
+    ]
+    system_legend = ax.legend(
+        handles=system_handles,
+        title="Systemy",
+        loc="upper left",
+        bbox_to_anchor=(1, 1),
+        frameon=False,
+    )
+    ax.add_artist(system_legend)
+
+    # Legenda dla wariantów - tylko jeśli mamy więcej niż jeden wariant i nie jest "Brak"
     if not (len(variants) == 1 and variants[0] == "Brak"):
         handles = [
             Patch(
@@ -269,7 +303,11 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             for var in variants
         ]
         ax.legend(
-            handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False
+            handles=handles,
+            title="Warianty",
+            loc="upper left",
+            bbox_to_anchor=(1, 0.7),
+            frameon=False,
         )
 
     plt.tight_layout()
@@ -425,6 +463,19 @@ def draw_resource_share_combined(df, scenario, output_dir):
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
 
+    # Legenda dla systemów
+    system_handles = [
+        Patch(facecolor=colors[sys], edgecolor="black", label=sys) for sys in systems
+    ]
+    system_legend = ax.legend(
+        handles=system_handles,
+        title="Systemy",
+        loc="upper left",
+        bbox_to_anchor=(1, 1),
+        frameon=False,
+    )
+    ax.add_artist(system_legend)
+
     # Legenda dla wariantów - tylko jeśli mamy więcej niż jeden wariant
     if len(variants) > 1:
         # Użyj neutralnych odcieni szarości dla legendy wariantów
@@ -442,7 +493,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
             handles=variant_handles,
             title="Warianty",
             loc="upper left",
-            bbox_to_anchor=(1, 1),
+            bbox_to_anchor=(1, 0.7),
             frameon=False,
         )
         ax.add_artist(variant_legend)
@@ -461,7 +512,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
         handles=resource_handles,
         title="Zasoby",
         loc="upper left",
-        bbox_to_anchor=(1, 0.7),
+        bbox_to_anchor=(1, 0.4),
         frameon=False,
     )
 
@@ -613,6 +664,19 @@ def draw_jfi_combined(df, scenario, output_dir):
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
 
+    # Legenda dla systemów
+    system_handles = [
+        Patch(facecolor=colors[sys], edgecolor="black", label=sys) for sys in systems
+    ]
+    system_legend = ax.legend(
+        handles=system_handles,
+        title="Systemy",
+        loc="upper left",
+        bbox_to_anchor=(1, 1),
+        frameon=False,
+    )
+    ax.add_artist(system_legend)
+
     # Legenda dla wariantów - tylko jeśli mamy więcej niż jeden wariant
     if len(variants) > 1:
         # Użyj neutralnych odcieni szarości dla legendy wariantów
@@ -630,7 +694,7 @@ def draw_jfi_combined(df, scenario, output_dir):
             handles=variant_handles,
             title="Warianty",
             loc="upper left",
-            bbox_to_anchor=(1, 1),
+            bbox_to_anchor=(1, 0.7),
             frameon=False,
         )
         ax.add_artist(variant_legend)
@@ -649,7 +713,7 @@ def draw_jfi_combined(df, scenario, output_dir):
         handles=resource_handles,
         title="Zasoby",
         loc="upper left",
-        bbox_to_anchor=(1, 0.7),
+        bbox_to_anchor=(1, 0.4),
         frameon=False,
     )
 
