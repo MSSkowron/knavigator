@@ -84,8 +84,7 @@ def prepare_blocks(df):
     data.dropna(subset=["Scenariusz", "Metryka"], inplace=True)
     data["Mean"] = pd.to_numeric(data["Mean"], errors="coerce")
     data["Std"] = pd.to_numeric(data["Std"], errors="coerce")
-    # UWAGA: Nie używamy fillna dla Wariant - pozostawiamy NaN dla pustych wartości
-    data["Tenant"] = data["Tenant"].fillna("Brak")
+    # UWAGA: Nie używamy fillna dla Wariant i Tenant - pozostawiamy NaN dla pustych wartości
     return data
 
 
@@ -108,8 +107,12 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
         metric_df["Wariant"].unique(),
         key=lambda x: ["Z gwarancjami", "Bez gwarancji", "Brak"].index(x)
         if x in ["Z gwarancjami", "Bez gwarancji", "Brak"]
-        else x,
+        else 999,
     )
+    # Filtruj NaN z wariantów
+    variants = [v for v in variants if pd.notna(v)]
+    if len(variants) == 0:
+        variants = ["Brak"]  # Fallback dla scenariuszy bez wariantów
     width = 0.35
     scale = width * 1.1 if len(variants) == 1 else 1
     x = np.arange(len(systems)) * scale
@@ -119,9 +122,16 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
         for j, sys in enumerate(systems):
-            row = metric_df[
-                (metric_df["System"] == sys) & (metric_df["Wariant"] == var)
-            ]
+            if variants == ["Brak"]:
+                # Dla scenariuszy bez wariantów szukaj wierszy z NaN w Wariant
+                row = metric_df[
+                    (metric_df["System"] == sys) & (metric_df["Wariant"].isna())
+                ]
+            else:
+                # Dla scenariuszy z wariantami filtruj normalnie
+                row = metric_df[
+                    (metric_df["System"] == sys) & (metric_df["Wariant"] == var)
+                ]
             if not row.empty:
                 heights.append(row["Mean"].iloc[0])
                 errs.append(row["Std"].iloc[0])
@@ -190,8 +200,12 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         metric_df["Wariant"].unique(),
         key=lambda x: ["Z gwarancjami", "Bez gwarancji", "Brak"].index(x)
         if x in ["Z gwarancjami", "Bez gwarancji", "Brak"]
-        else x,
+        else 999,
     )
+    # Filtruj NaN z wariantów
+    variants = [v for v in variants if pd.notna(v)]
+    if len(variants) == 0:
+        variants = ["Brak"]  # Fallback dla scenariuszy bez wariantów
     width = 0.35
     scale = width * 1.1 if len(variants) == 1 else 1
     combos = [(sys, ten) for sys in systems for ten in tenants]
@@ -202,11 +216,20 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
         for idx, (sys, ten) in enumerate(combos):
-            row = metric_df[
-                (metric_df["System"] == sys)
-                & (metric_df["Tenant"] == ten)
-                & (metric_df["Wariant"] == var)
-            ]
+            if variants == ["Brak"]:
+                # Dla scenariuszy bez wariantów szukaj wierszy z NaN w Wariant
+                row = metric_df[
+                    (metric_df["System"] == sys)
+                    & (metric_df["Tenant"] == ten)
+                    & (metric_df["Wariant"].isna())
+                ]
+            else:
+                # Dla scenariuszy z wariantami filtruj normalnie
+                row = metric_df[
+                    (metric_df["System"] == sys)
+                    & (metric_df["Tenant"] == ten)
+                    & (metric_df["Wariant"] == var)
+                ]
             if not row.empty:
                 heights.append(row["Mean"].iloc[0])
                 errs.append(row["Std"].iloc[0])
@@ -305,8 +328,13 @@ def draw_resource_share_combined(df, scenario, output_dir):
         else x,
     )
 
+    # Pobierz tenantów - tylko rzeczywiste tenancy (A, B, C), pomiń NaN
     tenants_order = {"A": 0, "B": 1, "C": 2}
-    tenants = sorted(df_s["Tenant"].unique(), key=lambda x: tenants_order.get(x, 999))
+    all_tenants = df_s["Tenant"].dropna().unique()
+    tenants = sorted(
+        [t for t in all_tenants if t in tenants_order],
+        key=lambda x: tenants_order.get(x, 999),
+    )
 
     # Tworzenie kombinacji system-tenant-resource
     combos = [
@@ -328,8 +356,11 @@ def draw_resource_share_combined(df, scenario, output_dir):
         for idx, (sys, ten, res) in enumerate(combos):
             metric_name = resource_metrics[res]
 
-            if variants == ["Brak"]:
-                # Dla scenariuszy bez wariantów filtruj po NaN w kolumnie Wariant
+            # Sprawdź czy scenariusz ma warianty czy nie na podstawie pierwszego wiersza danych
+            has_variants = df_s["Wariant"].dropna().shape[0] > 0
+
+            if not has_variants:
+                # Dla scenariuszy bez wariantów (F3, F4) filtruj po NaN w kolumnie Wariant
                 row = df_s[
                     (df_s["System"] == sys)
                     & (df_s["Tenant"] == ten)
@@ -471,17 +502,18 @@ def draw_jfi_combined(df, scenario, output_dir):
     # Sprawdź jakie warianty są dostępne
     all_variants = df_s["Wariant"].dropna().unique()  # Usuń NaN przed sprawdzeniem
 
-    if len(all_variants) > 0 and any(
-        v in ["Z gwarancjami", "Bez gwarancji"] for v in all_variants
-    ):
+    # Sprawdź czy scenariusz ma warianty czy nie
+    has_variants = df_s["Wariant"].dropna().shape[0] > 0
+
+    if not has_variants:
+        # Scenariusz nie ma wariantów (F3, F4) - traktuj jako jeden "wariant"
+        variants = ["Brak"]
+    else:
         # Scenariusz ma warianty z gwarancjami
         variants = sorted(
             [v for v in all_variants if v in ["Z gwarancjami", "Bez gwarancji"]],
             key=lambda x: ["Z gwarancjami", "Bez gwarancji"].index(x),
         )
-    else:
-        # Scenariusz nie ma wariantów (F3, F4) - traktuj jako jeden wariant "Brak"
-        variants = ["Brak"]
 
     # Pobierz unikalne systemy (JFI to metryki ogólne, nie per-tenant)
     systems = sorted(
@@ -506,8 +538,11 @@ def draw_jfi_combined(df, scenario, output_dir):
         for idx, (sys, res) in enumerate(combos):
             metric_name = jfi_metrics[res]
 
-            if variants == ["Brak"]:
-                # Dla scenariuszy bez wariantów filtruj po NaN w kolumnie Wariant
+            # Sprawdź czy scenariusz ma warianty czy nie na podstawie pierwszego wiersza danych
+            has_variants = df_s["Wariant"].dropna().shape[0] > 0
+
+            if not has_variants:
+                # Dla scenariuszy bez wariantów (F3, F4) filtruj po NaN w kolumnie Wariant
                 row = df_s[
                     (df_s["System"] == sys)
                     & (df_s["Metryka"] == metric_name)
