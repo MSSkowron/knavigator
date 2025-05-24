@@ -149,7 +149,7 @@ tasks:
         name: default-cluster-queue
         flavor: topology-resource-flavor
         cpu: 2000
-        memory: 2000Gi
+        memory: 2000000Mi
         pods: 100000
   - id: create-local-queue
     type: SubmitObj
@@ -160,22 +160,28 @@ tasks:
         name: default-local-queue
         namespace: default
         clusterQueue: default-cluster-queue
-  - id: job
-    type: SubmitObj
+  - id: main-loop
+    type: Repeat
     params:
-      refTaskId: register-job
-      count: 500
-      params:
-        jobName: job
-        queueName: default-local-queue
-        namespace: default
-        replicas: 10
-        backoffLimit: 0
-        completionMode: Indexed
-        image: ubuntu
-        cpu: 1
-        memory: 1Gi
-        ttl: 120s
-        jitter: 180s
-        topologyType: "required"
-        topologyLevel: "network.topology.kubernetes.io/block"
+      count: 100
+      interval: 2s
+      tasks:
+      - id: job
+        type: SubmitObj
+        params:
+          refTaskId: register-job
+          count: 5
+          params:
+            jobName: job
+            queueName: default-local-queue
+            namespace: default
+            replicas: 10
+            backoffLimit: 0
+            completionMode: Indexed
+            image: ubuntu
+            cpu: 1
+            memory: 1000Mi
+            ttl: 180s
+            jitter: 240s
+            topologyType: "required"
+            topologyLevel: "network.topology.kubernetes.io/block"

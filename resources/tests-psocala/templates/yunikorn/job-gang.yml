@@ -34,7 +34,7 @@ spec:
             "name": "group-{{._NAME_}}",
             "minMember": {{.parallelism}},
             "minResource": {
-              "cpu": {{.cpu}},
+              "cpu": "{{.cpu}}",
               "memory": "{{.memory}}"
             },
             "nodeSelector": {},
@@ -52,8 +52,8 @@ spec:
         resources:
           limits:
             cpu: "{{.cpu}}"
-            memory: {{.memory}}
+            memory: "{{.memory}}"
           requests:
             cpu: "{{.cpu}}"
-            memory: {{.memory}}
+            memory: "{{.memory}}"
       restartPolicy: Never

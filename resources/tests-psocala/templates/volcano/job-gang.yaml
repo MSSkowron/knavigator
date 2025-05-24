@@ -50,8 +50,8 @@ spec:
           resources:
             limits:
               cpu: "{{.cpu}}"
-              memory: {{.memory}}
+              memory: "{{.memory}}"
             requests:
               cpu: "{{.cpu}}"
-              memory: {{.memory}}
+              memory: "{{.memory}}"
         restartPolicy: Never
