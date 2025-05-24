@@ -16,5 +16,4 @@
   ./bin/knavigator -workflow resources/tests-psocala/gang/yunikorn/test2-homogeneous/run-test-small-cluster-100-pods.yaml
   ./bin/knavigator -workflow resources/tests-psocala/gang/yunikorn/test2-homogeneous/run-test-big-cluster-10-pods.yaml
   ./bin/knavigator -workflow resources/tests-psocala/gang/yunikorn/test2-homogeneous/run-test-big-cluster-100-pods.yaml
-
 ```

@@ -58,15 +58,15 @@ tasks:
               clientConnection:
                 qps: 50
                 burst: 100
-              waitForPodsReady:
-                enable: true
-                timeout: 5m
-                blockAdmission: true
-                requeuingStrategy:
-                  timestamp: Eviction
-                  backoffLimitCount: null # null indicates infinite requeuing
-                  backoffBaseSeconds: 60
-                  backoffMaxSeconds: 3600
+              #waitForPodsReady:
+                #enable: true
+                #timeout: 5m
+                #blockAdmission: true
+                #requeuingStrategy:
+                  #timestamp: Eviction
+                  #backoffLimitCount: null # null indicates infinite requeuing
+                  #backoffBaseSeconds: 60
+                  #backoffMaxSeconds: 3600
               integrations:
                 frameworks:
                 - "batch/job"
@@ -116,7 +116,7 @@ tasks:
     type: RegisterObj
     params:
       template: "resources/tests-psocala/templates/kueue/TAS/job.yaml"
-      nameFormat: "job-{{._NAME_}}-{{._ENUM_}}"
+      nameFormat: "job-{{.jobName}}-{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
       timeout: 1m
@@ -149,7 +149,7 @@ tasks:
         name: default-cluster-queue
         flavor: topology-resource-flavor
         cpu: 400
-        memory: 400Gi
+        memory: 400000Mi
         pods: 110
   - id: create-local-queue
     type: SubmitObj
@@ -174,7 +174,7 @@ tasks:
         completionMode: Indexed
         image: ubuntu
         cpu: 92
-        memory: 50Gi
+        memory: 50000Mi
         ttl: 2m
         jitter: 2m
         topologyType: "required"
@@ -198,7 +198,7 @@ tasks:
         completionMode: Indexed
         image: ubuntu
         cpu: 4
-        memory: 2Gi
+        memory: 2000Mi
         ttl: 2m
         jitter: 2m
         topologyType: "required"
