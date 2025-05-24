@@ -101,8 +101,8 @@ tasks:
               applicationId: big-memory-job
               queue: root.sandbox
               image: ubuntu
-              cpu: 3
-              memory: 8Gi
+              cpu: 3000m
+              memory: 8000Mi
               ttl: 120s
               jitter: 180s
         - id: big-cpu-job
@@ -118,8 +118,8 @@ tasks:
               applicationId: big-cpu-job
               queue: root.sandbox
               image: ubuntu
-              cpu: 4
-              memory: 2Gi
+              cpu: 4000m
+              memory: 2000Mi
               ttl: 120s
               jitter: 180s
         - id: small-balanced-job
@@ -135,8 +135,8 @@ tasks:
               applicationId: small-balanced-job
               queue: root.sandbox
               image: ubuntu
-              cpu: 1
-              memory: 1Gi
+              cpu: 1000m
+              memory: 1000Mi
               ttl: 60s
               jitter: 90s
         - id: small-memory-job
@@ -152,8 +152,8 @@ tasks:
               applicationId: small-memory-job
               queue: root.sandbox
               image: ubuntu
-              cpu: 1
-              memory: 3Gi
+              cpu: 1000m
+              memory: 3000Mi
               ttl: 60s
               jitter: 90s
         - id: small-cpu-job
@@ -169,7 +169,7 @@ tasks:
               applicationId: small-cpu-job
               queue: root.sandbox
               image: ubuntu
-              cpu: 2
-              memory: 1Gi
+              cpu: 2000m
+              memory: 1000Mi
               ttl: 60s
               jitter: 90s

@@ -30,12 +30,12 @@ tasks:
     type: Configure
     params:
       nodes:
-#        - type: test-gang-1
-#          count: 90
-#          resources:
-#            cpu: 1100m
-#            memory: 1050Mi
-#            pods: 110
+        - type: test-gang-1
+          count: 70
+          resources:
+            cpu: 1100m
+            memory: 1050Mi
+            pods: 110
         - type: test-gang-2
           count: 3
           resources:
@@ -71,7 +71,7 @@ tasks:
                         application.sort.policy: fifo
                       resources:
                         max:
-                          {memory: 1000Gi, vcore: 1000}
+                          {memory: 100000Mi, vcore: 100000m}
       timeout: 1m
   - id: big-cpu-job
     type: SubmitObj
@@ -86,7 +86,7 @@ tasks:
         applicationId: big-cpu-job
         queue: root.sandbox
         image: ubuntu
-        cpu: 4
-        memory: 2Gi
+        cpu: 4000m
+        memory: 2000Mi
         ttl: 2m
         jitter: 3m

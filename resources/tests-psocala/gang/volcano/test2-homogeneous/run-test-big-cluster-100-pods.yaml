@@ -71,7 +71,7 @@ tasks:
     type: Repeat
     params:
       count: 50
-      interval: 1s
+      interval: 2s
       tasks:
       - id: job
         type: SubmitObj
@@ -83,6 +83,6 @@ tasks:
             replicas: 100
             queue: default
             cpu: 1
-            memory: 1Gi
+            memory: 1000Mi
             ttl: 180s
             jitter: 240s

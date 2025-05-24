@@ -142,7 +142,7 @@ grafana:
   resources:
     requests:
       cpu: 1250m
-      memory: 2048Mi
+      memory: 1024Mi
     limits:
       cpu: "3000m"
       memory: "4096Mi"
@@ -168,7 +168,7 @@ prometheus:
     resources:
         requests:
           cpu: 1250m
-          memory: 2048Mi
+          memory: 1024Mi
         limits:
           cpu: "3000m"
           memory: "4096Mi"

@@ -58,15 +58,15 @@ tasks:
               clientConnection:
                 qps: 50
                 burst: 100
-              waitForPodsReady:
-                enable: true
-                timeout: 5m
-                blockAdmission: true
-                requeuingStrategy:
-                  timestamp: Eviction
-                  backoffLimitCount: null # null indicates infinite requeuing
-                  backoffBaseSeconds: 60
-                  backoffMaxSeconds: 3600
+              #waitForPodsReady:
+                #enable: true
+                #timeout: 5m
+                #blockAdmission: true
+                #requeuingStrategy:
+                  #timestamp: Eviction
+                  #backoffLimitCount: null # null indicates infinite requeuing
+                  #backoffBaseSeconds: 60
+                  #backoffMaxSeconds: 3600
               integrations:
                 frameworks:
                 - "batch/job"
@@ -149,7 +149,7 @@ tasks:
         name: default-cluster-queue
         flavor: topology-resource-flavor
         cpu: 2000
-        memory: 2000Gi
+        memory: 2000000Mi
         pods: 100000
   - id: create-local-queue
     type: SubmitObj
@@ -160,22 +160,28 @@ tasks:
         name: default-local-queue
         namespace: default
         clusterQueue: default-cluster-queue
-  - id: job
-    type: SubmitObj
+  - id: main-loop
+    type: Repeat
     params:
-      refTaskId: register-job
       count: 50
-      params:
-        jobName: job
-        queueName: default-local-queue
-        namespace: default
-        replicas: 100
-        backoffLimit: 0
-        completionMode: Indexed
-        image: ubuntu
-        cpu: 1
-        memory: 1Gi
-        ttl: 120s
-        jitter: 180s
-        topologyType: "required"
-        topologyLevel: "network.topology.kubernetes.io/block"
+      interval: 2s
+      tasks:
+      - id: job
+        type: SubmitObj
+        params:
+          refTaskId: register-job
+          count: 1
+          params:
+            jobName: job
+            queueName: default-local-queue
+            namespace: default
+            replicas: 100
+            backoffLimit: 0
+            completionMode: Indexed
+            image: ubuntu
+            cpu: 1
+            memory: 1000Mi
+            ttl: 180s
+            jitter: 240s
+            topologyType: "required"
+            topologyLevel: "network.topology.kubernetes.io/block"

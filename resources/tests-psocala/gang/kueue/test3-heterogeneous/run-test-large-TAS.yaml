@@ -58,15 +58,15 @@ tasks:
               clientConnection:
                 qps: 50
                 burst: 100
-              waitForPodsReady:
-                enable: true
-                timeout: 5m
-                blockAdmission: true
-                requeuingStrategy:
-                  timestamp: Eviction
-                  backoffLimitCount: null # null indicates infinite requeuing
-                  backoffBaseSeconds: 60
-                  backoffMaxSeconds: 3600
+              #waitForPodsReady:
+                #enable: true
+                #timeout: 5m
+                #blockAdmission: true
+                #requeuingStrategy:
+                  #timestamp: Eviction
+                  #backoffLimitCount: null # null indicates infinite requeuing
+                  #backoffBaseSeconds: 60
+                  #backoffMaxSeconds: 3600
               integrations:
                 frameworks:
                 - "batch/job"
@@ -167,7 +167,7 @@ tasks:
         name: default-cluster-queue
         flavor: topology-resource-flavor
         cpu: 5200
-        memory: 10400Gi
+        memory: 10400000Mi
         pods: 100000
   - id: create-local-queue
     type: SubmitObj
@@ -198,7 +198,7 @@ tasks:
               completionMode: Indexed
               image: ubuntu
               cpu: 3
-              memory: 8Gi
+              memory: 8000Mi
               ttl: 120s
               jitter: 180s
               topologyType: "required"
@@ -217,7 +217,7 @@ tasks:
               completionMode: Indexed
               image: ubuntu
               cpu: 4
-              memory: 2Gi
+              memory: 2000Mi
               ttl: 120s
               jitter: 180s
               topologyType: "required"
@@ -236,7 +236,7 @@ tasks:
               completionMode: Indexed
               image: ubuntu
               cpu: 1
-              memory: 1Gi
+              memory: 1000Mi
               ttl: 60s
               jitter: 90s
               topologyType: "required"
@@ -255,7 +255,7 @@ tasks:
               completionMode: Indexed
               image: ubuntu
               cpu: 1
-              memory: 3Gi
+              memory: 3000Mi
               ttl: 60s
               jitter: 90s
               topologyType: "required"
@@ -274,7 +274,7 @@ tasks:
               completionMode: Indexed
               image: ubuntu
               cpu: 2
-              memory: 1Gi
+              memory: 1000Mi
               ttl: 60s
               jitter: 90s
               topologyType: "required"
