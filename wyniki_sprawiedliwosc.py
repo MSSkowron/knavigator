@@ -257,10 +257,10 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
             frameon=False,
         )
 
-    left, right = 0.12, 0.66
+    left, right = 0.09, 0.75
     if len(variants) == 1:
-        left, right = 0.12, 0.8
-    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.12)
+        left, right = 0.09, 0.86
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.1)
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
 
@@ -415,10 +415,10 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             frameon=False,
         )
 
-    left, right = 0.06, 0.8
+    left, right = 0.05, 0.83
     if len(variants) == 1:
-        left, right = 0.06, 0.88
-    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.17)
+        left, right = 0.05, 0.9
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.16)
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
 
@@ -664,11 +664,11 @@ def draw_resource_share_combined(df, scenario, output_dir):
         frameon=False,
     )
 
-    left, right = 0.04, 0.85
+    left, right = 0.035, 0.87
     if len(variants) == 1:
-        left, right = 0.05, 0.91
+        left, right = 0.04, 0.92
 
-    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.2)
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.17)
     filename = f"{scenario}_resource_share_combined.svg"
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
@@ -907,11 +907,11 @@ def draw_jfi_combined(df, scenario, output_dir):
         frameon=False,
     )
 
-    left, right = 0.04, 0.85
+    left, right = 0.04, 0.87
     if len(variants) == 1:
-        left, right = 0.05, 0.91
+        left, right = 0.04, 0.92
 
-    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.2)
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.16)
     filename = f"{scenario}_jfi_combined.svg"
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
