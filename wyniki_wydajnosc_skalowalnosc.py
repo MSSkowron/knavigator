@@ -20,40 +20,40 @@ file_key_map = {
 }
 
 display_label_map = {
-    "Makespan": "Całkowity czas wykonania [s]",
-    "CPU_Utilization": "Wykorzystanie zasobów (%)",
-    "RAM_Utilization": "Wykorzystanie zasobów (%)",
-    "GPU_Utilization": "Wykorzystanie zasobów (%)",
-    "CPU_StdDev": "Równomierność rozłożenia zasobów (%)",
-    "RAM_StdDev": "Równomierność rozłożenia zasobów (%)",
-    "CPU_Overhead": "Narzut CPU harmonogramu [rdzenie]",
-    "RAM_Overhead": "Narzut pamięci RAM harmonogramu [MB]",
+    "Makespan": "Makespan [s]",
+    "CPU_Utilization": "Resource utilization (%)",
+    "RAM_Utilization": "Resource utilization (%)",
+    "GPU_Utilization": "Resource utilization (%)",
+    "CPU_StdDev": "Resource distribution evenness (%)",
+    "RAM_StdDev": "Resource distribution evenness (%)",
+    "CPU_Overhead": "CPU scheduler overhead [cores]",
+    "RAM_Overhead": "Memory scheduler overhead [MB]",
 }
 
 title_label_map = {
-    "Makespan": "Całkowity czas wykonania",
-    "CPU_Utilization": "Wykorzystanie zasobów",
-    "RAM_Utilization": "Wykorzystanie zasobów",
-    "GPU_Utilization": "Wykorzystanie zasobów",
-    "CPU_StdDev": "Równomierność rozłożenia zasobów",
-    "RAM_StdDev": "Równomierność rozłożenia zasobów",
-    "CPU_Overhead": "Narzut CPU harmonogramu",
-    "RAM_Overhead": "Narzut pamięci RAM harmonogramu",
+    "Makespan": "Makespan",
+    "CPU_Utilization": "Resource utilization",
+    "RAM_Utilization": "Resource utilization",
+    "GPU_Utilization": "Resource utilization",
+    "CPU_StdDev": "Resource distribution evenness",
+    "RAM_StdDev": "Resource distribution evenness",
+    "CPU_Overhead": "CPU scheduler overhead",
+    "RAM_Overhead": "Memory scheduler overhead",
 }
 
 type_map_util = {
     "Śr. Wykorz. CPU (w nasyceniu) [%]": "CPU",
-    "Śr. Wykorz. Pam. (w nasyceniu) [%]": "RAM",
+    "Śr. Wykorz. Pam. (w nasyceniu) [%]": "Memory",
     "Śr. Wykorz. GPU (w nasyceniu) [%]": "GPU",
 }
 type_map_std = {
     "Śr. StdDev CPU (w nasyceniu) [%]": "CPU",
-    "Śr. StdDev Pam. (w nasyceniu) [%]": "RAM",
+    "Śr. StdDev Pam. (w nasyceniu) [%]": "Memory",
 }
 
 tools = ["Kueue", "Volcano", "YuniKorn"]
 colors = {"Kueue": "blue", "Volcano": "red", "YuniKorn": "green"}
-hatches = {"CPU": "////", "RAM": "", "GPU": "xxx"}
+hatches = {"CPU": "////", "Memory": "", "GPU": "xxx"}
 
 
 def load_data(path, sheet):
@@ -170,9 +170,9 @@ def draw_resource_utilization(df, scenario, output_dir):
         combos,
         mean_util,
         std_util,
-        f"Scenariusz {scenario} – Wykorzystanie zasobów",
-        "Kombinacje węzłów i zadań",
-        "Wykorzystanie zasobów (%)",
+        f"Scenario {scenario} – Resource utilization",
+        "Node and task combinations",
+        "Resource utilization (%)",
         labels_util,
         f"{scenario}_Wykorzystanie_zasobow.svg",
         output_dir,
@@ -208,9 +208,9 @@ def draw_resource_distribution(df, scenario, output_dir):
         combos,
         mean_std,
         std_std,
-        f"Scenariusz {scenario} – Równomierność rozłożenia zasobów",
-        "Kombinacje węzłów i zadań",
-        "Równomierność rozłożenia zasobów (%)",
+        f"Scenario {scenario} – Resource distribution evenness",
+        "Node and task combinations",
+        "Resource distribution evenness (%)",
         labels_std,
         f"{scenario}_Rownomiernosc_zasobow.svg",
         output_dir,
@@ -250,8 +250,8 @@ def draw_other_metrics(df, scenario, output_dir):
                 combos,
                 {(tool, ""): mean_vals[tool] for tool in tools},
                 {(tool, ""): std_vals[tool] for tool in tools},
-                f"Scenariusz {scenario} – {title_label_map[file_key]}",
-                "Kombinacje węzłów i zadań",
+                f"Scenario {scenario} – {title_label_map[file_key]}",
+                "Node and task combinations",
                 display_label_map[file_key],
                 labels_single,
                 f"{scenario}_{file_key}.svg",

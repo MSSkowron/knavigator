@@ -36,7 +36,7 @@ color_variants = {
 hatches_variant = {"Z gwarancjami": "xxx", "Bez gwarancji": "", "Brak": ""}
 
 # Hatch dla zasobów w wykresach łączonych
-hatches_resource = {"CPU": "///", "Pamięć": "\\\\\\", "GPU": "+++"}
+hatches_resource = {"CPU": "///", "Memory": "\\\\\\", "GPU": "+++"}
 
 # Ustawienia globalne Matplotlib
 plt.rcParams["hatch.linewidth"] = 0.5
@@ -169,7 +169,7 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
     ]
     system_legend = ax.legend(
         handles=system_handles,
-        title="Systemy",
+        title="Systems",
         loc="upper left",
         bbox_to_anchor=(1, 1),
         frameon=False,
@@ -182,22 +182,27 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
         variant_colors = {"Z gwarancjami": "#404040", "Bez gwarancji": "#808080"}
         variant_handles = []
         for var in variants:
+            # Translate variant names for display
+            display_var = {
+                "Z gwarancjami": "With guarantees",
+                "Bez gwarancji": "Without guarantees",
+            }.get(var, var)
             variant_handles.append(
                 Patch(
                     facecolor=variant_colors.get(var, "#606060"),
                     edgecolor="black",
-                    label=var,
+                    label=display_var,
                 )
             )
         ax.legend(
             handles=variant_handles,
-            title="Warianty",
+            title="Variants",
             loc="upper left",
             bbox_to_anchor=(1, 0.7),
             frameon=False,
         )
 
-    left, right = 0.12, 0.73
+    left, right = 0.12, 0.66
     if len(variants) == 1:
         left, right = 0.12, 0.8
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.12)
@@ -295,7 +300,7 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
     ]
     system_legend = ax.legend(
         handles=system_handles,
-        title="Systemy",
+        title="Systems",
         loc="upper left",
         bbox_to_anchor=(1, 1),
         frameon=False,
@@ -308,22 +313,27 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         variant_colors = {"Z gwarancjami": "#404040", "Bez gwarancji": "#808080"}
         variant_handles = []
         for var in variants:
+            # Translate variant names for display
+            display_var = {
+                "Z gwarancjami": "With guarantees",
+                "Bez gwarancji": "Without guarantees",
+            }.get(var, var)
             variant_handles.append(
                 Patch(
                     facecolor=variant_colors.get(var, "#606060"),
                     edgecolor="black",
-                    label=var,
+                    label=display_var,
                 )
             )
         ax.legend(
             handles=variant_handles,
-            title="Warianty",
+            title="Variants",
             loc="upper left",
             bbox_to_anchor=(1, 0.8),
             frameon=False,
         )
 
-    left, right = 0.06, 0.83
+    left, right = 0.06, 0.8
     if len(variants) == 1:
         left, right = 0.06, 0.88
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.17)
@@ -338,9 +348,9 @@ def draw_resource_share_combined(df, scenario, output_dir):
     """
     # Mapowanie scenariuszy na dostępne zasoby
     scenario_resources = {
-        "F1": ["CPU", "Pamięć"],
-        "F2": ["CPU", "Pamięć"],
-        "F3": ["CPU", "Pamięć", "GPU"],
+        "F1": ["CPU", "Memory"],
+        "F2": ["CPU", "Memory"],
+        "F3": ["CPU", "Memory", "GPU"],
         "F4": [],  # Brak metryk udziału
     }
 
@@ -351,7 +361,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
     # Mapowanie nazw zasobów na nazwy metryk w danych
     resource_metrics = {
         "CPU": "Śr. Udział CPU (w nasyceniu) [%]",
-        "Pamięć": "Śr. Udział Pamięć (w nasyceniu) [%]",
+        "Memory": "Śr. Udział Pamięć (w nasyceniu) [%]",
         "GPU": "Śr. Udział GPU (w nasyceniu) [%]",
     }
 
@@ -473,8 +483,8 @@ def draw_resource_share_combined(df, scenario, output_dir):
 
     # Etykiety osi X
     labels = [f"{sys}-{ten}-{res}" for sys, ten, res in combos]
-    ax.set_xlabel("System-Tenant-Zasób")
-    ax.set_ylabel("Udział zasobu [%]")
+    ax.set_xlabel("System-Tenant-Resource")
+    ax.set_ylabel("Resource share [%]")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
 
@@ -484,7 +494,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
     ]
     system_legend = ax.legend(
         handles=system_handles,
-        title="Systemy",
+        title="Systems",
         loc="upper left",
         bbox_to_anchor=(1, 1),
         frameon=False,
@@ -497,16 +507,21 @@ def draw_resource_share_combined(df, scenario, output_dir):
         variant_colors = {"Z gwarancjami": "#404040", "Bez gwarancji": "#808080"}
         variant_handles = []
         for var in variants:
+            # Translate variant names for display
+            display_var = {
+                "Z gwarancjami": "With guarantees",
+                "Bez gwarancji": "Without guarantees",
+            }.get(var, var)
             variant_handles.append(
                 Patch(
                     facecolor=variant_colors.get(var, "#606060"),
                     edgecolor="black",
-                    label=var,
+                    label=display_var,
                 )
             )
         variant_legend = ax.legend(
             handles=variant_handles,
-            title="Warianty",
+            title="Variants",
             loc="upper left",
             bbox_to_anchor=(1, 0.82),
             frameon=False,
@@ -529,13 +544,13 @@ def draw_resource_share_combined(df, scenario, output_dir):
 
     ax.legend(
         handles=resource_handles,
-        title="Zasoby",
+        title="Resources",
         loc="upper left",
         bbox_to_anchor=(1, resource_bbox_y),
         frameon=False,
     )
 
-    left, right = 0.04, 0.88
+    left, right = 0.04, 0.85
     if len(variants) == 1:
         left, right = 0.05, 0.91
 
@@ -552,9 +567,9 @@ def draw_jfi_combined(df, scenario, output_dir):
     """
     # Mapowanie scenariuszy na dostępne zasoby JFI
     scenario_resources = {
-        "F1": ["CPU", "Pamięć"],
-        "F2": ["CPU", "Pamięć"],
-        "F3": ["CPU", "Pamięć", "GPU"],
+        "F1": ["CPU", "Memory"],
+        "F2": ["CPU", "Memory"],
+        "F3": ["CPU", "Memory", "GPU"],
         "F4": [],  # Brak metryk JFI
     }
 
@@ -565,7 +580,7 @@ def draw_jfi_combined(df, scenario, output_dir):
     # Mapowanie nazw zasobów na nazwy metryk JFI w danych
     jfi_metrics = {
         "CPU": "Śr. JFI CPU (w nasyceniu)",
-        "Pamięć": "Śr. JFI Pamięć (w nasyceniu)",
+        "Memory": "Śr. JFI Pamięć (w nasyceniu)",
         "GPU": "Śr. JFI GPU (w nasyceniu)",
     }
 
@@ -681,7 +696,7 @@ def draw_jfi_combined(df, scenario, output_dir):
 
     # Etykiety osi X
     labels = [f"{sys}-{res}" for sys, res in combos]
-    ax.set_xlabel("System-Zasób")
+    ax.set_xlabel("System-Resource")
     ax.set_ylabel("JFI")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
@@ -692,7 +707,7 @@ def draw_jfi_combined(df, scenario, output_dir):
     ]
     system_legend = ax.legend(
         handles=system_handles,
-        title="Systemy",
+        title="Systems",
         loc="upper left",
         bbox_to_anchor=(1, 1),
         frameon=False,
@@ -705,16 +720,21 @@ def draw_jfi_combined(df, scenario, output_dir):
         variant_colors = {"Z gwarancjami": "#404040", "Bez gwarancji": "#808080"}
         variant_handles = []
         for var in variants:
+            # Translate variant names for display
+            display_var = {
+                "Z gwarancjami": "With guarantees",
+                "Bez gwarancji": "Without guarantees",
+            }.get(var, var)
             variant_handles.append(
                 Patch(
                     facecolor=variant_colors.get(var, "#606060"),
                     edgecolor="black",
-                    label=var,
+                    label=display_var,
                 )
             )
         variant_legend = ax.legend(
             handles=variant_handles,
-            title="Warianty",
+            title="Variants",
             loc="upper left",
             bbox_to_anchor=(1, 0.82),
             frameon=False,
@@ -737,13 +757,13 @@ def draw_jfi_combined(df, scenario, output_dir):
 
     ax.legend(
         handles=resource_handles,
-        title="Zasoby",
+        title="Resources",
         loc="upper left",
         bbox_to_anchor=(1, resource_bbox_y),
         frameon=False,
     )
 
-    left, right = 0.04, 0.88
+    left, right = 0.04, 0.85
     if len(variants) == 1:
         left, right = 0.05, 0.91
 
@@ -777,9 +797,9 @@ if __name__ == "__main__":
             (
                 "Makespan (Faza 2) [s]",
                 f"{scen}_makespan_phase2.svg",
-                "Całkowity zakres czasowy (Faza 2) [s]",
+                "Total execution time (Phase 2) [s]",
             ),
-            ("Makespan [s]", f"{scen}_makespan.svg", "Całkowity zakres czasowy [s]"),
+            ("Makespan [s]", f"{scen}_makespan.svg", "Makespan [s]"),
         ]
         for metric, filename, ylabel in general_metrics:
             draw_general_metric(data, scen, output_base, metric, ylabel, filename)
@@ -788,17 +808,17 @@ if __name__ == "__main__":
             (
                 "Śr. Czas Oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
                 f"{scen}_wait_time_phase2.svg",
-                "Śr. czas oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
+                "Average wait time (Phase 2 to cluster saturation) [s]",
             ),
             (
                 "Śr. Czas Oczekiwania (wszystkie zadadania) [s]",
                 f"{scen}_wait_time.svg",
-                "Śr. czas oczekiwania [s]",
+                "Average wait time [s]",
             ),
             (
                 "Śr. Liczba Uruchomionych Podów (w nasyceniu)",
                 f"{scen}_no_pods.svg",
-                "Śr. liczba Podów (w nasyceniu)",
+                "Average number of Pods (at saturation)",
             ),
         ]
         for metric, filename, ylabel in tenant_metrics:

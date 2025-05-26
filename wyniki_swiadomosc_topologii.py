@@ -92,8 +92,8 @@ def draw_correctness(df, scenario, output_dir):
             linewidth=0.5,
         )
 
-    ax.set_xlabel("Krok")
-    ax.set_ylabel("Poprawność rozmieszczenia [%]")
+    ax.set_xlabel("Step")
+    ax.set_ylabel("Placement correctness [%]")
     ax.set_xticks(range(N))
     ax.set_xticklabels(x_labels)
     ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
@@ -148,8 +148,8 @@ def draw_distances(df, scenario, output_dir):
                 edgecolor="black",
                 linewidth=0.5,
             )
-        ax.set_xlabel("Krok")
-        ax.set_ylabel("Odległość [skoki]")
+        ax.set_xlabel("Step")
+        ax.set_ylabel("Distance [hops]")
         ax.set_xticks(range(N))
         ax.set_xticklabels(labels)
         ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
@@ -158,11 +158,11 @@ def draw_distances(df, scenario, output_dir):
         plt.close()
 
     plot_metrics(
-        avg_metrics, "Średnia odległość topologiczna", f"{scenario}_avg_distances.svg"
+        avg_metrics, "Average topological distance", f"{scenario}_avg_distances.svg"
     )
     plot_metrics(
         max_metrics,
-        "Maksymalna odległość topologiczna",
+        "Maximum topological distance",
         f"{scenario}_max_distances.svg",
     )
 
@@ -181,7 +181,7 @@ def draw_wait_times(df, scenario, output_dir):
     wait_metrics = sorted(wait_metrics_set, key=lambda m: m.startswith("Maks."))
     # Etykiety: pełne z nazwą metryki i krokiem, bez jednostek
     labels = [
-        m.split(" [")[0].replace("Śr.", "Średni").replace("Maks.", "Maksymalny")
+        m.split(" [")[0].replace("Śr.", "Average").replace("Maks.", "Maximum")
         for m in wait_metrics
     ]
 
@@ -206,7 +206,7 @@ def draw_wait_times(df, scenario, output_dir):
 
     for i, lbl in enumerate(labels):
         # Wybierz hatch po typie metryki
-        if lbl.startswith("Średni czas oczekiwania"):
+        if lbl.startswith("Average czas oczekiwania"):
             hatch_style = hatches_wait["Średni czas oczekiwania"]
         else:
             hatch_style = hatches_wait["Maksymalny czas oczekiwania"]
@@ -223,7 +223,7 @@ def draw_wait_times(df, scenario, output_dir):
         )
 
     ax.set_xlabel("System")
-    ax.set_ylabel("Czas [s]")
+    ax.set_ylabel("Time [s]")
     ax.set_xticks(range(N))
     ax.set_xticklabels(systems)
 
@@ -232,13 +232,13 @@ def draw_wait_times(df, scenario, output_dir):
             facecolor="white",
             edgecolor="black",
             hatch=hatches_wait["Średni czas oczekiwania"],
-            label="Średni czas oczekiwania",
+            label="Average wait time",
         ),
         Patch(
             facecolor="white",
             edgecolor="black",
             hatch=hatches_wait["Maksymalny czas oczekiwania"],
-            label="Maksymalny czas oczekiwania",
+            label="Maximum wait time",
         ),
     ]
     handles = metric_handles
@@ -279,7 +279,7 @@ def draw_makespan(df, scenario, output_dir):
         linewidth=0.5,
     )
     ax.set_xlabel("System")
-    ax.set_ylabel("Całkowity czas wykonania [s]")
+    ax.set_ylabel("Makespan [s]")
     ax.set_xticks(x)
     ax.set_xticklabels(systems)
     ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
