@@ -107,17 +107,29 @@ def plot_grouped_bar(
     x_labels, mean_dict, std_dict, title, xlabel, ylabel, labels, outfile, output_dir
 ):
     """
-    Pomocnicza funkcja do rysowania grupowanych wykresów słupkowych.
+    Pomocnicza funkcja do rysowania grupowanych wykresów słupkowych z wartościami na słupkach.
     """
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=(10, 6))  # Zwiększone rozmiary dla czytelności
     N = len(x_labels)
     M = len(labels)
     width = 0.8 / M
     offsets = [(-0.4 + width / 2 + i * width) for i in range(M)]
+
+    # Znajdź maksymalną wartość do ustalenia marginesu górnego
+    max_val = 0
     for i, (tool, resource) in enumerate(labels):
         means = mean_dict[(tool, resource)]
         stds = std_dict[(tool, resource)]
-        ax.bar(
+        for j in range(len(means)):
+            val_with_error = means[j] + stds[j]
+            if val_with_error > max_val:
+                max_val = val_with_error
+
+    for i, (tool, resource) in enumerate(labels):
+        means = mean_dict[(tool, resource)]
+        stds = std_dict[(tool, resource)]
+
+        bars = ax.bar(
             np.arange(N) + offsets[i],
             means,
             width,
@@ -131,13 +143,50 @@ def plot_grouped_bar(
             capsize=3,
             error_kw={"ecolor": "black", "elinewidth": 1.5},
         )
+
+        # Dodaj wartości na słupkach
+        for j, (bar, mean_val, std_val) in enumerate(zip(bars, means, stds)):
+            # Pokaż wartość na każdym słupku, również gdy wynosi 0
+            # Pozycja tekstu nad słupkiem (z uwzględnieniem error bar)
+            y_pos = mean_val + std_val + (max_val * 0.02)  # 2% marginesu
+            x_pos = bar.get_x() + bar.get_width() / 2
+
+            # Formatowanie wartości - zawsze 2 miejsca po przecinku
+            text_val = f"{mean_val:.2f}"
+
+            # Dodaj tekst z wartością
+            ax.text(
+                x_pos,
+                y_pos,
+                text_val,
+                ha="center",
+                va="bottom",
+                fontsize=8,  # Mały font dla czytelności
+                fontweight="bold",
+                color="black",
+                bbox=dict(
+                    boxstyle="round,pad=0.2",
+                    facecolor="white",
+                    alpha=0.8,
+                    edgecolor="none",
+                ),
+            )
+
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_xticks(np.arange(N))
-    ax.set_xticklabels(x_labels)
+    ax.set_xticklabels(
+        x_labels, rotation=45, ha="right"
+    )  # Obrót etykiet dla lepszej czytelności
+
+    # Zwiększ margines górny o 15% dla zmieszczenia etykiet
+    ax.set_ylim(0, max_val * 1.15)
+
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0)
+    ax.grid(True, alpha=0.3, axis="y")  # Delikatna siatka dla lepszej czytelności
+
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, outfile), bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, outfile), bbox_inches="tight", dpi=300)
     plt.close()
 
 

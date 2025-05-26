@@ -88,6 +88,38 @@ def prepare_blocks(df):
     return data
 
 
+def add_value_labels(ax, bars, values, stds, max_val):
+    """
+    Pomocnicza funkcja dodająca etykiety z wartościami na słupkach.
+    """
+    for bar, val, std in zip(bars, values, stds):
+        # Pokaż wartość na każdym słupku, również gdy wynosi 0
+        # Pozycja tekstu nad słupkiem (z uwzględnieniem error bar)
+        y_pos = val + std + (max_val * 0.02)  # 2% marginesu
+        x_pos = bar.get_x() + bar.get_width() / 2
+
+        # Formatowanie wartości - zawsze 2 miejsca po przecinku
+        text_val = f"{val:.2f}"
+
+        # Dodaj tekst z wartością
+        ax.text(
+            x_pos,
+            y_pos,
+            text_val,
+            ha="center",
+            va="bottom",
+            fontsize=7,  # Nieco mniejszy font dla gęstszych wykresów
+            fontweight="bold",
+            color="black",
+            bbox=dict(
+                boxstyle="round,pad=0.15",
+                facecolor="white",
+                alpha=0.8,
+                edgecolor="none",
+            ),
+        )
+
+
 def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename):
     """
     Rysuje wykres słupkowy dla ogólnego metryki (np. makespan, JFI).
@@ -117,7 +149,24 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
     scale = width * 1.1 if len(variants) == 1 else 1
     x = np.arange(len(systems)) * scale
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # Oblicz maksymalną wartość dla marginesu
+    max_val = 0
+    for var in variants:
+        for sys in systems:
+            if variants == ["Brak"]:
+                row = metric_df[
+                    (metric_df["System"] == sys) & (metric_df["Wariant"].isna())
+                ]
+            else:
+                row = metric_df[
+                    (metric_df["System"] == sys) & (metric_df["Wariant"] == var)
+                ]
+            if not row.empty:
+                val_with_error = row["Mean"].iloc[0] + row["Std"].iloc[0]
+                if val_with_error > max_val:
+                    max_val = val_with_error
+
+    fig, ax = plt.subplots(figsize=(8, 5))  # Zwiększone rozmiary
     for i, var in enumerate(variants):
         heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
@@ -145,7 +194,8 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
                 else colors.get(sys, "black")
             )
             positions.append(j * scale + offset)
-        ax.bar(
+
+        bars = ax.bar(
             positions,
             heights,
             width=width,
@@ -158,10 +208,15 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
             label=var,
         )
 
+        # Dodaj wartości na słupkach
+        add_value_labels(ax, bars, heights, errs, max_val)
+
     ax.set_xlabel("System")
     ax.set_ylabel(ylabel)
     ax.set_xticks(x)
     ax.set_xticklabels(systems)
+    ax.set_ylim(0, max_val * 1.15)  # Margines górny
+    ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
     # Legenda dla systemów
     system_handles = [
@@ -206,7 +261,7 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
     if len(variants) == 1:
         left, right = 0.12, 0.8
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.12)
-    plt.savefig(os.path.join(output_dir, filename))
+    plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
 
 
@@ -243,7 +298,28 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
     combos = [(sys, ten) for sys in systems for ten in tenants]
     x = np.arange(len(combos)) * scale
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Oblicz maksymalną wartość dla marginesu
+    max_val = 0
+    for var in variants:
+        for sys, ten in combos:
+            if variants == ["Brak"]:
+                row = metric_df[
+                    (metric_df["System"] == sys)
+                    & (metric_df["Tenant"] == ten)
+                    & (metric_df["Wariant"].isna())
+                ]
+            else:
+                row = metric_df[
+                    (metric_df["System"] == sys)
+                    & (metric_df["Tenant"] == ten)
+                    & (metric_df["Wariant"] == var)
+                ]
+            if not row.empty:
+                val_with_error = row["Mean"].iloc[0] + row["Std"].iloc[0]
+                if val_with_error > max_val:
+                    max_val = val_with_error
+
+    fig, ax = plt.subplots(figsize=(12, 6))  # Zwiększone rozmiary
     for i, var in enumerate(variants):
         heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
@@ -275,7 +351,8 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
                 else colors.get(sys, "black")
             )
             positions.append(idx * scale + offset)
-        ax.bar(
+
+        bars = ax.bar(
             positions,
             heights,
             width=width,
@@ -288,11 +365,16 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             label=var,
         )
 
+        # Dodaj wartości na słupkach
+        add_value_labels(ax, bars, heights, errs, max_val)
+
     labels = [f"{sys}-{ten}" for sys, ten in combos]
     ax.set_xlabel("System-Tenant")
     ax.set_ylabel(ylabel)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_ylim(0, max_val * 1.15)  # Margines górny
+    ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
     # Legenda dla systemów
     system_handles = [
@@ -337,7 +419,7 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
     if len(variants) == 1:
         left, right = 0.06, 0.88
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.17)
-    plt.savefig(os.path.join(output_dir, filename))
+    plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
 
 
@@ -419,7 +501,34 @@ def draw_resource_share_combined(df, scenario, output_dir):
 
     x = np.arange(len(combos)) * scale
 
-    fig, ax = plt.subplots(figsize=(14, 7))
+    # Oblicz maksymalną wartość dla marginesu
+    max_val = 0
+    for var in variants:
+        for sys, ten, res in combos:
+            metric_name = resource_metrics[res]
+            has_variants = df_s["Wariant"].dropna().shape[0] > 0
+            if not has_variants:
+                row = df_s[
+                    (df_s["System"] == sys)
+                    & (df_s["Tenant"] == ten)
+                    & (df_s["Metryka"] == metric_name)
+                    & (df_s["Wariant"].isna())
+                ]
+            else:
+                row = df_s[
+                    (df_s["System"] == sys)
+                    & (df_s["Tenant"] == ten)
+                    & (df_s["Wariant"] == var)
+                    & (df_s["Metryka"] == metric_name)
+                ]
+            if not row.empty and not pd.isna(row["Mean"].iloc[0]):
+                val_with_error = row["Mean"].iloc[0] + (
+                    row["Std"].iloc[0] if not pd.isna(row["Std"].iloc[0]) else 0
+                )
+                if val_with_error > max_val:
+                    max_val = val_with_error
+
+    fig, ax = plt.subplots(figsize=(16, 8))  # Zwiększone rozmiary
 
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
@@ -467,7 +576,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
             hatches_list.append(hatches_resource.get(res, ""))
             positions.append(idx * scale + offset)
 
-        ax.bar(
+        bars = ax.bar(
             positions,
             heights,
             width=width,
@@ -481,12 +590,17 @@ def draw_resource_share_combined(df, scenario, output_dir):
             label=var,
         )
 
+        # Dodaj wartości na słupkach
+        add_value_labels(ax, bars, heights, errs, max_val)
+
     # Etykiety osi X
     labels = [f"{sys}-{ten}-{res}" for sys, ten, res in combos]
     ax.set_xlabel("System-Tenant-Resource")
     ax.set_ylabel("Resource share [%]")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_ylim(0, max_val * 1.15)  # Margines górny
+    ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
     # Legenda dla systemów
     system_handles = [
@@ -556,7 +670,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
 
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.2)
     filename = f"{scenario}_resource_share_combined.svg"
-    plt.savefig(os.path.join(output_dir, filename))
+    plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
 
 
@@ -634,7 +748,32 @@ def draw_jfi_combined(df, scenario, output_dir):
 
     x = np.arange(len(combos)) * scale
 
-    fig, ax = plt.subplots(figsize=(14, 7))
+    # Oblicz maksymalną wartość dla marginesu
+    max_val = 0
+    for var in variants:
+        for sys, res in combos:
+            metric_name = jfi_metrics[res]
+            has_variants = df_s["Wariant"].dropna().shape[0] > 0
+            if not has_variants:
+                row = df_s[
+                    (df_s["System"] == sys)
+                    & (df_s["Metryka"] == metric_name)
+                    & (df_s["Wariant"].isna())
+                ]
+            else:
+                row = df_s[
+                    (df_s["System"] == sys)
+                    & (df_s["Wariant"] == var)
+                    & (df_s["Metryka"] == metric_name)
+                ]
+            if not row.empty and not pd.isna(row["Mean"].iloc[0]):
+                val_with_error = row["Mean"].iloc[0] + (
+                    row["Std"].iloc[0] if not pd.isna(row["Std"].iloc[0]) else 0
+                )
+                if val_with_error > max_val:
+                    max_val = val_with_error
+
+    fig, ax = plt.subplots(figsize=(16, 8))  # Zwiększone rozmiary
 
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
@@ -680,7 +819,7 @@ def draw_jfi_combined(df, scenario, output_dir):
             hatches_list.append(hatches_resource.get(res, ""))
             positions.append(idx * scale + offset)
 
-        ax.bar(
+        bars = ax.bar(
             positions,
             heights,
             width=width,
@@ -694,12 +833,17 @@ def draw_jfi_combined(df, scenario, output_dir):
             label=var,
         )
 
+        # Dodaj wartości na słupkach
+        add_value_labels(ax, bars, heights, errs, max_val)
+
     # Etykiety osi X
     labels = [f"{sys}-{res}" for sys, res in combos]
     ax.set_xlabel("System-Resource")
     ax.set_ylabel("JFI")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_ylim(0, max_val * 1.15)  # Margines górny
+    ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
     # Legenda dla systemów
     system_handles = [
@@ -769,7 +913,7 @@ def draw_jfi_combined(df, scenario, output_dir):
 
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.2)
     filename = f"{scenario}_jfi_combined.svg"
-    plt.savefig(os.path.join(output_dir, filename))
+    plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
 
 

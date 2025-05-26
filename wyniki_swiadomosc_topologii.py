@@ -7,6 +7,7 @@ import os
 import re
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib.patches import Patch
 
@@ -16,6 +17,17 @@ colors = {"Kueue": "blue", "Volcano": "red"}
 hatches_wait = {"Średni czas oczekiwania": "xxx", "Maksymalny czas oczekiwania": ""}
 # Ustawienia globalne Matplotlib
 plt.rcParams["hatch.linewidth"] = 0.5
+
+
+def translate_step_label(label):
+    """
+    Tłumaczy polskie etykiety kroków na angielskie.
+    """
+    return (
+        label.replace("Krok", "Step")
+        .replace("Miękkie", "Soft")
+        .replace("Twarde", "Hard")
+    )
 
 
 def load_data(path, sheet):
@@ -51,6 +63,35 @@ def prepare_blocks(df):
     return data
 
 
+def add_value_labels(ax, bars, values, stds, max_val):
+    """
+    Pomocnicza funkcja dodająca etykiety z wartościami na słupkach.
+    """
+    for bar, val, std in zip(bars, values, stds):
+        # Pokaż wartość na każdym słupku, również gdy wynosi 0
+        # Pozycja tekstu nad słupkiem (z uwzględnieniem error bar)
+        y_pos = val + std + (max_val * 0.02)  # 2% marginesu
+        x_pos = bar.get_x() + bar.get_width() / 2
+
+        # Formatowanie wartości - zawsze 2 miejsca po przecinku
+        text_val = f"{val:.2f}"
+
+        # Dodaj tekst z wartością
+        ax.text(
+            x_pos,
+            y_pos,
+            text_val,
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            fontweight="bold",
+            color="black",
+            bbox=dict(
+                boxstyle="round,pad=0.2", facecolor="white", alpha=0.8, edgecolor="none"
+            ),
+        )
+
+
 def draw_correctness(df, scenario, output_dir):
     """
     Rysuje wykres poprawności rozmieszczenia dla scenariusza.
@@ -60,7 +101,7 @@ def draw_correctness(df, scenario, output_dir):
     pattern = r"Poprawność Rozmieszcz\. - Krok \d"
     metrics = df_s[df_s["Metryka"].str.contains(pattern)]["Metryka"].unique().tolist()
     metrics.sort(key=lambda m: int(re.search(r"Krok (\d)", m).group(1)))
-    x_labels = [m.split(" - ")[1].split(" [")[0] for m in metrics]
+    x_labels = [translate_step_label(m.split(" - ")[1].split(" [")[0]) for m in metrics]
 
     systems = ["Kueue", "Volcano"]
     mean_vals, std_vals = {sys: [] for sys in systems}, {sys: [] for sys in systems}
@@ -74,12 +115,21 @@ def draw_correctness(df, scenario, output_dir):
                 mean_vals[sys].append(0)
                 std_vals[sys].append(0)
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # Oblicz maksymalną wartość dla marginesu
+    max_val = 0
+    for sys in systems:
+        for mean, std in zip(mean_vals[sys], std_vals[sys]):
+            val_with_error = mean + std
+            if val_with_error > max_val:
+                max_val = val_with_error
+
+    fig, ax = plt.subplots(figsize=(8, 5))  # Zwiększone rozmiary
     N, M = len(x_labels), len(systems)
     width = 0.8 / M
     offsets = [(-0.4 + width / 2 + i * width) for i in range(M)]
+
     for i, sys in enumerate(systems):
-        ax.bar(
+        bars = ax.bar(
             [j + offsets[i] for j in range(N)],
             mean_vals[sys],
             width,
@@ -92,13 +142,18 @@ def draw_correctness(df, scenario, output_dir):
             linewidth=0.5,
         )
 
+        # Dodaj wartości na słupkach
+        add_value_labels(ax, bars, mean_vals[sys], std_vals[sys], max_val)
+
     ax.set_xlabel("Step")
     ax.set_ylabel("Placement correctness [%]")
     ax.set_xticks(range(N))
     ax.set_xticklabels(x_labels)
+    ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+    ax.grid(True, alpha=0.3, axis="y")  # Siatka
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"{scenario}_correctness.svg"))
+    plt.savefig(os.path.join(output_dir, f"{scenario}_correctness.svg"), dpi=300)
     plt.close()
 
 
@@ -118,7 +173,9 @@ def draw_distances(df, scenario, output_dir):
     )
 
     def plot_metrics(metrics, title_label, filename):
-        labels = [m.split(" - ")[1].split(" [")[0] for m in metrics]
+        labels = [
+            translate_step_label(m.split(" - ")[1].split(" [")[0]) for m in metrics
+        ]
         systems = ["Kueue", "Volcano"]
         mean_vals, std_vals = {sys: [] for sys in systems}, {sys: [] for sys in systems}
         for m in metrics:
@@ -131,12 +188,21 @@ def draw_distances(df, scenario, output_dir):
                     mean_vals[sys].append(0)
                     std_vals[sys].append(0)
 
-        fig, ax = plt.subplots(figsize=(6, 4))
+        # Oblicz maksymalną wartość dla marginesu
+        max_val = 0
+        for sys in systems:
+            for mean, std in zip(mean_vals[sys], std_vals[sys]):
+                val_with_error = mean + std
+                if val_with_error > max_val:
+                    max_val = val_with_error
+
+        fig, ax = plt.subplots(figsize=(8, 5))  # Zwiększone rozmiary
         N, M = len(labels), len(systems)
         width = 0.8 / M
         offsets = [(-0.4 + width / 2 + i * width) for i in range(M)]
+
         for i, sys in enumerate(systems):
-            ax.bar(
+            bars = ax.bar(
                 [j + offsets[i] for j in range(N)],
                 mean_vals[sys],
                 width,
@@ -148,13 +214,19 @@ def draw_distances(df, scenario, output_dir):
                 edgecolor="black",
                 linewidth=0.5,
             )
+
+            # Dodaj wartości na słupkach
+            add_value_labels(ax, bars, mean_vals[sys], std_vals[sys], max_val)
+
         ax.set_xlabel("Step")
         ax.set_ylabel("Distance [hops]")
         ax.set_xticks(range(N))
         ax.set_xticklabels(labels)
+        ax.set_ylim(0, max_val * 1.15)  # Margines górny
         ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+        ax.grid(True, alpha=0.3, axis="y")  # Siatka
         plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, filename))
+        plt.savefig(os.path.join(output_dir, filename), dpi=300)
         plt.close()
 
     plot_metrics(
@@ -198,7 +270,15 @@ def draw_wait_times(df, scenario, output_dir):
                 mean_vals[lbl].append(0)
                 std_vals[lbl].append(0)
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # Oblicz maksymalną wartość dla marginesu
+    max_val = 0
+    for lbl in labels:
+        for mean, std in zip(mean_vals[lbl], std_vals[lbl]):
+            val_with_error = mean + std
+            if val_with_error > max_val:
+                max_val = val_with_error
+
+    fig, ax = plt.subplots(figsize=(8, 5))  # Zwiększone rozmiary
     N = len(systems)
     M = len(labels)
     width = 0.8 / M
@@ -210,7 +290,8 @@ def draw_wait_times(df, scenario, output_dir):
             hatch_style = hatches_wait["Średni czas oczekiwania"]
         else:
             hatch_style = hatches_wait["Maksymalny czas oczekiwania"]
-        ax.bar(
+
+        bars = ax.bar(
             [j + offsets[i] for j in range(N)],
             mean_vals[lbl],
             width,
@@ -222,10 +303,14 @@ def draw_wait_times(df, scenario, output_dir):
             linewidth=0.5,
         )
 
+        # Dodaj wartości na słupkach
+        add_value_labels(ax, bars, mean_vals[lbl], std_vals[lbl], max_val)
+
     ax.set_xlabel("System")
     ax.set_ylabel("Time [s]")
     ax.set_xticks(range(N))
     ax.set_xticklabels(systems)
+    ax.set_ylim(0, max_val * 1.15)  # Margines górny
 
     metric_handles = [
         Patch(
@@ -243,8 +328,9 @@ def draw_wait_times(df, scenario, output_dir):
     ]
     handles = metric_handles
     ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+    ax.grid(True, alpha=0.3, axis="y")  # Siatka
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"{scenario}_wait_times.svg"))
+    plt.savefig(os.path.join(output_dir, f"{scenario}_wait_times.svg"), dpi=300)
     plt.close()
 
 
@@ -266,9 +352,12 @@ def draw_makespan(df, scenario, output_dir):
             makespan_mean.append(0)
             makespan_std.append(0)
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # Oblicz maksymalną wartość dla marginesu
+    max_val = max(m + s for m, s in zip(makespan_mean, makespan_std))
+
+    fig, ax = plt.subplots(figsize=(6, 5))  # Zwiększone rozmiary
     x = list(range(len(systems)))
-    ax.bar(
+    bars = ax.bar(
         x,
         makespan_mean,
         color=[colors[sys] for sys in systems],
@@ -278,13 +367,19 @@ def draw_makespan(df, scenario, output_dir):
         edgecolor="black",
         linewidth=0.5,
     )
+
+    # Dodaj wartości na słupkach
+    add_value_labels(ax, bars, makespan_mean, makespan_std, max_val)
+
     ax.set_xlabel("System")
     ax.set_ylabel("Makespan [s]")
     ax.set_xticks(x)
     ax.set_xticklabels(systems)
+    ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+    ax.grid(True, alpha=0.3, axis="y")  # Siatka
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"{scenario}_makespan.svg"))
+    plt.savefig(os.path.join(output_dir, f"{scenario}_makespan.svg"), dpi=300)
     plt.close()
 
 
