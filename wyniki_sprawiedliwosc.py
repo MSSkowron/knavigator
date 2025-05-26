@@ -319,7 +319,7 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             handles=variant_handles,
             title="Warianty",
             loc="upper left",
-            bbox_to_anchor=(1, 0.7),
+            bbox_to_anchor=(1, 0.8),
             frameon=False,
         )
 
