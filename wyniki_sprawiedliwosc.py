@@ -523,11 +523,15 @@ def draw_resource_share_combined(df, scenario, output_dir):
         )
         for res in available_resources
     ]
+
+    # Dostosuj pozycję legendy zasobów w zależności od obecności legendy wariantów
+    resource_bbox_y = 0.4 if len(variants) > 1 else 0.7
+
     ax.legend(
         handles=resource_handles,
         title="Zasoby",
         loc="upper left",
-        bbox_to_anchor=(1, 0.4),
+        bbox_to_anchor=(1, resource_bbox_y),
         frameon=False,
     )
 
@@ -727,11 +731,15 @@ def draw_jfi_combined(df, scenario, output_dir):
         )
         for res in available_resources
     ]
+
+    # Dostosuj pozycję legendy zasobów w zależności od obecności legendy wariantów
+    resource_bbox_y = 0.4 if len(variants) > 1 else 0.7
+
     ax.legend(
         handles=resource_handles,
         title="Zasoby",
         loc="upper left",
-        bbox_to_anchor=(1, 0.4),
+        bbox_to_anchor=(1, resource_bbox_y),
         frameon=False,
     )
 
