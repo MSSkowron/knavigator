@@ -320,7 +320,11 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             frameon=False,
         )
 
-    plt.tight_layout()
+    left, right = 0.06, 0.83
+    if len(variants) == 1:
+        left, right = 0.06, 0.88
+
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.17)
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
 
