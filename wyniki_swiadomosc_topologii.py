@@ -150,7 +150,7 @@ def draw_correctness(df, scenario, output_dir):
     ax.set_xticks(range(N))
     ax.set_xticklabels(x_labels)
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
-    ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0)
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_correctness.svg"), dpi=300)
@@ -223,7 +223,7 @@ def draw_distances(df, scenario, output_dir):
         ax.set_xticks(range(N))
         ax.set_xticklabels(labels)
         ax.set_ylim(0, max_val * 1.15)  # Margines górny
-        ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+        ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0)
         ax.grid(True, alpha=0.3, axis="y")  # Siatka
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, filename), dpi=300)
@@ -327,7 +327,9 @@ def draw_wait_times(df, scenario, output_dir):
         ),
     ]
     handles = metric_handles
-    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
+    ax.legend(
+        handles=handles, loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0
+    )
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_wait_times.svg"), dpi=300)
@@ -376,7 +378,6 @@ def draw_makespan(df, scenario, output_dir):
     ax.set_xticks(x)
     ax.set_xticklabels(systems)
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
-    ax.legend(loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{scenario}_makespan.svg"), dpi=300)
