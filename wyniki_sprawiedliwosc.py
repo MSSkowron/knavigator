@@ -393,7 +393,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
 
     x = np.arange(len(combos)) * scale
 
-    fig, ax = plt.subplots(figsize=(14, 8))
+    fig, ax = plt.subplots(figsize=(14, 7))
 
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
@@ -459,7 +459,6 @@ def draw_resource_share_combined(df, scenario, output_dir):
     labels = [f"{sys}-{ten}-{res}" for sys, ten, res in combos]
     ax.set_xlabel("System-Tenant-Zasób")
     ax.set_ylabel("Udział zasobu [%]")
-    ax.set_title(f"{scenario} – Udział zasobów")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
 
@@ -516,7 +515,11 @@ def draw_resource_share_combined(df, scenario, output_dir):
         frameon=False,
     )
 
-    plt.tight_layout()
+    left, right = 0.04, 0.88
+    if len(variants) == 1:
+        left, right = 0.05, 0.91
+
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.2)
     filename = f"{scenario}_resource_share_combined.svg"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
@@ -596,7 +599,7 @@ def draw_jfi_combined(df, scenario, output_dir):
 
     x = np.arange(len(combos)) * scale
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(14, 7))
 
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
@@ -660,7 +663,6 @@ def draw_jfi_combined(df, scenario, output_dir):
     labels = [f"{sys}-{res}" for sys, res in combos]
     ax.set_xlabel("System-Zasób")
     ax.set_ylabel("JFI")
-    ax.set_title(f"{scenario} – JFI zasobów")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha="right")
 
@@ -717,7 +719,11 @@ def draw_jfi_combined(df, scenario, output_dir):
         frameon=False,
     )
 
-    plt.tight_layout()
+    left, right = 0.04, 0.88
+    if len(variants) == 1:
+        left, right = 0.05, 0.91
+
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.2)
     filename = f"{scenario}_jfi_combined.svg"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
