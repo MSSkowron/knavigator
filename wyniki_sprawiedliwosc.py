@@ -226,8 +226,8 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
         handles=system_handles,
         title="Systems",
         loc="upper left",
-        bbox_to_anchor=(1, 1),
-        frameon=False,
+        bbox_to_anchor=(1.02, 1),
+        borderaxespad=0,
     )
     ax.add_artist(system_legend)
 
@@ -253,13 +253,13 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
             handles=variant_handles,
             title="Variants",
             loc="upper left",
-            bbox_to_anchor=(1, 0.7),
-            frameon=False,
+            bbox_to_anchor=(1.02, 0.7),
+            borderaxespad=0,
         )
 
-    left, right = 0.09, 0.75
+    left, right = 0.09, 0.74
     if len(variants) == 1:
-        left, right = 0.09, 0.86
+        left, right = 0.09, 0.85
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.1)
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
@@ -384,8 +384,8 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         handles=system_handles,
         title="Systems",
         loc="upper left",
-        bbox_to_anchor=(1, 1),
-        frameon=False,
+        bbox_to_anchor=(1.02, 1),
+        borderaxespad=0,
     )
     ax.add_artist(system_legend)
 
@@ -411,13 +411,13 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             handles=variant_handles,
             title="Variants",
             loc="upper left",
-            bbox_to_anchor=(1, 0.8),
-            frameon=False,
+            bbox_to_anchor=(1.02, 0.8),
+            borderaxespad=0,
         )
 
-    left, right = 0.05, 0.83
+    left, right = 0.05, 0.82
     if len(variants) == 1:
-        left, right = 0.05, 0.9
+        left, right = 0.05, 0.89
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.16)
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
@@ -610,8 +610,8 @@ def draw_resource_share_combined(df, scenario, output_dir):
         handles=system_handles,
         title="Systems",
         loc="upper left",
-        bbox_to_anchor=(1, 1),
-        frameon=False,
+        bbox_to_anchor=(1.02, 1),
+        borderaxespad=0,
     )
     ax.add_artist(system_legend)
 
@@ -637,8 +637,8 @@ def draw_resource_share_combined(df, scenario, output_dir):
             handles=variant_handles,
             title="Variants",
             loc="upper left",
-            bbox_to_anchor=(1, 0.82),
-            frameon=False,
+            bbox_to_anchor=(1.02, 0.82),
+            borderaxespad=0,
         )
         ax.add_artist(variant_legend)
 
@@ -660,13 +660,13 @@ def draw_resource_share_combined(df, scenario, output_dir):
         handles=resource_handles,
         title="Resources",
         loc="upper left",
-        bbox_to_anchor=(1, resource_bbox_y),
-        frameon=False,
+        bbox_to_anchor=(1.02, resource_bbox_y),
+        borderaxespad=0,
     )
 
-    left, right = 0.035, 0.87
+    left, right = 0.035, 0.86
     if len(variants) == 1:
-        left, right = 0.04, 0.92
+        left, right = 0.04, 0.91
 
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.17)
     filename = f"{scenario}_resource_share_combined.svg"
@@ -853,8 +853,8 @@ def draw_jfi_combined(df, scenario, output_dir):
         handles=system_handles,
         title="Systems",
         loc="upper left",
-        bbox_to_anchor=(1, 1),
-        frameon=False,
+        bbox_to_anchor=(1.02, 1),
+        borderaxespad=0,
     )
     ax.add_artist(system_legend)
 
@@ -880,8 +880,8 @@ def draw_jfi_combined(df, scenario, output_dir):
             handles=variant_handles,
             title="Variants",
             loc="upper left",
-            bbox_to_anchor=(1, 0.82),
-            frameon=False,
+            bbox_to_anchor=(1.02, 0.82),
+            borderaxespad=0,
         )
         ax.add_artist(variant_legend)
 
@@ -903,13 +903,13 @@ def draw_jfi_combined(df, scenario, output_dir):
         handles=resource_handles,
         title="Resources",
         loc="upper left",
-        bbox_to_anchor=(1, resource_bbox_y),
-        frameon=False,
+        bbox_to_anchor=(1.02, resource_bbox_y),
+        borderaxespad=0,
     )
 
-    left, right = 0.04, 0.87
+    left, right = 0.04, 0.86
     if len(variants) == 1:
-        left, right = 0.04, 0.92
+        left, right = 0.04, 0.91
 
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.16)
     filename = f"{scenario}_jfi_combined.svg"
@@ -941,7 +941,7 @@ if __name__ == "__main__":
             (
                 "Makespan (Faza 2) [s]",
                 f"{scen}_makespan_phase2.svg",
-                "Total execution time (Phase 2) [s]",
+                "Makespan (Phase 2) [s]",
             ),
             ("Makespan [s]", f"{scen}_makespan.svg", "Makespan [s]"),
         ]
@@ -952,17 +952,17 @@ if __name__ == "__main__":
             (
                 "Śr. Czas Oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
                 f"{scen}_wait_time_phase2.svg",
-                "Average wait time (Phase 2 to cluster saturation) [s]",
+                "Wait time (Phase 2 until cluster saturation) [s]",
             ),
             (
                 "Śr. Czas Oczekiwania (wszystkie zadadania) [s]",
                 f"{scen}_wait_time.svg",
-                "Average wait time [s]",
+                "Wait time [s]",
             ),
             (
                 "Śr. Liczba Uruchomionych Podów (w nasyceniu)",
                 f"{scen}_no_pods.svg",
-                "Average number of Pods (at saturation)",
+                "Number of Pods (at saturation)",
             ),
         ]
         for metric, filename, ylabel in tenant_metrics:
