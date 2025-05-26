@@ -508,7 +508,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
             handles=variant_handles,
             title="Warianty",
             loc="upper left",
-            bbox_to_anchor=(1, 0.7),
+            bbox_to_anchor=(1, 0.82),
             frameon=False,
         )
         ax.add_artist(variant_legend)
@@ -525,7 +525,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
     ]
 
     # Dostosuj pozycję legendy zasobów w zależności od obecności legendy wariantów
-    resource_bbox_y = 0.4 if len(variants) > 1 else 0.7
+    resource_bbox_y = 0.67 if len(variants) > 1 else 0.82
 
     ax.legend(
         handles=resource_handles,
@@ -716,7 +716,7 @@ def draw_jfi_combined(df, scenario, output_dir):
             handles=variant_handles,
             title="Warianty",
             loc="upper left",
-            bbox_to_anchor=(1, 0.7),
+            bbox_to_anchor=(1, 0.82),
             frameon=False,
         )
         ax.add_artist(variant_legend)
@@ -733,7 +733,7 @@ def draw_jfi_combined(df, scenario, output_dir):
     ]
 
     # Dostosuj pozycję legendy zasobów w zależności od obecności legendy wariantów
-    resource_bbox_y = 0.4 if len(variants) > 1 else 0.7
+    resource_bbox_y = 0.67 if len(variants) > 1 else 0.82
 
     ax.legend(
         handles=resource_handles,
