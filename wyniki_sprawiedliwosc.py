@@ -119,7 +119,7 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
 
     fig, ax = plt.subplots(figsize=(6, 4))
     for i, var in enumerate(variants):
-        heights, errs, positions, cols, hatches_list = [], [], [], [], []
+        heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
         for j, sys in enumerate(systems):
             if variants == ["Brak"]:
@@ -138,8 +138,12 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
             else:
                 heights.append(0)
                 errs.append(0)
-            cols.append(colors.get(sys, "black"))
-            hatches_list.append(hatches_variant.get(var, ""))
+            # ZMIANA: Użyj odcienia koloru odpowiedniego dla systemu i wariantu
+            cols.append(
+                color_variants[sys][var]
+                if sys in color_variants and var in color_variants[sys]
+                else colors.get(sys, "black")
+            )
             positions.append(j * scale + offset)
         ax.bar(
             positions,
@@ -148,7 +152,6 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
             yerr=errs,
             capsize=3,
             color=cols,
-            hatch=hatches_list,
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
@@ -175,17 +178,19 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
 
     # Legenda dla wariantów - tylko jeśli mamy więcej niż jeden wariant i nie jest "Brak"
     if not (len(variants) == 1 and variants[0] == "Brak"):
-        handles = [
-            Patch(
-                facecolor="white",
-                edgecolor="black",
-                hatch=hatches_variant[var],
-                label=var,
+        # ZMIANA: Użyj neutralnych odcieni szarości dla legendy wariantów (jak w jfi_combined)
+        variant_colors = {"Z gwarancjami": "#404040", "Bez gwarancji": "#808080"}
+        variant_handles = []
+        for var in variants:
+            variant_handles.append(
+                Patch(
+                    facecolor=variant_colors.get(var, "#606060"),
+                    edgecolor="black",
+                    label=var,
+                )
             )
-            for var in variants
-        ]
         ax.legend(
-            handles=handles,
+            handles=variant_handles,
             title="Warianty",
             loc="upper left",
             bbox_to_anchor=(1, 0.7),
@@ -232,7 +237,7 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
 
     fig, ax = plt.subplots(figsize=(10, 6))
     for i, var in enumerate(variants):
-        heights, errs, positions, cols, hatches_list = [], [], [], [], []
+        heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
         for idx, (sys, ten) in enumerate(combos):
             if variants == ["Brak"]:
@@ -255,8 +260,12 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             else:
                 heights.append(0)
                 errs.append(0)
-            cols.append(colors.get(sys, "black"))
-            hatches_list.append(hatches_variant.get(var, ""))
+            # ZMIANA: Użyj odcienia koloru odpowiedniego dla systemu i wariantu
+            cols.append(
+                color_variants[sys][var]
+                if sys in color_variants and var in color_variants[sys]
+                else colors.get(sys, "black")
+            )
             positions.append(idx * scale + offset)
         ax.bar(
             positions,
@@ -265,7 +274,6 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             yerr=errs,
             capsize=3,
             color=cols,
-            hatch=hatches_list,
             alpha=0.8,
             edgecolor="black",
             linewidth=0.5,
@@ -293,17 +301,19 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
 
     # Legenda dla wariantów - tylko jeśli mamy więcej niż jeden wariant i nie jest "Brak"
     if not (len(variants) == 1 and variants[0] == "Brak"):
-        handles = [
-            Patch(
-                facecolor="white",
-                edgecolor="black",
-                hatch=hatches_variant[var],
-                label=var,
+        # ZMIANA: Użyj neutralnych odcieni szarości dla legendy wariantów (jak w jfi_combined)
+        variant_colors = {"Z gwarancjami": "#404040", "Bez gwarancji": "#808080"}
+        variant_handles = []
+        for var in variants:
+            variant_handles.append(
+                Patch(
+                    facecolor=variant_colors.get(var, "#606060"),
+                    edgecolor="black",
+                    label=var,
+                )
             )
-            for var in variants
-        ]
         ax.legend(
-            handles=handles,
+            handles=variant_handles,
             title="Warianty",
             loc="upper left",
             bbox_to_anchor=(1, 0.7),
@@ -744,11 +754,11 @@ if __name__ == "__main__":
             continue
         print(f"Generowanie wykresów dla scenariusza {scen}...")
 
-        # NOWE: Wykresy łączone dla udziału zasobów i JFI
+        # Wykresy łączone dla udziału zasobów i JFI
         draw_resource_share_combined(data, scen, output_base)
         draw_jfi_combined(data, scen, output_base)
 
-        # Metryki ogólne (oryginalne) - POMINIĘTO POJEDYNCZE JFI
+        # Metryki ogólne (oryginalne)
         general_metrics = [
             (
                 "Makespan (Faza 2) [s]",
@@ -756,12 +766,10 @@ if __name__ == "__main__":
                 "Całkowity zakres czasowy (Faza 2) [s]",
             ),
             ("Makespan [s]", f"{scen}_makespan.svg", "Całkowity zakres czasowy [s]"),
-            # Pominięto pojedyncze wykresy JFI - są zastąpione przez wykresy łączone
         ]
         for metric, filename, ylabel in general_metrics:
             draw_general_metric(data, scen, output_base, metric, ylabel, filename)
 
-        # Metryki per-tenant (oryginalne) - POMINIĘTO POJEDYNCZE UDZIAŁY ZASOBÓW
         tenant_metrics = [
             (
                 "Śr. Czas Oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
@@ -778,7 +786,6 @@ if __name__ == "__main__":
                 f"{scen}_no_pods.svg",
                 "Śr. liczba Podów (w nasyceniu)",
             ),
-            # Pominięto pojedyncze wykresy udziału zasobów - są zastąpione przez wykresy łączone
         ]
         for metric, filename, ylabel in tenant_metrics:
             draw_per_tenant_metric(data, scen, output_base, metric, ylabel, filename)
