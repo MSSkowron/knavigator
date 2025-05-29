@@ -363,7 +363,6 @@ def plot_grouped_bar_with_trends(
 
     ax.set_xlabel(xlabel, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
-    ax.set_title(title, fontsize=14, fontweight="bold")
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels(x_labels, rotation=45, ha="right")
 
@@ -461,7 +460,6 @@ def create_performance_comparison_chart(df, scenario, output_dir):
             ylabel = "Relative Value\n(1.0 = best)"
 
         ax.set_ylabel(ylabel)
-        ax.set_title(file_key_map[raw_metric])
         ax.set_xticks(x_pos + width)
         ax.set_xticklabels(combos, rotation=45, ha="right")
         ax.grid(True, alpha=0.3, axis="y")
