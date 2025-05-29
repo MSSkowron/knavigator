@@ -24,10 +24,10 @@ run_script() {
 main() {
     # List of scripts to run (adjust paths if needed)
     local scripts=(
-        "wyniki_swiadomosc_topologii.py"
-        "wyniki_wydajnosc_skalowalnosc.py"
-        "wyniki_sprawiedliwosc.py"
-        "wyniki_wydajnosc_skalowalnosc_enhanced.py"
+        "wyniki/wyniki_swiadomosc_topologii.py"
+        "wyniki/wyniki_wydajnosc_skalowalnosc.py"
+        "wyniki/wyniki_sprawiedliwosc.py"
+        "wyniki/wyniki_wydajnosc_skalowalnosc_enhanced.py"
     )
 
     for script in "${scripts[@]}"; do

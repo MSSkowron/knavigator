@@ -598,7 +598,7 @@ def draw_other_metrics(df, scenario, output_dir):
 
 
 if __name__ == "__main__":
-    input_file = "Wyniki.xlsx"
+    input_file = "wyniki/Wyniki.xlsx"
     sheet = "Wydajność i Skalowalność"
     output_base = "wyniki/wyniki_wydajnosc_i_skalowalnosc_enhanced"
     os.makedirs(output_base, exist_ok=True)
