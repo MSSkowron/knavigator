@@ -357,7 +357,7 @@ def draw_makespan(df, scenario, output_dir):
     # Oblicz maksymalną wartość dla marginesu
     max_val = max(m + s for m, s in zip(makespan_mean, makespan_std))
 
-    fig, ax = plt.subplots(figsize=(6, 5))  # Zwiększone rozmiary
+    fig, ax = plt.subplots(figsize=(8, 5))  # Zwiększone rozmiary
     x = list(range(len(systems)))
     bars = ax.bar(
         x,

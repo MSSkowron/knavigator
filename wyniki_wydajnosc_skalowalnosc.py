@@ -46,9 +46,11 @@ type_map_util = {
     "Śr. Wykorz. Pam. (w nasyceniu) [%]": "Memory",
     "Śr. Wykorz. GPU (w nasyceniu) [%]": "GPU",
 }
+
 type_map_std = {
     "Śr. StdDev CPU (w nasyceniu) [%]": "CPU",
     "Śr. StdDev Pam. (w nasyceniu) [%]": "Memory",
+    "Śr. StdDev GPU (w nasyceniu) [%]": "GPU",
 }
 
 tools = ["Kueue", "Volcano", "YuniKorn"]
@@ -230,7 +232,7 @@ def draw_resource_utilization(df, scenario, output_dir):
 
 def draw_resource_distribution(df, scenario, output_dir):
     """
-    Rysuje wykres równomierności rozłożenia zasobów (std CPU, std RAM) dla danego scenariusza.
+    Rysuje wykres równomierności rozłożenia zasobów (std CPU, std RAM, std GPU) dla danego scenariusza.
     """
     df_s = df[df["Scenariusz"] == scenario]
     combos = sorted(df_s["Kombinacja"].dropna().unique(), key=sort_key)
