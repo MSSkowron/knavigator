@@ -167,6 +167,63 @@ def extract_numeric_values(combos):
     return np.array(numeric_values)
 
 
+def add_system_average_trend_lines(ax, x_labels, mean_dict, colors_dict, labels):
+    """
+    Dodaje linie trendu dla wykresów resource - jedna linia na system (średnia z wszystkich zasobów).
+    """
+    x_numeric = extract_numeric_values(x_labels)
+    x_positions = np.arange(len(x_labels))
+
+    # Grupuj dane według systemów
+    system_data = {}
+    for tool, resource in labels:
+        if tool not in system_data:
+            system_data[tool] = []
+        system_data[tool].append(mean_dict[(tool, resource)])
+
+    # Oblicz średni trend dla każdego systemu
+    for tool, all_resource_data in system_data.items():
+        # Oblicz średnią wartość dla każdej kombinacji (średnia z CPU, Memory, GPU)
+        avg_means = []
+        for i in range(len(x_labels)):  # Dla każdej kombinacji
+            values_for_combo = []
+            for resource_data in all_resource_data:
+                if i < len(resource_data) and not np.isnan(resource_data[i]):
+                    values_for_combo.append(resource_data[i])
+
+            if values_for_combo:
+                avg_means.append(np.mean(values_for_combo))
+            else:
+                avg_means.append(np.nan)
+
+        avg_means = np.array(avg_means)
+
+        # Sprawdź czy są nietrywialne różnice w danych
+        unique_means = avg_means[~np.isnan(avg_means)]
+        if len(set(unique_means)) <= 1:
+            continue
+
+        # Użyj regresji liniowej na średnich wartościach
+        slope, intercept, r2 = linear_regression_simple(x_numeric, avg_means)
+
+        # Obniżony próg dla wykresów resource
+        if r2 > 0.2:
+            color = colors_dict[tool]
+
+            # Oblicz przewidywane wartości
+            y_pred = slope * x_numeric + intercept
+
+            # Linia trendu - wyraźniejsza bo jest tylko 3 linie
+            ax.plot(
+                x_positions,
+                y_pred,
+                color=color,
+                linestyle="--",
+                alpha=0.7,
+                linewidth=2.5,
+            )
+
+
 def add_trend_lines(ax, x_labels, mean_dict, colors_dict, labels):
     """
     Dodaje linie trendu do wykresów słupkowych tylko dla znaczących trendów.
@@ -294,7 +351,15 @@ def plot_grouped_bar_with_trends(
 
     # Dodaj linie trendu dla metryk, które na to zasługują
     if add_trends:
-        add_trend_lines(ax, x_labels, mean_dict, colors, labels)
+        # Sprawdź czy to wykres resource - jeśli tak, użyj specjalnej funkcji
+        chart_title = title.lower()
+        if (
+            "resource utilization" in chart_title
+            or "resource distribution" in chart_title
+        ):
+            add_system_average_trend_lines(ax, x_labels, mean_dict, colors, labels)
+        else:
+            add_trend_lines(ax, x_labels, mean_dict, colors, labels)
 
     ax.set_xlabel(xlabel, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
