@@ -27,6 +27,7 @@ main() {
         "wyniki_swiadomosc_topologii.py"
         "wyniki_wydajnosc_skalowalnosc.py"
         "wyniki_sprawiedliwosc.py"
+        "wyniki_wydajnosc_skalowalnosc_enhanced.py"
     )
 
     for script in "${scripts[@]}"; do
