@@ -49,6 +49,7 @@ type_map_util = {
 type_map_std = {
     "Śr. StdDev CPU (w nasyceniu) [%]": "CPU",
     "Śr. StdDev Pam. (w nasyceniu) [%]": "Memory",
+    "Śr. StdDev GPU (w nasyceniu) [%]": "GPU",
 }
 
 tools = ["Kueue", "Volcano", "YuniKorn"]
@@ -168,10 +169,17 @@ def extract_numeric_values(combos):
 
 def add_trend_lines(ax, x_labels, mean_dict, colors_dict, labels):
     """
-    Dodaje linie trendu do wykresów słupkowych.
+    Dodaje linie trendu do wykresów słupkowych tylko dla znaczących trendów.
     """
     x_numeric = extract_numeric_values(x_labels)
     x_positions = np.arange(len(x_labels))
+
+    # Sprawdź maksymalną wartość dla pozycjonowania linii
+    max_val = 0
+    for i, (tool, resource) in enumerate(labels):
+        means = np.array(mean_dict[(tool, resource)])
+        if np.nanmax(means) > max_val:
+            max_val = np.nanmax(means)
 
     for i, (tool, resource) in enumerate(labels):
         tool_name = tool if resource == "" else tool
@@ -185,16 +193,28 @@ def add_trend_lines(ax, x_labels, mean_dict, colors_dict, labels):
         # Użyj prostej regresji liniowej
         slope, intercept, r2 = linear_regression_simple(x_numeric, means)
 
-        # Rysuj linię trendu tylko jeśli R² > 0.3 (umiarkowana korelacja)
-        if r2 > 0.3:
+        # Rysuj linię trendu z obniżonym progiem R² dla wykresów resource
+        # Sprawdź czy to wykres resource - jeśli tak, użyj niższego progu
+        is_resource_chart = any("Resource" in str(label) for label in labels)
+        r2_threshold = 0.2 if is_resource_chart else (0.5 if len(labels) > 3 else 0.3)
+
+        if r2 > r2_threshold:  # Usunięty warunek na minimalny slope - niech R² decyduje
             color = colors_dict[tool_name]
 
             # Oblicz przewidywane wartości dla wszystkich punktów
             y_pred = slope * x_numeric + intercept
 
-            # Linia trendu - bez etykiety w legendzie
+            # Linia trendu - subtelniejsza dla wykresów z wieloma liniami
+            alpha = 0.6 if len(labels) > 3 else 0.7
+            linewidth = 1.8 if len(labels) > 3 else 2
+
             ax.plot(
-                x_positions, y_pred, color=color, linestyle="--", alpha=0.7, linewidth=2
+                x_positions,
+                y_pred,
+                color=color,
+                linestyle="--",
+                alpha=alpha,
+                linewidth=linewidth,
             )
 
 
@@ -273,7 +293,7 @@ def plot_grouped_bar_with_trends(
             )
 
     # Dodaj linie trendu dla metryk, które na to zasługują
-    if add_trends and len(labels) <= 3:  # Tylko dla pojedynczych metryk
+    if add_trends:
         add_trend_lines(ax, x_labels, mean_dict, colors, labels)
 
     ax.set_xlabel(xlabel, fontsize=12)
@@ -365,7 +385,17 @@ def create_performance_comparison_chart(df, scenario, output_dir):
                         )
 
         ax.set_xlabel("Node and task combinations")
-        ax.set_ylabel("Relative Performance\n(1.0 = best)")
+        # Dostosuj etykietę osi Y w zależności od metryki
+        if raw_metric == "Makespan [s]":
+            ylabel = "Relative Performance\n(1.0 = best)"
+        elif raw_metric == "Śr. Narzut CPU Harmonogr. [cores]":
+            ylabel = "Relative CPU Overhead\n(1.0 = lowest)"
+        elif raw_metric == "Śr. Narzut Pam. Harmonogr. [MB]":
+            ylabel = "Relative Memory Overhead\n(1.0 = lowest)"
+        else:
+            ylabel = "Relative Value\n(1.0 = best)"
+
+        ax.set_ylabel(ylabel)
         ax.set_title(file_key_map[raw_metric])
         ax.set_xticks(x_pos + width)
         ax.set_xticklabels(combos, rotation=45, ha="right")
@@ -378,6 +408,78 @@ def create_performance_comparison_chart(df, scenario, output_dir):
     plt.tight_layout()
     plt.savefig(
         os.path.join(output_dir, f"{scenario}_Performance_Comparison.svg"),
+        bbox_inches="tight",
+        dpi=300,
+    )
+    plt.close()
+
+
+def create_scalability_analysis(df, output_dir):
+    """
+    Tworzy analizę skalowalności pokazującą jak metryki zmieniają się w zależności od wielkości problemu.
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig.suptitle(
+        "Scalability Analysis Across All Scenarios", fontsize=16, fontweight="bold"
+    )
+
+    metrics_to_analyze = [
+        ("Makespan [s]", "Makespan [s]"),
+        ("Śr. Narzut CPU Harmonogr. [cores]", "CPU Overhead [cores]"),
+        ("Śr. Narzut Pam. Harmonogr. [MB]", "Memory Overhead [MB]"),
+        ("Śr. Wykorz. CPU (w nasyceniu) [%]", "CPU Utilization [%]"),
+    ]
+
+    axes_flat = axes.flatten()
+
+    for idx, (metric, ylabel) in enumerate(metrics_to_analyze):
+        ax = axes_flat[idx]
+
+        for scenario in ["V1", "V2", "V3"]:
+            df_s = df[(df["Scenariusz"] == scenario) & (df["Metryka"] == metric)]
+            if df_s.empty:
+                continue
+
+            combos = sorted(df_s["Kombinacja"].dropna().unique(), key=sort_key)
+            combo_sizes = extract_numeric_values(combos)
+
+            for tool in tools:
+                tool_data = df_s[df_s["System"] == tool]
+                if tool_data.empty:
+                    continue
+
+                means = []
+                for combo in combos:
+                    combo_data = tool_data[tool_data["Kombinacja"] == combo]
+                    if not combo_data.empty:
+                        means.append(combo_data["Mean"].iloc[0])
+                    else:
+                        means.append(np.nan)
+
+                # Rysuj linię dla każdego scenariusza i systemu
+                line_style = (
+                    "--" if scenario == "V2" else ":" if scenario == "V3" else "-"
+                )
+                ax.plot(
+                    combo_sizes,
+                    means,
+                    marker="o",
+                    linestyle=line_style,
+                    color=colors[tool],
+                    alpha=0.8,
+                    linewidth=2,
+                    label=f"{tool} {scenario}",
+                )
+
+        ax.set_xlabel("Problem Size (Nodes + Tasks)")
+        ax.set_ylabel(ylabel)
+        ax.set_title(f"{ylabel} Scalability")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(output_dir, "Scalability_Analysis.svg"),
         bbox_inches="tight",
         dpi=300,
     )
@@ -419,7 +521,7 @@ def draw_resource_utilization(df, scenario, output_dir):
         labels_util,
         f"{scenario}_Wykorzystanie_zasobow.svg",
         output_dir,
-        add_trends=False,  # Zbyt wiele linii byłoby nieczytelne
+        add_trends=True,  # Dodaj linie trendu dla znaczących trendów
     )
 
 
@@ -458,7 +560,7 @@ def draw_resource_distribution(df, scenario, output_dir):
         labels_std,
         f"{scenario}_Rownomiernosc_zasobow.svg",
         output_dir,
-        add_trends=False,  # YuniKorn ma wszystkie wartości 0, więc trend nie ma sensu
+        add_trends=True,  # Dodaj linie trendu dla znaczących trendów
     )
 
 
@@ -531,4 +633,17 @@ if __name__ == "__main__":
         draw_other_metrics(data, scen, output_base)
         create_performance_comparison_chart(data, scen, output_base)
 
-    print(f"Enhanced visualizations generated in {output_base}")
+    # # Utwórz analizę skalowalności dla wszystkich scenariuszy
+    # print("Creating scalability analysis...")
+    # create_scalability_analysis(data, output_base)
+
+    # print(f"Enhanced visualizations generated in {output_base}")
+    # print("Generated files include:")
+    # print("- Traditional charts with trend lines for Makespan and Overhead metrics")
+    # print("- Performance comparison charts with normalized values")
+    # print("- Comprehensive scalability analysis across all scenarios")
+    # print("\nRecommended usage for thesis:")
+    # print("1. Use Performance_Comparison charts for quick system ranking")
+    # print("2. Use Scalability_Analysis for showing scaling behavior")
+    # print("3. Use trend lines to highlight mathematical patterns")
+    # print("4. Keep original detailed charts for specific value analysis")
