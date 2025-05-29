@@ -479,78 +479,6 @@ def create_performance_comparison_chart(df, scenario, output_dir):
     plt.close()
 
 
-def create_scalability_analysis(df, output_dir):
-    """
-    Tworzy analizę skalowalności pokazującą jak metryki zmieniają się w zależności od wielkości problemu.
-    """
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle(
-        "Scalability Analysis Across All Scenarios", fontsize=16, fontweight="bold"
-    )
-
-    metrics_to_analyze = [
-        ("Makespan [s]", "Makespan [s]"),
-        ("Śr. Narzut CPU Harmonogr. [cores]", "CPU Overhead [cores]"),
-        ("Śr. Narzut Pam. Harmonogr. [MB]", "Memory Overhead [MB]"),
-        ("Śr. Wykorz. CPU (w nasyceniu) [%]", "CPU Utilization [%]"),
-    ]
-
-    axes_flat = axes.flatten()
-
-    for idx, (metric, ylabel) in enumerate(metrics_to_analyze):
-        ax = axes_flat[idx]
-
-        for scenario in ["V1", "V2", "V3"]:
-            df_s = df[(df["Scenariusz"] == scenario) & (df["Metryka"] == metric)]
-            if df_s.empty:
-                continue
-
-            combos = sorted(df_s["Kombinacja"].dropna().unique(), key=sort_key)
-            combo_sizes = extract_numeric_values(combos)
-
-            for tool in tools:
-                tool_data = df_s[df_s["System"] == tool]
-                if tool_data.empty:
-                    continue
-
-                means = []
-                for combo in combos:
-                    combo_data = tool_data[tool_data["Kombinacja"] == combo]
-                    if not combo_data.empty:
-                        means.append(combo_data["Mean"].iloc[0])
-                    else:
-                        means.append(np.nan)
-
-                # Rysuj linię dla każdego scenariusza i systemu
-                line_style = (
-                    "--" if scenario == "V2" else ":" if scenario == "V3" else "-"
-                )
-                ax.plot(
-                    combo_sizes,
-                    means,
-                    marker="o",
-                    linestyle=line_style,
-                    color=colors[tool],
-                    alpha=0.8,
-                    linewidth=2,
-                    label=f"{tool} {scenario}",
-                )
-
-        ax.set_xlabel("Problem Size (Nodes + Tasks)")
-        ax.set_ylabel(ylabel)
-        ax.set_title(f"{ylabel} Scalability")
-        ax.legend(fontsize=8)
-        ax.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(output_dir, "Scalability_Analysis.svg"),
-        bbox_inches="tight",
-        dpi=300,
-    )
-    plt.close()
-
-
 def draw_resource_utilization(df, scenario, output_dir):
     """
     Rysuje wykres wykorzystania zasobów (CPU, RAM, GPU) dla danego scenariusza z liniami trendu.
@@ -697,18 +625,3 @@ if __name__ == "__main__":
         draw_resource_distribution(data, scen, output_base)
         draw_other_metrics(data, scen, output_base)
         create_performance_comparison_chart(data, scen, output_base)
-
-    # # Utwórz analizę skalowalności dla wszystkich scenariuszy
-    # print("Creating scalability analysis...")
-    # create_scalability_analysis(data, output_base)
-
-    # print(f"Enhanced visualizations generated in {output_base}")
-    # print("Generated files include:")
-    # print("- Traditional charts with trend lines for Makespan and Overhead metrics")
-    # print("- Performance comparison charts with normalized values")
-    # print("- Comprehensive scalability analysis across all scenarios")
-    # print("\nRecommended usage for thesis:")
-    # print("1. Use Performance_Comparison charts for quick system ranking")
-    # print("2. Use Scalability_Analysis for showing scaling behavior")
-    # print("3. Use trend lines to highlight mathematical patterns")
-    # print("4. Keep original detailed charts for specific value analysis")
