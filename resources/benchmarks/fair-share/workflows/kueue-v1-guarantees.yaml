@@ -169,7 +169,7 @@ tasks:
         nodeLabels:
           type: "kwok"
 
-  # Create a cohort and three cluster queues with equal weight
+  # Create cluster queues for all 8 tenants with equal weight
   - id: create-cluster-queue-a
     type: SubmitObj
     params:
@@ -287,13 +287,13 @@ tasks:
                     borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
                     lendingLimit: 1000 # Może udostępnić swój przydział
 
-  - id: create-cluster-queue-c
+  - id: create-cluster-queue-d
     type: SubmitObj
     params:
       refTaskId: register-cluster-queue
       canExist: true
       params:
-        name: tenant-c-cq
+        name: tenant-d-cq
         cohort: fairshare-cohort
         fairSharing:
           weight: 1
