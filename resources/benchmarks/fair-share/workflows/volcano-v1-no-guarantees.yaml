@@ -110,7 +110,7 @@ tasks:
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
 
-  # Create queues with equal weights
+  # Create queues for all 8 tenants with equal weight
   - id: create-queue-a
     type: SubmitObj
     params:

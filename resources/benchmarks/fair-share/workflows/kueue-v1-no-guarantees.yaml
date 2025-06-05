@@ -192,7 +192,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -202,9 +201,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi # NO GUARANTEE
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   - id: create-cluster-queue-b
     type: SubmitObj
@@ -228,7 +224,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -238,9 +233,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   - id: create-cluster-queue-c
     type: SubmitObj
@@ -264,7 +256,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -274,9 +265,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   - id: create-cluster-queue-d
     type: SubmitObj
@@ -300,7 +288,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -310,9 +297,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   - id: create-cluster-queue-e
     type: SubmitObj
@@ -336,7 +320,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -346,9 +329,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   - id: create-cluster-queue-f
     type: SubmitObj
@@ -372,7 +352,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -382,9 +361,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   - id: create-cluster-queue-g
     type: SubmitObj
@@ -408,7 +384,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -418,9 +393,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   - id: create-cluster-queue-h
     type: SubmitObj
@@ -444,7 +416,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -454,9 +425,6 @@ tasks:
                   - name: memory
                     nominalQuota: 0Mi
                     borrowingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 0
-                    borrowingLimit: 8000
 
   # Create DUMMY ClusterQueue
   - id: create-dummy-cluster-queue
@@ -481,7 +449,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -493,10 +460,6 @@ tasks:
                     nominalQuota: 128000Mi # Cały klaster
                     borrowingLimit: 0Mi
                     lendingLimit: 128000Mi
-                  - name: pods
-                    nominalQuota: 8000 # Cały klaster
-                    borrowingLimit: 0
-                    lendingLimit: 8000
 
   # Create local queues for all tenants
   - id: create-local-queue-a

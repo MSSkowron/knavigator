@@ -192,7 +192,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -204,10 +203,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   - id: create-cluster-queue-b
     type: SubmitObj
@@ -231,7 +226,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -243,10 +237,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   - id: create-cluster-queue-c
     type: SubmitObj
@@ -270,7 +260,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -282,10 +271,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   - id: create-cluster-queue-d
     type: SubmitObj
@@ -309,7 +294,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -321,10 +305,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   - id: create-cluster-queue-e
     type: SubmitObj
@@ -348,7 +328,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -360,10 +339,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   - id: create-cluster-queue-f
     type: SubmitObj
@@ -387,7 +362,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -399,10 +373,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   - id: create-cluster-queue-g
     type: SubmitObj
@@ -426,7 +396,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -438,10 +407,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   - id: create-cluster-queue-h
     type: SubmitObj
@@ -465,7 +430,6 @@ tasks:
           - coveredResources:
               - cpu
               - memory
-              - pods
             flavors:
               - name: resource-flavor
                 resources:
@@ -477,10 +441,6 @@ tasks:
                     nominalQuota: 16000Mi # Gwarantowane 16GB pamięci
                     borrowingLimit: 112000Mi # Może pożyczyć dodatkowe 112GB
                     lendingLimit: 16000Mi # Może udostępnić do 16GB innym
-                  - name: pods
-                    nominalQuota: 1000 # 1/8 z łącznej liczby 1000 podów
-                    borrowingLimit: 7000 # Może pożyczyć dodatkowe pody
-                    lendingLimit: 1000 # Może udostępnić swój przydział
 
   # Create local queues for all tenants
   - id: create-local-queue-a

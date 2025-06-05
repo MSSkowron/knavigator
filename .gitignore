@@ -6,4 +6,7 @@ prompt.MD
 test.json
 tutorial.md
 /wyniki/wyniki_*/**
+/wyniki/nowe_wyniki_*/**
 !/wyniki/wyniki_*/
+!/wyniki/nowe_wyniki_*/
+

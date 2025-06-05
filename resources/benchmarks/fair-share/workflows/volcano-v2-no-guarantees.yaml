@@ -33,7 +33,7 @@ tasks:
     params:
       timeout: 5s
 
-  # Configure nodes - 8 węzłów po 16 CPU każdy
+  # Configure nodes - 10 węzłów po 12 CPU każdy
   - id: configure-nodes
     type: Configure
     params:
@@ -46,7 +46,7 @@ tasks:
             pods: 1000
       timeout: 5m
 
-  # Create namespaces for eight tenants
+  # Create namespaces for six tenants
   - id: create-namespaces
     type: Configure
     params:

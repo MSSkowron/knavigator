@@ -170,7 +170,16 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
     for i, var in enumerate(variants):
         heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
         for j, sys in enumerate(systems):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             if variants == ["Brak"]:
                 # Dla scenariuszy bez wariantów szukaj wierszy z NaN w Wariant
                 row = metric_df[
@@ -193,7 +202,8 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
                 if sys in color_variants and var in color_variants[sys]
                 else colors.get(sys, "black")
             )
-            positions.append(j * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -211,10 +221,30 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
+    # Utwórz etykiety tylko dla systemów, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys in systems:
+        # Sprawdź czy ten system jest pomijany dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(sys)
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     ax.set_xlabel("System")
     ax.set_ylabel(ylabel)
-    ax.set_xticks(x)
-    ax.set_xticklabels(systems)
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(labels)
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
@@ -333,7 +363,16 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
     for i, var in enumerate(variants):
         heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
         for idx, (sys, ten) in enumerate(combos):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             if variants == ["Brak"]:
                 # Dla scenariuszy bez wariantów szukaj wierszy z NaN w Wariant
                 row = metric_df[
@@ -360,7 +399,8 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
                 if sys in color_variants and var in color_variants[sys]
                 else colors.get(sys, "black")
             )
-            positions.append(idx * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -378,10 +418,29 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
-    labels = [f"{sys}-{ten}" for sys, ten in combos]
+    # Utwórz etykiety tylko dla kombinacji, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys, ten in combos:
+        # Sprawdź czy ta kombinacja jest pomijana dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(f"{sys}-{ten}")
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     ax.set_xlabel("System-Tenant")
     ax.set_ylabel(ylabel)
-    ax.set_xticks(x)
+    ax.set_xticks(x_positions)
     # ZMIANA: Dostosuj rotację etykiet w zależności od liczby tenantów
     rotation_angle = 45 if num_tenants <= 6 else 60
     fontsize = 8 if num_tenants <= 6 else 6
@@ -434,7 +493,7 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         if len(variants) == 1:
             left, right = 0.05, 0.89
     elif num_tenants <= 6:
-        left, right = 0.04, 0.86
+        left, right = 0.04, 0.84
         if len(variants) == 1:
             left, right = 0.04, 0.91
     else:  # 8 tenantów
@@ -442,7 +501,7 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         if len(variants) == 1:
             left, right = 0.03, 0.93
 
-    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.14)
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.16)
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
 
@@ -567,8 +626,17 @@ def draw_resource_share_combined(df, scenario, output_dir):
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
 
         for idx, (sys, ten, res) in enumerate(combos):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             metric_name = resource_metrics[res]
 
             # Sprawdź czy scenariusz ma warianty czy nie na podstawie pierwszego wiersza danych
@@ -608,7 +676,8 @@ def draw_resource_share_combined(df, scenario, output_dir):
             )
             # Użyj wzorka dla zasobu
             hatches_list.append(hatches_resource.get(res, ""))
-            positions.append(idx * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -627,11 +696,30 @@ def draw_resource_share_combined(df, scenario, output_dir):
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
+    # Utwórz etykiety tylko dla kombinacji, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys, ten, res in combos:
+        # Sprawdź czy ta kombinacja jest pomijana dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(f"{sys}-{ten}-{res}")
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     # Etykiety osi X
-    labels = [f"{sys}-{ten}-{res}" for sys, ten, res in combos]
     ax.set_xlabel("System-Tenant-Resource")
     ax.set_ylabel("Resource share [%]")
-    ax.set_xticks(x)
+    ax.set_xticks(x_positions)
     # ZMIANA: Dostosuj rotację etykiet w zależności od liczby tenantów
     rotation_angle = 45 if num_tenants <= 3 else (60 if num_tenants <= 6 else 75)
     fontsize = 8 if num_tenants <= 3 else (6 if num_tenants <= 6 else 5)
@@ -707,7 +795,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
         if len(variants) == 1:
             left, right = 0.04, 0.91
     elif num_tenants <= 6:
-        left, right = 0.025, 0.9
+        left, right = 0.025, 0.88
         if len(variants) == 1:
             left, right = 0.03, 0.93
     else:  # 8 tenantów
@@ -825,8 +913,17 @@ def draw_jfi_combined(df, scenario, output_dir):
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
 
         for idx, (sys, res) in enumerate(combos):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             metric_name = jfi_metrics[res]
 
             # Sprawdź czy scenariusz ma warianty czy nie na podstawie pierwszego wiersza danych
@@ -864,7 +961,8 @@ def draw_jfi_combined(df, scenario, output_dir):
             )
             # Użyj wzorka dla zasobu
             hatches_list.append(hatches_resource.get(res, ""))
-            positions.append(idx * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -883,11 +981,30 @@ def draw_jfi_combined(df, scenario, output_dir):
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
+    # Utwórz etykiety tylko dla kombinacji, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys, res in combos:
+        # Sprawdź czy ta kombinacja jest pomijana dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(f"{sys}-{res}")
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     # Etykiety osi X
-    labels = [f"{sys}-{res}" for sys, res in combos]
     ax.set_xlabel("System-Resource")
     ax.set_ylabel("JFI")
-    ax.set_xticks(x)
+    ax.set_xticks(x_positions)
     ax.set_xticklabels(labels, rotation=45, ha="right")
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.grid(True, alpha=0.3, axis="y")  # Siatka

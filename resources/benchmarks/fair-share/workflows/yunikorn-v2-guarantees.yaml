@@ -106,7 +106,7 @@ tasks:
     params:
       timeout: 5s
 
-  # Configure nodes - 10 węzłów po 12 CPU i 12 RAM każdy
+  # Configure nodes - 10 węzłów po 12 CPU każdy
   - id: configure-nodes
     type: Configure
     params:
