@@ -1,41 +1,82 @@
-name: volcano-fair-share-benchmark-v3
+name: yunikorn-fair-share-benchmark-v2-guarantees
 description: |
-  Fair Share benchmark dla schedulera Volcano w środowisku heterogenicznym.
-
-  Test sprawdza, czy Volcano prawidłowo implementuje mechanizm DRF (Dominant Resource Fairness)
-  w heterogenicznym klastrze z węzłami o różnych profilach zasobów. Tworzy trzy oddzielne
-  przestrzenie nazw i kolejki z równymi wagami, ale różnymi dominującymi zasobami.
-
-  Scenariusz testu:
-  1. Konfiguracja heterogenicznego klastra z 12 węzłami o różnych profilach zasobów
-  2. Konfiguracja Volcano z włączonym pluginem DRF
-  3. Utworzenie trzech kolejek o równych wagach odpowiadających tenantom
-  4. Sekwencyjne wysłanie zadań w trzech rundach
+  Weighted Fair Share benchmark for YuniKorn (No Guarantees).
+  Tests proportional resource sharing (3:2:1 weights) in a homogeneous cluster
+  with identical jobs under high load, using explicit weights and guarantees.
 tasks:
-  # Configure Volcano
-  - id: configure-volcano
+  - id: configure-yunikorn
     type: Configure
     params:
       configmaps:
-        - name: volcano-scheduler-configmap
-          namespace: volcano-system
+        - name: yunikorn-configs
+          namespace: yunikorn
           op: create
           data:
-            volcano-scheduler.conf: |
-              actions: "enqueue, allocate, preempt, reclaim"
-              tiers:
-              - plugins:
-                - name: priority
-              - plugins:
-                - name: drf
-                  enablePreemptable: true
-                  enableHierarchy: true
-                - name: predicates
-                - name: nodeorder
-                - name: binpack
+            queues.yaml: |
+              partitions:
+                - name: default
+                  placementrules:
+                    - name: provided
+                      create: false
+                  queues:
+                  - name: root
+                    submitacl: '*'
+                    queues:
+                    - name: fairshare
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                        preemption.policy: default
+                        preemption.delay: 5s
+                      resources:
+                        guaranteed:
+                          vcore: 576000m
+                          memory: 2304000Mi
+                          nvidia.com/gpu: 48
+                        max:
+                          vcore: 576000m
+                          memory: 2304000Mi
+                          nvidia.com/gpu: 48
+                      queues:
+                      - name: tenant-a1
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-a2
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-b1
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-b2
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-c1
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-c2
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
       deploymentRestarts:
-        - namespace: volcano-system
-          name: volcano-scheduler
+        - namespace: yunikorn
+          name: yunikorn-scheduler
       timeout: 10m
 
   - id: config-sleep
@@ -108,17 +149,11 @@ tasks:
           op: create
       timeout: 1m
 
-  # Register queue template
-  - id: register-queue
-    type: RegisterObj
-    params:
-      template: "resources/benchmarks/fair-share/templates/volcano/queue-hdrf.yml"
-
-  # Register job templates for different batches
+  # Register YuniKorn job templates
   - id: register-job-batch-1
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v3-batch1-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
@@ -126,59 +161,10 @@ tasks:
   - id: register-job-batch-2
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v3-batch2-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-test-[0-9]+"
       podCount: "{{.replicas}}"
-
-  # Create queues with equal weights for all six tenants
-  - id: create-queue-a1
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-a1-queue"
-
-  - id: create-queue-a2
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-a2-queue"
-
-  - id: create-queue-b1
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-b1-queue"
-
-  - id: create-queue-b2
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-b2-queue"
-
-  - id: create-queue-c1
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-c1-queue"
-
-  - id: create-queue-c2
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-c2-queue"
 
   # Runda 1: Pierwszy batch zadań dla wszystkich najemców
   - id: phase1
@@ -195,7 +181,7 @@ tasks:
             params:
               namespace: tenant-a1
               replicas: 1
-              queue: tenant-a1-queue
+              queue: root.fairshare.tenant-a1
               cpu: 8000m
               memory: 8000Mi
               ttl: "5m"
@@ -207,7 +193,7 @@ tasks:
             params:
               namespace: tenant-a2
               replicas: 1
-              queue: tenant-a2-queue
+              queue: root.fairshare.tenant-a2
               cpu: 8000m
               memory: 8000Mi
               ttl: "5m"
@@ -222,7 +208,7 @@ tasks:
             params:
               namespace: tenant-b1
               replicas: 1
-              queue: tenant-b1-queue
+              queue: root.fairshare.tenant-b1
               cpu: 2000m
               memory: 32000Mi
               ttl: "5m"
@@ -234,7 +220,7 @@ tasks:
             params:
               namespace: tenant-b2
               replicas: 1
-              queue: tenant-b2-queue
+              queue: root.fairshare.tenant-b2
               cpu: 2000m
               memory: 32000Mi
               ttl: "5m"
@@ -250,7 +236,7 @@ tasks:
             params:
               namespace: tenant-c1
               replicas: 1
-              queue: tenant-c1-queue
+              queue: root.fairshare.tenant-c1
               cpu: 2000m
               memory: 8000Mi
               gpu: 1
@@ -263,7 +249,7 @@ tasks:
             params:
               namespace: tenant-c2
               replicas: 1
-              queue: tenant-c2-queue
+              queue: root.fairshare.tenant-c2
               cpu: 2000m
               memory: 8000Mi
               gpu: 1
@@ -287,7 +273,7 @@ tasks:
             params:
               namespace: tenant-a1
               replicas: 1
-              queue: tenant-a1-queue
+              queue: root.fairshare.tenant-a1
               cpu: 8000m
               memory: 8000Mi
               ttl: "5m"
@@ -299,7 +285,7 @@ tasks:
             params:
               namespace: tenant-a2
               replicas: 1
-              queue: tenant-a2-queue
+              queue: root.fairshare.tenant-a2
               cpu: 8000m
               memory: 8000Mi
               ttl: "5m"
@@ -312,7 +298,7 @@ tasks:
             params:
               namespace: tenant-b1
               replicas: 1
-              queue: tenant-b1-queue
+              queue: root.fairshare.tenant-b1
               cpu: 2000m
               memory: 32000Mi
               ttl: "5m"
@@ -324,7 +310,7 @@ tasks:
             params:
               namespace: tenant-b2
               replicas: 1
-              queue: tenant-b2-queue
+              queue: root.fairshare.tenant-b2
               cpu: 2000m
               memory: 32000Mi
               ttl: "5m"
@@ -337,7 +323,7 @@ tasks:
             params:
               namespace: tenant-c1
               replicas: 1
-              queue: tenant-c1-queue
+              queue: root.fairshare.tenant-c1
               cpu: 2000m
               memory: 8000Mi
               gpu: 1
@@ -350,7 +336,7 @@ tasks:
             params:
               namespace: tenant-c2
               replicas: 1
-              queue: tenant-c2-queue
+              queue: root.fairshare.tenant-c2
               cpu: 2000m
               memory: 8000Mi
               gpu: 1

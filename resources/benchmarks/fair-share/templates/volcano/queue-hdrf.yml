@@ -1,0 +1,43 @@
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: {{ .name }}
+  annotations:
+    volcano.sh/hierarchy: "root/{{.name}}"
+    volcano.sh/hierarchy-weights: "1/1"
+spec:
+  {{- if .parent }}
+  parent: {{ .parent }}
+  {{- end }}
+
+  reclaimable: true
+
+  {{- if .priority }}
+  priority: {{ .priority }}
+  {{- end }}
+
+  {{- if .weight }}
+  weight: {{ .weight }}
+  {{- end }}
+
+  {{- if .guarantee }}
+  guarantee:
+    resource:
+      {{- range $key, $value := .guarantee.resource }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
+  {{- end }}
+
+  {{- if .deserved }}
+  deserved:
+    {{- range $key, $value := .deserved }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+
+  {{- if .capability }}
+  capability:
+    {{- range $key, $value := .capability }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
