@@ -17,8 +17,6 @@ tasks:
               - plugins:
                 - name: priority
               - plugins:
-                - name: drf
-                  enablePreemptable: true
                 - name: predicates
                 - name: proportion
                 - name: nodeorder
