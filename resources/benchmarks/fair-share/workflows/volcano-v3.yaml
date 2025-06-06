@@ -30,7 +30,6 @@ tasks:
                 - name: drf
                   enablePreemptable: true
                 - name: predicates
-                - name: proportion
                 - name: nodeorder
                 - name: binpack
       deploymentRestarts:
@@ -143,8 +142,6 @@ tasks:
       params:
         name: "tenant-a-queue"
         reclaimable: true
-        priority: 1
-        weight: 1
         capability: # cluster total
           cpu: 384000m
           memory: 1536000Mi
@@ -158,8 +155,6 @@ tasks:
       params:
         name: "tenant-b-queue"
         reclaimable: true
-        priority: 1
-        weight: 1
         capability: # cluster total
           cpu: 384000m
           memory: 1536000Mi
@@ -173,8 +168,6 @@ tasks:
       params:
         name: "tenant-c-queue"
         reclaimable: true
-        priority: 1
-        weight: 1
         capability: # cluster total
           cpu: 384000m
           memory: 1536000Mi

@@ -423,7 +423,7 @@ tasks:
         name: dummy-cq
         cohort: fairshare-cohort
         fairSharing:
-          weight: 0 # Waga nieistotna
+          weight: 1 # Waga nieistotna
         flavorFungibility:
           whenCanBorrow: Borrow
           whenCanPreempt: Preempt

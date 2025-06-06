@@ -34,7 +34,6 @@ tasks:
                 - name: drf
                   enablePreemptable: true
                 - name: predicates
-                - name: proportion
                 - name: nodeorder
                 - name: binpack
       deploymentRestarts:
