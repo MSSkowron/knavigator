@@ -4,6 +4,7 @@ Script do generowania wykresów sprawiedliwości systemów szeregowania z pliku 
 """
 
 import os
+import re
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -506,6 +507,18 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
     plt.close()
 
 
+def _natural_sort_key(tenant: str):
+    """
+    Klucz sortujący: prefix literowy + opcjonalny sufiks numeryczny.
+    e.g. 'A' -> ('A', 0), 'A1' -> ('A', 1), 'B2' -> ('B', 2)
+    """
+    m = re.match(r"^([A-Za-z]+)(\d*)$", tenant)
+    if not m:
+        return (tenant, 0)
+    prefix, num = m.groups()
+    return (prefix, int(num) if num else 0)
+
+
 def draw_resource_share_combined(df, scenario, output_dir):
     """
     Rysuje łączony wykres udziału zasobów dla danego scenariusza.
@@ -557,14 +570,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
         else x,
     )
 
-    # Pobierz tenantów - tylko rzeczywiste tenancy (A, B, C, D, E, F, G, H), pomiń NaN
-    # ZMIANA: Rozszerzono słownik tenants_order dla większej liczby tenantów
-    tenants_order = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7}
-    all_tenants = df_s["Tenant"].dropna().unique()
-    tenants = sorted(
-        [t for t in all_tenants if t in tenants_order],
-        key=lambda x: tenants_order.get(x, 999),
-    )
+    tenants = sorted(df_s["Tenant"].dropna().unique(), key=_natural_sort_key)
 
     # Tworzenie kombinacji system-tenant-resource
     combos = [
