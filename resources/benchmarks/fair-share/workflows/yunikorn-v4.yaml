@@ -33,8 +33,8 @@ tasks:
                           vcore: 100000m
                           memory: 100000Mi
                         max:
-                          vcore: 576000m
-                          memory: 2304000Mi
+                          vcore: 100000m
+                          memory: 100000Mi
                       queues:
                       - name: tenant-a
                         submitacl: '*'
