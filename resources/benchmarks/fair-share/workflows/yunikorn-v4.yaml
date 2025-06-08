@@ -1,29 +1,80 @@
-name: volcano-fair-share-benchmark-historical-priority
+name: yunikorn-fair-share-benchmark-v2-guarantees
 description: |
-  Historical Priority Fair Share benchmark for Volcano.
+  Weighted Fair Share benchmark for YuniKorn (No Guarantees).
+  Tests proportional resource sharing (3:2:1 weights) in a homogeneous cluster
+  with identical jobs under high load, using explicit weights and guarantees.
 tasks:
-  # Configure Volcano
-  - id: configure-volcano
+  - id: configure-yunikorn
     type: Configure
     params:
       configmaps:
-        - name: volcano-scheduler-configmap
-          namespace: volcano-system
+        - name: yunikorn-configs
+          namespace: yunikorn
           op: create
           data:
-            volcano-scheduler.conf: |
-              actions: "enqueue, allocate, reclaim"
-              tiers:
-              - plugins:
-                - name: priority
-              - plugins:
-                - name: predicates
-                - name: proportion
-                - name: nodeorder
-                - name: binpack
+            queues.yaml: |
+              partitions:
+                - name: default
+                  placementrules:
+                    - name: provided
+                      create: false
+                  queues:
+                  - name: root
+                    submitacl: '*'
+                    queues:
+                    - name: fairshare
+                      submitacl: '*'
+                      properties:
+                        application.sort.policy: fair
+                        preemption.policy: default
+                        preemption.delay: 5s
+                      resources:
+                        guaranteed:
+                          vcore: 100000m
+                          memory: 100000Mi
+                        max:
+                          vcore: 576000m
+                          memory: 2304000Mi
+                      queues:
+                      - name: tenant-a
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-b
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-c
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-d
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-e
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
+                      - name: tenant-f
+                        submitacl: '*'
+                        properties:
+                          application.sort.policy: fifo
+                          priority.offset: "0"
+                          preemption.delay: 5s
       deploymentRestarts:
-        - namespace: volcano-system
-          name: volcano-scheduler
+        - namespace: yunikorn
+          name: yunikorn-scheduler
       timeout: 10m
 
   - id: config-sleep
@@ -63,17 +114,11 @@ tasks:
           op: create
       timeout: 1m
 
-  # Register queue template
-  - id: register-queue
-    type: RegisterObj
-    params:
-      template: "resources/benchmarks/fair-share/templates/volcano/queue.yml"
-
   # Register job templates for Phase 1 - all active tenants
   - id: register-job-phase1-tenant-a
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p1-a-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -81,7 +126,7 @@ tasks:
   - id: register-job-phase1-tenant-b
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p1-b-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -89,7 +134,7 @@ tasks:
   - id: register-job-phase1-tenant-c
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p1-c-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -97,7 +142,7 @@ tasks:
   - id: register-job-phase1-tenant-d
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p1-d-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -106,7 +151,7 @@ tasks:
   - id: register-job-phase3-a
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p3-a-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -114,7 +159,7 @@ tasks:
   - id: register-job-phase3-b
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p3-b-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -122,7 +167,7 @@ tasks:
   - id: register-job-phase3-c
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p3-c-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -130,7 +175,7 @@ tasks:
   - id: register-job-phase3-d
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p3-d-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -138,7 +183,7 @@ tasks:
   - id: register-job-phase3-e
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p3-e-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -146,95 +191,10 @@ tasks:
   - id: register-job-phase3-f
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
       nameFormat: "fairshare-v4-p3-f-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
-
-  # Create cluster queues with equal weights for all tenants
-  - id: create-queue-a
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-a-queue"
-        reclaimable: true
-        priority: 1
-        weight: 1
-        capability: # Set to cluster capacity
-          cpu: 100000m # ~100 CPU
-          memory: 100000Mi # ~100 GiB
-
-  - id: create-queue-b
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-b-queue"
-        reclaimable: true
-        priority: 1
-        weight: 1
-        capability: # Set to cluster capacity
-          cpu: 100000m # ~100 CPU
-          memory: 100000Mi # ~100 GiB
-
-  - id: create-queue-c
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-c-queue"
-        reclaimable: true
-        priority: 1
-        weight: 1
-        capability: # Set to cluster capacity
-          cpu: 100000m # ~100 CPU
-          memory: 100000Mi # ~100 GiB
-
-  - id: create-queue-d
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-d-queue"
-        reclaimable: true
-        priority: 1
-        weight: 1
-        capability: # Set to cluster capacity
-          cpu: 100000m # ~100 CPU
-          memory: 100000Mi # ~100 GiB
-
-  - id: create-queue-e
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-e-queue"
-        reclaimable: true
-        priority: 1
-        weight: 1
-        capability: # Set to cluster capacity
-          cpu: 100000m # ~100 CPU
-          memory: 100000Mi # ~100 GiB
-
-  - id: create-queue-f
-    type: SubmitObj
-    params:
-      refTaskId: register-queue
-      canExist: true
-      params:
-        name: "tenant-f-queue"
-        reclaimable: true
-        priority: 1
-        weight: 1
-        capability: # Set to cluster capacity
-          cpu: 100000m # ~100 CPU
-          memory: 100000Mi # ~100 GiB
 
   # --- Phase 1: Build Usage History (10 minutes) ---
   - id: phase1-history-building
@@ -250,7 +210,7 @@ tasks:
             count: 8
             params:
               namespace: tenant-a
-              queue: tenant-a-queue
+              queue: root.fairshare.tenant-a
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -263,7 +223,7 @@ tasks:
             count: 5
             params:
               namespace: tenant-b
-              queue: tenant-b-queue
+              queue: root.fairshare.tenant-b
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -276,7 +236,7 @@ tasks:
             count: 3
             params:
               namespace: tenant-c
-              queue: tenant-c-queue
+              queue: root.fairshare.tenant-c
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -289,7 +249,7 @@ tasks:
             count: 1
             params:
               namespace: tenant-d
-              queue: tenant-d-queue
+              queue: root.fairshare.tenant-d
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -325,7 +285,7 @@ tasks:
             count: 40
             params:
               namespace: tenant-a
-              queue: tenant-a-queue
+              queue: root.fairshare.tenant-a
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -337,7 +297,7 @@ tasks:
             count: 40
             params:
               namespace: tenant-b
-              queue: tenant-b-queue
+              queue: root.fairshare.tenant-b
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -349,7 +309,7 @@ tasks:
             count: 40
             params:
               namespace: tenant-c
-              queue: tenant-c-queue
+              queue: root.fairshare.tenant-c
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -361,7 +321,7 @@ tasks:
             count: 40
             params:
               namespace: tenant-d
-              queue: tenant-d-queue
+              queue: root.fairshare.tenant-d
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -373,7 +333,7 @@ tasks:
             count: 40
             params:
               namespace: tenant-e
-              queue: tenant-e-queue
+              queue: root.fairshare.tenant-e
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
@@ -385,7 +345,7 @@ tasks:
             count: 40
             params:
               namespace: tenant-f
-              queue: tenant-f-queue
+              queue: root.fairshare.tenant-f
               replicas: 1
               cpu: 1000m
               memory: 1000Mi
