@@ -73,7 +73,7 @@ tasks:
   - id: register-job-phase1-tenant-a
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p1-a-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -81,7 +81,7 @@ tasks:
   - id: register-job-phase1-tenant-b
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p1-b-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -89,7 +89,7 @@ tasks:
   - id: register-job-phase1-tenant-c
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p1-c-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -97,7 +97,7 @@ tasks:
   - id: register-job-phase1-tenant-d
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p1-d-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -106,7 +106,7 @@ tasks:
   - id: register-job-phase3-a
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p3-a-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -114,7 +114,7 @@ tasks:
   - id: register-job-phase3-b
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p3-b-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -122,7 +122,7 @@ tasks:
   - id: register-job-phase3-c
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p3-c-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -130,7 +130,7 @@ tasks:
   - id: register-job-phase3-d
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p3-d-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -138,7 +138,7 @@ tasks:
   - id: register-job-phase3-e
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p3-e-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -146,7 +146,7 @@ tasks:
   - id: register-job-phase3-f
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/volcano/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/volcano/job.yml"
       nameFormat: "fairshare-v4-p3-f-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -241,7 +241,7 @@ tasks:
     type: Repeat
     params:
       duration: 10m
-      interval: 10s # Changed from 6s to 10s
+      interval: 10s
       tasks:
         # Tenant A: Highest Load (8 jobs)
         - type: SubmitObj
@@ -303,7 +303,7 @@ tasks:
   - id: stabilize-after-phase1
     type: Sleep
     params:
-      timeout: 120s
+      timeout: 240s
 
   - id: remove-all-jobs
     type: DeleteAllJobs

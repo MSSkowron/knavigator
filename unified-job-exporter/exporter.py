@@ -26,7 +26,7 @@ TARGET_NAMESPACE = os.environ.get("TARGET_NAMESPACE", None)
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # --- Globalne Zmienne ---
-volcano_start_times_cache = {}
+job_start_times_cache = {}
 observed_wait_times_uids = set()
 observed_executiontotal_durations_uids = set()
 previous_job_labels_for_uid = {}  # {uid: set(tuple(sorted_label_items), ...)} z poprzedniego cyklu
@@ -264,69 +264,66 @@ def get_k8s_job_final_status(conditions):
     return final_status, completion_time_dt
 
 
-def get_volcano_start_time(uid, conditions_list):
-    """Pobiera czas startu Volcano Job z cache lub conditions (lista dictów)."""
-    global volcano_start_times_cache
-    start_time_ts = volcano_start_times_cache.get(uid)
-    if start_time_ts:
+def get_unified_job_start_time(uid, start_time_dt):
+    """Zapisuje czas startu zadania w cache."""
+    global job_start_times_cache
+    if start_time_dt and uid not in job_start_times_cache:
+        job_start_times_cache[uid] = start_time_dt.timestamp()
         logging.info(
-            f"[get_volcano_start_time] UID: {uid} - Found start time in cache: {start_time_ts}"
+            f"[get_unified_job_start_time] Cached start time for UID {uid}: {start_time_dt}"
         )
-        return datetime.fromtimestamp(start_time_ts, tz=timezone.utc)
-
-    earliest_running_time = None
-    if conditions_list and isinstance(conditions_list, list):
-        for condition in conditions_list:
-            if isinstance(condition, dict) and condition.get("status") == "Running":
-                ts = parse_timestamp(condition.get("lastTransitionTime"))
-                if ts:
-                    logging.info(
-                        f"[get_volcano_start_time] UID: {uid} - Found 'Running' condition with time: {ts}"
-                    )
-                    if earliest_running_time is None or ts < earliest_running_time:
-                        earliest_running_time = ts
-                else:
-                    logging.info(
-                        f"[get_volcano_start_time] UID: {uid} - Found 'Running' condition but failed to parse time: {condition.get('lastTransitionTime')}"
-                    )
-
-    if earliest_running_time:
-        logging.info(
-            f"[get_volcano_start_time] UID: {uid} - Determined earliest start time: {earliest_running_time}, caching."
-        )
-        volcano_start_times_cache[uid] = earliest_running_time.timestamp()
-        return earliest_running_time
-    else:
-        logging.info(
-            f"[get_volcano_start_time] UID: {uid} - No 'Running' condition found."
-        )
-        return None
+    return start_time_dt
 
 
-def get_k8s_job_pod_scheduled_time(
+def get_job_first_pod_running_time(
     core_v1_api,
     job_name: str,
     job_namespace: str,
+    job_kind: str,
 ) -> Optional[datetime]:
     """
-    Zwraca najwcześniejszy timestamp przejścia warunku PodScheduled==True
-    dla podów należących wyłącznie do Job o nazwie job_name.
+    Zwraca najwcześniejszy timestamp przejścia pierwszego poda w fazę Running
+    dla zadania (K8s Job lub VolcanoJob).
     """
-    pods = core_v1_api.list_namespaced_pod(
-        namespace=job_namespace,
-        label_selector=f"job-name={job_name}",
-        timeout_seconds=10,
-    ).items
+    # Wybierz odpowiedni label selector w zależności od typu zadania
+    if job_kind == "Job":
+        label_selector = f"job-name={job_name}"
+    elif job_kind == "VolcanoJob":
+        label_selector = f"volcano.sh/job-name={job_name}"
+    else:
+        logging.warning(
+            f"[get_job_first_pod_running_time] Unknown job kind: {job_kind}"
+        )
+        return None
 
-    earliest: Optional[datetime] = None
-    for pod in pods:
-        for cond in pod.status.conditions or []:
-            if cond.type == "PodScheduled" and cond.status == "True":
-                ts = parse_timestamp(cond.last_transition_time)
-                if ts and (earliest is None or ts < earliest):
-                    earliest = ts
+    try:
+        pods = core_v1_api.list_namespaced_pod(
+            namespace=job_namespace,
+            label_selector=label_selector,
+            timeout_seconds=10,
+        ).items
 
-    return earliest
+        earliest_running: Optional[datetime] = None
+
+        for pod in pods:
+            # Sprawdź czy pod osiągnął fazę Running lub Succeeded
+            if pod.status.phase in ["Running", "Succeeded"]:
+                # Używaj start_time jako najbardziej wiarygodnego źródła
+                if pod.status.start_time:
+                    ts = parse_timestamp(pod.status.start_time)
+                    if ts and (earliest_running is None or ts < earliest_running):
+                        earliest_running = ts
+
+        return earliest_running
+
+    except kubernetes.client.ApiException as e:
+        logging.error(f"[get_job_first_pod_running_time] API error: {e.reason}")
+    except Exception as e:
+        logging.error(
+            f"[get_job_first_pod_running_time] Unexpected error: {e}", exc_info=True
+        )
+
+    return None
 
 
 def process_job(job_obj, core_v1_api: kubernetes.client.CoreV1Api):
@@ -544,21 +541,23 @@ def process_job(job_obj, core_v1_api: kubernetes.client.CoreV1Api):
             )
 
         if job_kind == "Job":
-            # Pobierz najwcześniejszy czas PodScheduled (faktyczne scheduling)
-            scheduled_time = get_k8s_job_pod_scheduled_time(
-                core_v1_api, name, namespace
-            )
-
-            if scheduled_time:
-                start_time_dt = scheduled_time
-                logging.info(
-                    f"{log_prefix} Raw start_time_input: {start_time_dt.isoformat()}"
-                )
+            # Sprawdź cache
+            cached_start = job_start_times_cache.get(uid)
+            if cached_start:
+                start_time_dt = datetime.fromtimestamp(cached_start, tz=timezone.utc)
+                logging.info(f"{log_prefix} Using cached start time: {start_time_dt}")
             else:
-                start_time_dt = None
-                logging.info(
-                    f"{log_prefix} Could not determine start_time_dt for Job (no scheduled pods)."
+                # Pobierz czas uruchomienia pierwszego poda
+                start_time_dt = get_job_first_pod_running_time(
+                    core_v1_api, name, namespace, job_kind
                 )
+                if start_time_dt:
+                    get_unified_job_start_time(uid, start_time_dt)
+                    logging.info(
+                        f"{log_prefix} First pod running time: {start_time_dt.isoformat()}"
+                    )
+                else:
+                    logging.info(f"{log_prefix} No running pods found yet for Job")
 
             completion_time_input = getattr(status_data, "completion_time", None)
             conditions = getattr(status_data, "conditions", None)
@@ -609,11 +608,30 @@ def process_job(job_obj, core_v1_api: kubernetes.client.CoreV1Api):
             )
 
         elif job_kind == "VolcanoJob":
-            conditions_list = status_data.get("conditions")
-            logging.info(f"{log_prefix} Raw conditions_list: {conditions_list}")
-            start_time_dt = get_volcano_start_time(
-                uid, conditions_list
-            )  # Logowanie jest wewnątrz tej funkcji
+            # Sprawdź cache
+            cached_start = job_start_times_cache.get(uid)
+            if cached_start:
+                start_time_dt = datetime.fromtimestamp(cached_start, tz=timezone.utc)
+                logging.info(f"{log_prefix} Using cached start time: {start_time_dt}")
+            else:
+                # Pobierz czas uruchomienia pierwszego poda (ujednolicone podejście)
+                start_time_dt = get_job_first_pod_running_time(
+                    core_v1_api, name, namespace, job_kind
+                )
+                if start_time_dt:
+                    get_unified_job_start_time(uid, start_time_dt)
+                    logging.info(
+                        f"{log_prefix} First pod running time: {start_time_dt.isoformat()}"
+                    )
+                else:
+                    logging.info(
+                        f"{log_prefix} No running pods found yet for VolcanoJob"
+                    )
+                    # Opcjonalnie: możesz zachować fallback ale z wyraźnym ostrzeżeniem
+                    # conditions_list = status_data.get("conditions")
+                    # start_time_dt = get_volcano_start_time(uid, conditions_list)
+                    # if start_time_dt:
+                    #     logging.warning(f"{log_prefix} Using VolcanoJob condition time as fallback - may be inconsistent with pod-based timing")
             current_phase_str = status_data.get("state", {}).get("phase", "Unknown")
             logging.info(f"{log_prefix} Volcano current_phase_str: {current_phase_str}")
 
@@ -999,7 +1017,6 @@ def collect_metrics(
 ):
     """Pobiera zadania K8s i Volcano, przetwarza je, aktualizuje metryki i czyści stare."""
     start_time_cycle = time.time()
-    global volcano_start_times_cache
     global observed_wait_times_uids
     global observed_executiontotal_durations_uids
     global previous_job_labels_for_uid
@@ -1588,15 +1605,15 @@ def collect_metrics(
     previous_histogram_namespaces = current_histogram_namespaces
 
     # --- Czyszczenie Cache Czasu Startu Volcano ---
-    volcano_uids_to_remove_from_cache = (
-        set(volcano_start_times_cache.keys()) - current_job_uids_processed
+    job_uids_to_remove_from_cache = (
+        set(job_start_times_cache.keys()) - current_job_uids_processed
     )
-    if volcano_uids_to_remove_from_cache:
+    if job_uids_to_remove_from_cache:
         logging.info(
-            f"Removing {len(volcano_uids_to_remove_from_cache)} UIDs from Volcano start time cache."
+            f"Removing {len(job_uids_to_remove_from_cache)} UIDs from job start time cache."
         )
-        for uid in volcano_uids_to_remove_from_cache:
-            volcano_start_times_cache.pop(uid, None)
+        for uid in job_uids_to_remove_from_cache:
+            job_start_times_cache.pop(uid, None)
 
     # --- Czyszczenie Zbioru Zaobserwowanych Czasów Oczekiwania (Histogram) ---
     uids_to_remove_from_observed = observed_wait_times_uids - current_job_uids_processed

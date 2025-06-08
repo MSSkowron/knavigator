@@ -35,9 +35,9 @@ tasks:
               clientConnection:
                 qps: 50
                 burst: 100
-              # waitForPodsReady:
-              #   enable: true
-              #   timeout: 5m
+              waitForPodsReady:
+                enable: true
+                timeout: 10m
               #   blockAdmission: true
               #   requeuingStrategy:
               #     timestamp: Eviction
@@ -503,7 +503,7 @@ tasks:
     type: Repeat
     params:
       duration: 10m
-      interval: 10s # Changed from 6s to 10s
+      interval: 10s
       tasks:
         # Tenant A: Highest Load (8 jobs)
         - type: SubmitObj
@@ -569,7 +569,7 @@ tasks:
   - id: stabilize-after-phase1
     type: Sleep
     params:
-      timeout: 120s
+      timeout: 240s
 
   - id: remove-all-jobs
     type: DeleteAllJobs

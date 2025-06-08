@@ -118,7 +118,7 @@ tasks:
   - id: register-job-phase1-tenant-a
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p1-a-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -126,7 +126,7 @@ tasks:
   - id: register-job-phase1-tenant-b
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p1-b-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -134,7 +134,7 @@ tasks:
   - id: register-job-phase1-tenant-c
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p1-c-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -142,7 +142,7 @@ tasks:
   - id: register-job-phase1-tenant-d
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p1-d-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -151,7 +151,7 @@ tasks:
   - id: register-job-phase3-a
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p3-a-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -159,7 +159,7 @@ tasks:
   - id: register-job-phase3-b
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p3-b-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -167,7 +167,7 @@ tasks:
   - id: register-job-phase3-c
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p3-c-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -175,7 +175,7 @@ tasks:
   - id: register-job-phase3-d
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p3-d-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -183,7 +183,7 @@ tasks:
   - id: register-job-phase3-e
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p3-e-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -191,7 +191,7 @@ tasks:
   - id: register-job-phase3-f
     type: RegisterObj
     params:
-      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yaml"
+      template: "resources/benchmarks/fair-share/templates/yunikorn/job.yml"
       nameFormat: "fairshare-v4-p3-f-job{{._ENUM_}}"
       podNameFormat: "{{._NAME_}}-[0-9]-.*"
       podCount: "{{.replicas}}"
@@ -263,7 +263,7 @@ tasks:
   - id: stabilize-after-phase1
     type: Sleep
     params:
-      timeout: 120s
+      timeout: 240s
 
   - id: remove-all-jobs
     type: DeleteAllJobs
