@@ -1118,6 +1118,12 @@ if __name__ == "__main__":
         for metric, filename, ylabel in general_metrics:
             draw_general_metric(data, scen, output_base, metric, ylabel, filename)
 
+        pods_metric_name = (
+            "Śr. Liczba Uruchomionych Podów (Faza 2 w nasyceniu)"
+            if scen == "F4"
+            else "Śr. Liczba Uruchomionych Podów (w nasyceniu)"
+        )
+
         tenant_metrics = [
             (
                 "Śr. Czas Oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
@@ -1130,7 +1136,7 @@ if __name__ == "__main__":
                 "Wait time [s]",
             ),
             (
-                "Śr. Liczba Uruchomionych Podów (w nasyceniu)",
+                pods_metric_name,
                 f"{scen}_no_pods.svg",
                 "Number of Pods (at saturation)",
             ),
