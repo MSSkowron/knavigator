@@ -1,7 +1,0 @@
-
-nodes:
-- type: backfill-test-10x100
-  count: 10
-  resources:
-    cpu: 100.1
-    memory: 100.05Gi
