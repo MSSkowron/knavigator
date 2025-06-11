@@ -4,6 +4,7 @@ Script do generowania wykresów sprawiedliwości systemów szeregowania z pliku 
 """
 
 import os
+import re
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -170,7 +171,16 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
     for i, var in enumerate(variants):
         heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
         for j, sys in enumerate(systems):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             if variants == ["Brak"]:
                 # Dla scenariuszy bez wariantów szukaj wierszy z NaN w Wariant
                 row = metric_df[
@@ -193,7 +203,8 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
                 if sys in color_variants and var in color_variants[sys]
                 else colors.get(sys, "black")
             )
-            positions.append(j * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -211,10 +222,30 @@ def draw_general_metric(df, scenario, output_dir, metric_name, ylabel, filename)
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
+    # Utwórz etykiety tylko dla systemów, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys in systems:
+        # Sprawdź czy ten system jest pomijany dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(sys)
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     ax.set_xlabel("System")
     ax.set_ylabel(ylabel)
-    ax.set_xticks(x)
-    ax.set_xticklabels(systems)
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(labels)
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
@@ -279,7 +310,8 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         if x in ["Kueue", "Volcano", "YuniKorn"]
         else x,
     )
-    tenants_order = {"A": 0, "B": 1, "C": 2}
+    # ZMIANA: Rozszerzono słownik tenants_order dla większej liczby tenantów
+    tenants_order = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5, "G": 6, "H": 7}
     tenants = sorted(
         metric_df["Tenant"].unique(), key=lambda x: tenants_order.get(x, 999)
     )
@@ -319,11 +351,29 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
                 if val_with_error > max_val:
                     max_val = val_with_error
 
-    fig, ax = plt.subplots(figsize=(12, 6))  # Zwiększone rozmiary
+    # ZMIANA: Dostosuj rozmiar figury w zależności od liczby tenantów
+    num_tenants = len(tenants)
+    if num_tenants <= 3:
+        figsize = (12, 6)  # Oryginalna wielkość dla 3 tenantów
+    elif num_tenants <= 6:
+        figsize = (16, 6)  # Większa szerokość dla 6 tenantów
+    else:
+        figsize = (20, 6)  # Jeszcze większa szerokość dla 8 tenantów
+
+    fig, ax = plt.subplots(figsize=figsize)
     for i, var in enumerate(variants):
         heights, errs, positions, cols = [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
         for idx, (sys, ten) in enumerate(combos):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             if variants == ["Brak"]:
                 # Dla scenariuszy bez wariantów szukaj wierszy z NaN w Wariant
                 row = metric_df[
@@ -350,7 +400,8 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
                 if sys in color_variants and var in color_variants[sys]
                 else colors.get(sys, "black")
             )
-            positions.append(idx * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -368,11 +419,33 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
-    labels = [f"{sys}-{ten}" for sys, ten in combos]
+    # Utwórz etykiety tylko dla kombinacji, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys, ten in combos:
+        # Sprawdź czy ta kombinacja jest pomijana dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(f"{sys}-{ten}")
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     ax.set_xlabel("System-Tenant")
     ax.set_ylabel(ylabel)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_xticks(x_positions)
+    # ZMIANA: Dostosuj rotację etykiet w zależności od liczby tenantów
+    rotation_angle = 45 if num_tenants <= 6 else 60
+    fontsize = 8 if num_tenants <= 6 else 6
+    ax.set_xticklabels(labels, rotation=rotation_angle, ha="right", fontsize=fontsize)
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
@@ -415,12 +488,35 @@ def draw_per_tenant_metric(df, scenario, output_dir, metric_name, ylabel, filena
             borderaxespad=0,
         )
 
-    left, right = 0.05, 0.82
-    if len(variants) == 1:
-        left, right = 0.05, 0.89
+    # ZMIANA: Dostosuj marginesy w zależności od liczby tenantów
+    if num_tenants <= 3:
+        left, right = 0.05, 0.82
+        if len(variants) == 1:
+            left, right = 0.05, 0.89
+    elif num_tenants <= 6:
+        left, right = 0.04, 0.84
+        if len(variants) == 1:
+            left, right = 0.04, 0.91
+    else:  # 8 tenantów
+        left, right = 0.03, 0.88
+        if len(variants) == 1:
+            left, right = 0.03, 0.93
+
     plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.16)
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
+
+
+def _natural_sort_key(tenant: str):
+    """
+    Klucz sortujący: prefix literowy + opcjonalny sufiks numeryczny.
+    e.g. 'A' -> ('A', 0), 'A1' -> ('A', 1), 'B2' -> ('B', 2)
+    """
+    m = re.match(r"^([A-Za-z]+)(\d*)$", tenant)
+    if not m:
+        return (tenant, 0)
+    prefix, num = m.groups()
+    return (prefix, int(num) if num else 0)
 
 
 def draw_resource_share_combined(df, scenario, output_dir):
@@ -474,13 +570,7 @@ def draw_resource_share_combined(df, scenario, output_dir):
         else x,
     )
 
-    # Pobierz tenantów - tylko rzeczywiste tenancy (A, B, C), pomiń NaN
-    tenants_order = {"A": 0, "B": 1, "C": 2}
-    all_tenants = df_s["Tenant"].dropna().unique()
-    tenants = sorted(
-        [t for t in all_tenants if t in tenants_order],
-        key=lambda x: tenants_order.get(x, 999),
-    )
+    tenants = sorted(df_s["Tenant"].dropna().unique(), key=_natural_sort_key)
 
     # Tworzenie kombinacji system-tenant-resource
     combos = [
@@ -528,13 +618,31 @@ def draw_resource_share_combined(df, scenario, output_dir):
                 if val_with_error > max_val:
                     max_val = val_with_error
 
-    fig, ax = plt.subplots(figsize=(16, 8))  # Zwiększone rozmiary
+    # ZMIANA: Dostosuj rozmiar figury w zależności od liczby tenantów
+    num_tenants = len(tenants)
+    if num_tenants <= 3:
+        figsize = (16, 8)  # Oryginalna wielkość dla 3 tenantów
+    elif num_tenants <= 6:
+        figsize = (24, 8)  # Większa szerokość dla 6 tenantów
+    else:
+        figsize = (32, 8)  # Jeszcze większa szerokość dla 8 tenantów
+
+    fig, ax = plt.subplots(figsize=figsize)
 
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
 
         for idx, (sys, ten, res) in enumerate(combos):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             metric_name = resource_metrics[res]
 
             # Sprawdź czy scenariusz ma warianty czy nie na podstawie pierwszego wiersza danych
@@ -574,7 +682,8 @@ def draw_resource_share_combined(df, scenario, output_dir):
             )
             # Użyj wzorka dla zasobu
             hatches_list.append(hatches_resource.get(res, ""))
-            positions.append(idx * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -593,12 +702,34 @@ def draw_resource_share_combined(df, scenario, output_dir):
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
+    # Utwórz etykiety tylko dla kombinacji, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys, ten, res in combos:
+        # Sprawdź czy ta kombinacja jest pomijana dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(f"{sys}-{ten}-{res}")
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     # Etykiety osi X
-    labels = [f"{sys}-{ten}-{res}" for sys, ten, res in combos]
     ax.set_xlabel("System-Tenant-Resource")
     ax.set_ylabel("Resource share [%]")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_xticks(x_positions)
+    # ZMIANA: Dostosuj rotację etykiet w zależności od liczby tenantów
+    rotation_angle = 45 if num_tenants <= 3 else (60 if num_tenants <= 6 else 75)
+    fontsize = 8 if num_tenants <= 3 else (6 if num_tenants <= 6 else 5)
+    ax.set_xticklabels(labels, rotation=rotation_angle, ha="right", fontsize=fontsize)
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
 
@@ -664,11 +795,21 @@ def draw_resource_share_combined(df, scenario, output_dir):
         borderaxespad=0,
     )
 
-    left, right = 0.035, 0.86
-    if len(variants) == 1:
-        left, right = 0.04, 0.91
+    # ZMIANA: Dostosuj marginesy w zależności od liczby tenantów
+    if num_tenants <= 3:
+        left, right = 0.035, 0.86
+        if len(variants) == 1:
+            left, right = 0.04, 0.91
+    elif num_tenants <= 6:
+        left, right = 0.025, 0.88
+        if len(variants) == 1:
+            left, right = 0.03, 0.93
+    else:  # 8 tenantów
+        left, right = 0.02, 0.92
+        if len(variants) == 1:
+            left, right = 0.025, 0.95
 
-    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.17)
+    plt.subplots_adjust(left=left, right=right, top=0.98, bottom=0.15)
     filename = f"{scenario}_resource_share_combined.svg"
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
@@ -778,8 +919,17 @@ def draw_jfi_combined(df, scenario, output_dir):
     for i, var in enumerate(variants):
         heights, errs, positions, cols, hatches_list = [], [], [], [], []
         offset = (i - (len(variants) - 1) / 2) * width
+        current_pos = 0
 
         for idx, (sys, res) in enumerate(combos):
+            # Dla scenariuszy F1 i F2, pomiń YuniKorn w wariancie "Bez gwarancji"
+            if (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                continue
+
             metric_name = jfi_metrics[res]
 
             # Sprawdź czy scenariusz ma warianty czy nie na podstawie pierwszego wiersza danych
@@ -817,7 +967,8 @@ def draw_jfi_combined(df, scenario, output_dir):
             )
             # Użyj wzorka dla zasobu
             hatches_list.append(hatches_resource.get(res, ""))
-            positions.append(idx * scale + offset)
+            positions.append(current_pos * scale + offset)
+            current_pos += 1
 
         bars = ax.bar(
             positions,
@@ -836,11 +987,30 @@ def draw_jfi_combined(df, scenario, output_dir):
         # Dodaj wartości na słupkach
         add_value_labels(ax, bars, heights, errs, max_val)
 
+    # Utwórz etykiety tylko dla kombinacji, które rzeczywiście są wyświetlane
+    labels = []
+    x_positions = []
+    current_pos = 0
+    for sys, res in combos:
+        # Sprawdź czy ta kombinacja jest pomijana dla któregokolwiek wariantu
+        should_include = False
+        for var in variants:
+            if not (
+                scenario in ["F1", "F2"]
+                and sys == "YuniKorn"
+                and var == "Bez gwarancji"
+            ):
+                should_include = True
+                break
+        if should_include:
+            labels.append(f"{sys}-{res}")
+            x_positions.append(current_pos * scale)
+            current_pos += 1
+
     # Etykiety osi X
-    labels = [f"{sys}-{res}" for sys, res in combos]
     ax.set_xlabel("System-Resource")
     ax.set_ylabel("JFI")
-    ax.set_xticks(x)
+    ax.set_xticks(x_positions)
     ax.set_xticklabels(labels, rotation=45, ha="right")
     ax.set_ylim(0, max_val * 1.15)  # Margines górny
     ax.grid(True, alpha=0.3, axis="y")  # Siatka
@@ -948,6 +1118,12 @@ if __name__ == "__main__":
         for metric, filename, ylabel in general_metrics:
             draw_general_metric(data, scen, output_base, metric, ylabel, filename)
 
+        pods_metric_name = (
+            "Śr. Liczba Uruchomionych Podów (Faza 2 w nasyceniu)"
+            if scen == "F4"
+            else "Śr. Liczba Uruchomionych Podów (w nasyceniu)"
+        )
+
         tenant_metrics = [
             (
                 "Śr. Czas Oczekiwania (Faza 2 do momentu nasycenia klastra) [s]",
@@ -960,7 +1136,7 @@ if __name__ == "__main__":
                 "Wait time [s]",
             ),
             (
-                "Śr. Liczba Uruchomionych Podów (w nasyceniu)",
+                pods_metric_name,
                 f"{scen}_no_pods.svg",
                 "Number of Pods (at saturation)",
             ),
