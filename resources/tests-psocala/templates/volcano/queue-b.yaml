@@ -5,6 +5,3 @@ metadata:
 spec:
   weight: 300
   reclaimable: false
-#  capability:
-#    cpu: 300
-#    memory: 300Gi

@@ -148,8 +148,8 @@ tasks:
       params:
         name: default-cluster-queue
         flavor: topology-resource-flavor
-        cpu: 400
-        memory: 400000Mi
+        cpu: 300
+        memory: 300000Mi
         pods: 110
   - id: create-local-queue
     type: SubmitObj
