@@ -115,15 +115,15 @@ tasks:
   - id: register-cluster-queue
     type: RegisterObj
     params:
-      template: "resources/benchmarks/backfill/templates/kueue/cluster-queue.yaml"
+      template: "resources//templates/kueue/cluster-queue.yaml"
   - id: register-local-queue
     type: RegisterObj
     params:
-      template: "resources/benchmarks/backfill/templates/kueue/local-queue.yaml"
+      template: "resources//templates/kueue/local-queue.yaml"
   - id: register-resource-flavor
     type: RegisterObj
     params:
-      template: "resources/benchmarks/backfill/templates/kueue/resource-flavor.yaml"
+      template: "resources//templates/kueue/resource-flavor.yaml"
 
   # Register templates for different job types
   - id: register-job-warmup

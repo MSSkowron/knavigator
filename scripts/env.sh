@@ -141,8 +141,8 @@ grafana:
       default_timezone: Europe/Warsaw
   resources:
     requests:
-      cpu: 1250m
-      memory: 1024Mi
+      cpu: "500m"
+      memory: "512Mi"
     limits:
       cpu: "3000m"
       memory: "4096Mi"
@@ -167,8 +167,8 @@ prometheus:
     podMonitorNamespaceSelector: {}
     resources:
         requests:
-          cpu: 1250m
-          memory: 1024Mi
+          cpu: "500m"
+          memory: "512Mi"
         limits:
           cpu: "3000m"
           memory: "4096Mi"
@@ -513,7 +513,6 @@ deploy_yunikorn() {
     helm upgrade --install yunikorn yunikorn/yunikorn -n yunikorn --create-namespace \
         --version="$YUNIKORN_VERSION" \
         --wait \
-        --timeout 10m \
         --set embedAdmissionController=true \
         --set-json 'affinity={"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"type","operator":"NotIn","values":["kwok"]}]}]}}}'
 
