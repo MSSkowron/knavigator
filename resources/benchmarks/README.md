@@ -1,4 +1,4 @@
-# Kubernetes Scheduler Benchmarks
+# Kubernetes Batch Scheduling Tools Benchmarks
 
 This repository contains a comprehensive collection of benchmark scenarios designed to evaluate and compare the performance of various Kubernetes schedulers:
 
