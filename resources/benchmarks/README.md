@@ -47,7 +47,7 @@ This script will:
 - Allow you to select and install one of the supported schedulers (Kueue, Volcano, or YuniKorn)
 - Import pre-configured Grafana dashboards for benchmark visualization
 
-The script automatically detects your host's CPU and memory resources and configures the Kind cluster accordingly. For example, on a host with 16 CPUs and 64GB RAM, it might allocate 12 CPUs and 32GB RAM to the cluster.
+**Note**: The script automatically detects your host's CPU and memory resources and configures the Kind cluster accordingly. For example, on a host with 16 CPUs and 64GB RAM, it might allocate 12 CPUs and 32GB RAM to the cluster.
 
 #### Scheduler Options
 
