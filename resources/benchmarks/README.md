@@ -1,4 +1,4 @@
-# Kubernetes Batch Scheduling Tools Benchmarks
+# Kubernetes Scheduler Benchmarks
 
 This repository contains a comprehensive collection of benchmark scenarios designed to evaluate and compare the performance of various Kubernetes schedulers:
 
@@ -9,15 +9,152 @@ This repository contains a comprehensive collection of benchmark scenarios desig
 
 The benchmarks are organized into major scheduling concepts and capabilities, testing different aspects of scheduler functionality, performance, and resource management.
 
+## Prerequisites
+
+Before running the benchmarks, ensure you have the following tools installed:
+
+- **[kind](https://kind.sigs.k8s.io/)** - For creating local Kubernetes clusters
+- **[kubectl](https://kubernetes.io/docs/tasks/tools/)** - Kubernetes command-line tool
+- **[helm](https://helm.sh/)** - Kubernetes package manager
+- **[Go](https://golang.org/dl/)** - Go programming language v1.20+ (for building Knavigator)
+- **[make](https://www.gnu.org/software/make/#download)** - Build automation tool
+
+## Getting Started
+
+### 1. Build Knavigator
+
+First, build the Knavigator binary from the project root:
+
+```bash
+make build
+```
+
+This will create the `knavigator` binary in the `bin/` directory.
+
+### 2. Create Test Cluster
+
+Run the cluster creation script to set up a local Kubernetes environment with monitoring stack:
+
+```bash
+./scripts/create-test-cluster.sh
+```
+
+This script will:
+- Create a Kind cluster with dynamically calculated resources based on your host machine
+- Deploy KWOK (Kubernetes Without Kubelet) for simulating virtual nodes
+- Install Prometheus and Grafana for metrics collection
+- Deploy custom exporters for job and node metrics
+- Allow you to select and install one of the supported schedulers (Kueue, Volcano, or YuniKorn)
+- Import pre-configured Grafana dashboards for benchmark visualization
+
+The script automatically detects your host's CPU and memory resources and configures the Kind cluster accordingly. For example, on a host with 16 CPUs and 64GB RAM, it might allocate 12 CPUs and 32GB RAM to the cluster.
+
+#### Scheduler Options
+
+During installation, you'll be prompted to select scheduler-specific features:
+
+**Kueue:**
+- Standard installation (default)
+- With Topology Aware Scheduling enabled
+
+**Volcano:**
+- Standard installation (default)  
+- With Network Topology Aware Scheduling enabled
+
+**YuniKorn:**
+- Standard installation with admission controller
+
+### 3. Access Monitoring Tools
+
+After cluster creation, start port forwarding to access the monitoring interfaces:
+
+```bash
+./monitoring-portforward.sh
+```
+
+This will expose:
+- **Grafana**: http://localhost:8080 (username: `admin`, password: `admin`)
+- **Prometheus**: http://localhost:9090
+
+Press `Ctrl+C` to stop port forwarding when done.
+
+### 4. Run Benchmarks
+
+Execute benchmark scenarios using Knavigator. Always run from the project root directory:
+
+```bash
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-500.yaml"
+
+# Run with increased verbosity for debugging
+./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-500.yaml" -v 4
+```
+
+**Tips:**
+- Add `-v 4` for detailed logging when debugging issues
+- Monitor progress in real-time through Grafana dashboards
+
+### 5. View Results
+
+Access Grafana at http://localhost:8080 to view real-time metrics and benchmark results. Pre-configured dashboards are available for:
+- Cluster resource utilization
+- Job scheduling metrics
+- Scheduler-specific performance indicators
+
+## Cleanup
+
+To delete the test cluster and free up resources:
+
+```bash
+kind delete cluster --name kind
+```
+
+To remove virtual nodes created by benchmarks:
+
+```bash
+kubectl delete node -l type=kwok
+```
+
+**Note**: Always clean up virtual nodes before switching schedulers or running different benchmark suites to avoid conflicts.
+
+## Important Notes
+
+- **Resource Requirements**: The test cluster requires significant resources. Ensure your host machine has at least 8 CPUs and 16GB RAM for basic tests. Larger benchmarks may require more resources.
+- **KWOK Nodes**: The benchmarks use KWOK to simulate virtual nodes. These nodes don't run actual containers but simulate pod lifecycle states, allowing for large-scale testing without massive resource requirements.
+- **Scheduler Selection**: You can only run one scheduler at a time. To switch schedulers, recreate the cluster and select a different option.
+- **Metrics Collection**: Prometheus scrapes metrics every 10 seconds. Allow sufficient time for metrics to be collected during benchmark runs.
+- **Working Directory**: Always run benchmarks from the project root directory where the Makefile is located to ensure correct path resolution.
+- **Component Versions**: The setup script uses specific versions:
+  - Kubernetes: v1.30.0
+  - KWOK: v0.6.1
+  - Kueue: v0.10.2
+  - Volcano: v1.11.0
+  - YuniKorn: v1.6.2
+  - Prometheus Stack: v70.4.2
+  - [node-resource-exporter](https://hub.docker.com/repository/docker/mateuszskowron21/node-resource-exporter/general): v1.12 
+  - [unified-job-exporter](https://hub.docker.com/repository/docker/mateuszskowron21/metrics-exporter/general): v1.24.3 
+
 ## Repository Structure
 
+This benchmark suite is part of the Knavigator project. The key directories and files are:
+
 ```
-resources/benchmarks/
-├── backfill/           # Backfill scheduling tests
-├── gang/               # Gang scheduling tests
-├── performance/        # Performance and scalability tests
-├── topology-aware/     # Network topology-aware scheduling tests
-└── fair-share/         # Fair resource sharing tests
+.
+├── bin/                           # Knavigator binary (after building)
+├── scripts/
+│   ├── create-test-cluster.sh    # Main cluster setup script
+│   └── env.sh                    # Environment variables and functions
+├── monitoring-portforward.sh      # Port forwarding for Prometheus/Grafana
+├── dashboards/                    # Pre-configured Grafana dashboards
+├── manifests/                     # Kubernetes manifests for exporters
+├── resources/
+│   ├── templates/                 # Job templates for different schedulers
+│   └── benchmarks/
+│       ├── backfill/             # Backfill scheduling tests
+│       ├── gang/                 # Gang scheduling tests
+│       ├── performance/          # Performance and scalability tests
+│       ├── topology-aware/       # Network topology-aware scheduling tests
+│       └── fair-share/           # Fair resource sharing tests
+└── Makefile                      # Build configuration
 ```
 
 ---
