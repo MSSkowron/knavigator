@@ -1,310 +1,190 @@
-# Benchmarki
+# Benchmarks
 
-Ten katalog zawiera benchmarki dla porównania i oceny wydajności następujących systemów zarządzania obciążeniem i schedulerów:
+This directory contains benchmarks for comparing and evaluating the performance of the following workload management systems and schedulers:
 
 - Kueue
 - Volcano
 - YuniKorn
 
-Benchmarki te służą do oceny różnych aspektów wydajności schedulerów pod kątem przepustowości, skalowalności, świadomości topologii sieci oraz sprawiedliwego podziału zasobów.
+## Performance, Scalability & Resource Utilization
 
-## Wydajność i Skalowalność (Performance & Scalability)
+Performance benchmarks provide a comprehensive evaluation of scheduler frameworks across different workload patterns, measuring throughput, scalability, and resource utilization efficiency. These tests simulate various scenarios that may occur in real production environments. All scenarios in this group use identical nodes with the following resources: **128 CPU cores**, **1TB RAM**, and **8 GPU accelerators**.
 
-Benchmarki wydajności dostarczają kompleksowej oceny framework'ów schedulerów w różnych wzorcach obciążeń, mierząc przepustowość, skalowalność i efektywność wykorzystania zasobów. Testy te symulują różne scenariusze, które mogą wystąpić w rzeczywistych środowiskach produkcyjnych.
+### V1: Large Number of Identical, Single-Pod Tasks
 
-### V1: Duża liczba identycznych, niezależnych jobów
+**Goal**: Efficiency in handling many single-pod tasks.
 
-Benchmark testuje zdolność schedulera do obsługi dużej liczby identycznych, niezależnych zadań. Mierzy wydajność i skalowalność schedulera i efektywność w obsłudze wielu małych zadań.
+This benchmark tests the scheduler's ability to handle many identical, independent tasks. It measures the scheduler's performance, scalability, and resource utilization efficiency in processing multiple small tasks.
 
-#### Konfiguracje
+#### Configurations
 
-Benchmark zawiera wiele konfiguracji z różnymi kombinacjami liczby węzłów i zadań:
+The benchmark includes multiple configurations testing combinations of (nodes × tasks):
 
-##### Liczba jobów: 300
+- **300×300**: 300 tasks on 300 nodes
+- **400×400**: 400 tasks on 400 nodes
+- **500×500**: 500 tasks on 500 nodes
 
-- **300 węzłów**: Test 300 jobów na 300 węzłach
-- **400 węzłów**: Test 300 jobów na 400 węzłach
-- **500 węzłów**: Test 300 jobów na 500 węzłach
+Each test configuration uses:
+- Virtual nodes, each with **128 CPU cores**, **1TB RAM**, and **8 GPUs**
+- Sequential submission of tasks
+- Independent jobs, where each consists of a single pod with requirements:
+  - **16 CPU cores** (12.5% of node's CPU)
+  - **256GB RAM** (25% of node's memory)
+  - **4 GPUs** (50% of node's GPU)
+- Pod lifetime: **5 minutes**
 
-##### Liczba jobów: 400
+#### Cluster Resource Utilization
 
-- **300 węzłów**: Test 400 jobów na 300 węzłach
-- **400 węzłów**: Test 400 jobów na 400 węzłach
-- **500 węzłów**: Test 400 jobów na 500 węzłach
+| Configuration | CPU Utilization | Memory Utilization | GPU Utilization |
+| ------------- | --------------- | ------------------ | --------------- |
+| 300×300       | 12.5%           | 25%                | 50%             |
+| 400×400       | 12.5%           | 25%                | 50%             |
+| 500×500       | 12.5%           | 25%                | 50%             |
 
-##### Liczba jobów: 500
+The identical utilization percentages across configurations are intentional - they test scheduler scalability at constant resource pressure.
 
-- **300 węzłów**: Test 500 jobów na 300 węzłach
-- **400 węzłów**: Test 500 jobów na 400 węzłach
-- **500 węzłów**: Test 500 jobów na 500 węzłach
-
-Każda konfiguracja testu wykorzystuje:
-
-- Wirtualne węzły, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
-- Niezależne joby, gdzie każdy składa się z pojedynczego poda o wymaganiach:
-  - 16 rdzeni CPU (12,5% węzła)
-  - 256Gi pamięci (25% węzła)
-  - 4 GPU (50% węzła)
-
-Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
-
-| Konfiguracja | Wykorzystanie CPU | Wykorzystanie pamięci | Wykorzystanie GPU |
-|---------------|-----------|-------------|-----------|
-| 300 jobów, 300 węzłów | 12,5% | 25% | 50% |
-| 300 jobów, 400 węzłów | 9,38% | 18,75% | 37,5% |
-| 300 jobów, 500 węzłów | 7,5% | 15% | 30% |
-| 400 jobów, 300 węzłów | 16,67% | 33,33% | 66,67% |
-| 400 jobów, 400 węzłów | 12,5% | 25% | 50% |
-| 400 jobów, 500 węzłów | 10% | 20% | 40% |
-| 500 jobów, 300 węzłów | 20,83% | 41,67% | 83,33% |
-| 500 jobów, 400 węzłów | 15,63% | 31,25% | 62,5% |
-| 500 jobów, 500 węzłów | 12,5% | 25% | 50% |
-
-**Skrypty do uruchomienia**:
+**Scripts to run**:
 
 ```bash
-# Dla Kueue
+# For Kueue
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-300-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-300-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-400-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-400-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-500-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-500-400.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/kueue-v1-500-500.yaml"
 
-# Dla Volcano
+# For Volcano
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-300-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-300-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-400-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-400-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-400.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/volcano-v1-500-500.yaml"
 
-# Dla YuniKorn
+# For YuniKorn
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-300-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-300-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-400-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-400-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-500-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-500-400.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/yunikorn-v1-500-500.yaml"
 ```
 
-### V2: Jeden duży wielopodowy job
+### V2: One Large Multi-Pod Job
 
-Benchmark testuje efektywność schedulera w obsłudze zadań składających się z wielu podów. Ocenia, jak dobrze scheduler radzi sobie z dużym, spójnym obciążeniem.
+**Goal**: Efficiency in handling jobs requiring multiple pod executions.
 
-#### Konfiguracje
+This benchmark tests the scheduler's efficiency in handling jobs consisting of multiple pods. It evaluates how well the scheduler manages large, cohesive workloads that require coordinated pod scheduling.
 
-Benchmark zawiera wiele konfiguracji z różnymi kombinacjami liczby węzłów i podów w zadaniu:
+#### Configurations
 
-##### Liczba replik: 300
+The benchmark includes multiple configurations testing combinations of (nodes × pod replicas in single job):
 
-- **300 węzłów**: Test 1 joba z 300 replikami na 300 węzłach
-- **400 węzłów**: Test 1 joba z 300 replikami na 400 węzłach
-- **500 węzłów**: Test 1 joba z 300 replikami na 500 węzłach
+- **300×300**: 1 job with 300 replicas on 300 nodes
+- **400×400**: 1 job with 400 replicas on 400 nodes
+- **500×500**: 1 job with 500 replicas on 500 nodes
 
-##### Liczba replik: 400
+Each test configuration uses:
+- Virtual nodes, each with **128 CPU cores**, **1TB RAM**, and **8 GPUs**
+- One multi-pod job submitted at once (unlike V1's sequential submission)
+- Each pod replica requires:
+  - **16 CPU cores** (12.5% of node's CPU)
+  - **256GB RAM** (25% of node's memory)
+  - **4 GPUs** (50% of node's GPU)
+- Pod lifetime: **5 minutes**
 
-- **300 węzłów**: Test 1 joba z 400 replikami na 300 węzłach
-- **400 węzłów**: Test 1 joba z 400 replikami na 400 węzłach
-- **500 węzłów**: Test 1 joba z 400 replikami na 500 węzłach
+#### Cluster Resource Utilization
 
-##### Liczba replik: 500
+| Configuration | CPU Utilization | Memory Utilization | GPU Utilization |
+| ------------- | --------------- | ------------------ | --------------- |
+| 300×300       | 12.5%           | 25%                | 50%             |
+| 400×400       | 12.5%           | 25%                | 50%             |
+| 500×500       | 12.5%           | 25%                | 50%             |
 
-- **300 węzłów**: Test 1 joba z 500 replikami na 300 węzłach
-- **400 węzłów**: Test 1 joba z 500 replikami na 400 węzłach
-- **500 węzłów**: Test 1 joba z 500 replikami na 500 węzłach
+The key difference from V1 is testing the scheduler's ability to handle a single large job versus many small jobs at the same resource utilization level.
 
-Każda konfiguracja testu wykorzystuje:
-
-- Wirtualne węzły, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
-- Jeden wielopodowy job, gdzie każdy pod ma wymagania:
-  - 16 rdzeni CPU (12,5% węzła)
-  - 256Gi pamięci (25% węzła)
-  - 4 GPU (50% węzła)
-
-Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
-
-| Konfiguracja | Wykorzystanie CPU | Wykorzystanie pamięci | Wykorzystanie GPU |
-|---------------|-----------|-------------|-----------|
-| 300 replik, 300 węzłów | 12,5% | 25% | 50% |
-| 300 replik, 400 węzłów | 9,38% | 18,75% | 37,5% |
-| 300 replik, 500 węzłów | 7,5% | 15% | 30% |
-| 400 replik, 300 węzłów | 16,67% | 33,33% | 66,67% |
-| 400 replik, 400 węzłów | 12,5% | 25% | 50% |
-| 400 replik, 500 węzłów | 10% | 20% | 40% |
-| 500 replik, 300 węzłów | 20,83% | 41,67% | 83,33% |
-| 500 replik, 400 węzłów | 15,63% | 31,25% | 62,5% |
-| 500 replik, 500 węzłów | 12,5% | 25% | 50% |
-
-**Skrypty do uruchomienia**:
+**Scripts to run**:
 
 ```bash
-# Dla Kueue
+# For Kueue
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-300-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-300-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-400-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-400-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-500-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-500-400.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/kueue-v2-500-500.yaml"
 
-# Dla Volcano
+# For Volcano
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-300-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-300-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-400-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-400-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-500-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-500-400.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/volcano-v2-500-500.yaml"
 
-# Dla YuniKorn
+# For YuniKorn
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-300-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-300-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-400-400.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-400-500.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-500-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-500-400.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v2/yunikorn-v2-500-500.yaml"
 ```
 
-### V3: Mieszane stopniowe obciążenie
+### V3: Mixed Workload
 
-Benchmark testuje wydajność schedulera z różnorodnymi obciążeniami, które lepiej reprezentują rzeczywiste wzorce użytkowania klastra. Ocenia, jak dobrze scheduler radzi sobie z heterogenicznymi typami zadań o różnych wymaganiach zasobowych jednocześnie.
+**Goal**: Evaluate scheduler efficiency in managing heterogeneous workloads with varying resource characteristics under conditions simulating realistic operational environments.
 
-#### Konfiguracje
+This benchmark tests scheduler performance with diverse workloads running simultaneously. It evaluates how well the scheduler manages different types of tasks with varying resource requirements, simulating real-world cluster usage patterns.
 
-Benchmark zawiera wiele konfiguracji z różnymi kombinacjami liczby węzłów i liczby zadań:
+#### Configurations
 
-##### Liczba zadań każdego typu: 100 (łącznie 300 zadań)
+The benchmark includes multiple configurations testing combinations of (nodes × tasks of each type):
 
-- **300 węzłów**: Test z 300 węzłami i 100 zadaniami każdego typu
-- **400 węzłów**: Test z 400 węzłami i 100 zadaniami każdego typu
-- **500 węzłów**: Test z 500 węzłami i 100 zadaniami każdego typu
+- **300×100**: 300 nodes with 100 tasks of each type (300 total)
+- **400×200**: 400 nodes with 200 tasks of each type (600 total)
+- **500×300**: 500 nodes with 300 tasks of each type (900 total)
 
-##### Liczba zadań każdego typu: 200 (łącznie 600 zadań)
+Each test configuration uses:
+- Virtual nodes, each with **128 CPU cores**, **1TB RAM**, and **8 GPUs**
+- Three different types of single-pod tasks running in parallel:
+  - **CPU-intensive tasks**: 32 CPU (25% of node), 128GB RAM (12.5% of node), **0 GPU**
+  - **GPU-intensive tasks**: 16 CPU (12.5% of node), 96GB RAM (9.4% of node), **8 GPU** (100% of node)
+  - **Mixed tasks**: 8 CPU (6.25% of node), 32GB RAM (3.1% of node), **2 GPU** (25% of node)
+- Pod lifetime: **5 minutes**
 
-- **300 węzłów**: Test z 300 węzłami i 200 zadaniami każdego typu
-- **400 węzłów**: Test z 400 węzłami i 200 zadaniami każdego typu
-- **500 węzłów**: Test z 500 węzłami i 200 zadaniami każdego typu
+#### Cluster Resource Utilization
 
-##### Liczba zadań każdego typu: 300 (łącznie 900 zadań)
+| Configuration | Total CPU Utilization | Total Memory Utilization | Total GPU Utilization |
+| ------------- | --------------------- | ------------------------ | --------------------- |
+| 300×100       | 14.58%                | 8.33%                    | 41.67%                |
+| 300×200       | 29.17%                | 16.67%                   | 83.33%                |
+| 300×300       | 43.75%                | 25.00%                   | 125.00%*              |
+| 400×200       | 21.88%                | 12.50%                   | 62.50%                |
+| 400×300       | 32.81%                | 18.75%                   | 93.75%                |
+| 500×300       | 26.25%                | 15.00%                   | 75.00%                |
 
-- **300 węzłów**: Test z 300 węzłami i 300 zadaniami każdego typu
-- **400 węzłów**: Test z 400 węzłami i 300 zadaniami każdego typu
-- **500 węzłów**: Test z 500 węzłami i 300 zadaniami każdego typu
+*Note: 125% GPU utilization indicates over-subscription, testing scheduler behavior under resource contention.
 
-Każda konfiguracja testu wykorzystuje:
-
-- Wirtualne węzły, każdy z 128 rdzeniami CPU, 1Ti pamięci i 8 GPU
-- Trzy różne typy zadań uruchamiane równolegle:
-
-  - **Zadania o wysokim użyciu GPU**: Zadania wykorzystujące całe węzły GPU (8 GPU na job)
-
-    - 16 rdzeni CPU (12.5% węzła)
-    - 96Gi pamięci (9.4% węzła)
-    - 8 GPU (100% węzła)
-
-  - **Zadania o średnim użyciu GPU**: Zadania z częściowym wykorzystaniem GPU (2 GPU na job)
-
-    - 8 rdzeni CPU (6.25% węzła)
-    - 32Gi pamięci (3.1% węzła)
-    - 2 GPU (25% węzła)
-
-  - **Zadania CPU-only**: Zadania bez wymagań GPU
-
-    - 32 rdzenie CPU (25% węzła)
-    - 128Gi pamięci (12.5% węzła)
-    - 0 GPU
-
-Wykorzystanie zasobów klastra różni się w zależności od konfiguracji:
-
-| Konfiguracja węzłów | Liczba zadań | Całkowite wykorzystanie CPU | Całkowite wykorzystanie pamięci | Całkowite wykorzystanie GPU |
-|-----------|-----------|-----------|-----------|-----------|
-| 300 | 100 każdego typu | 14,58% | 8,33% | 41,67% |
-| 300 | 200 każdego typu | 29,17% | 16,67% | 83,33% |
-| 300 | 300 każdego typu | 43,75% | 25,00% | 125,00% |
-| 400 | 100 każdego typu | 10,94% | 6,25% | 31,25% |
-| 400 | 200 każdego typu | 21,88% | 12,50% | 62,50% |
-| 400 | 300 każdego typu | 32,81% | 18,75% | 93,75% |
-| 500 | 100 każdego typu | 8,75% | 5,00% | 25,00% |
-| 500 | 200 każdego typu | 17,50% | 10,00% | 50,00% |
-| 500 | 300 każdego typu | 26,25% | 15,00% | 75,00% |
-
-**Skrypty do uruchomienia**:
+**Scripts to run**:
 
 ```bash
-# Dla Kueue (100 zadań każdego typu)
+# For Kueue
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-300-100.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-400-100.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-500-100.yaml"
-
-# Dla Kueue (200 zadań każdego typu)
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-300-200.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-400-200.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-500-200.yaml"
-
-# Dla Kueue (300 zadań każdego typu)
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/kueue-v3-500-300.yaml"
 
-# Dla Volcano (100 zadań każdego typu)
+# For Volcano
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-300-100.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-400-100.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-500-100.yaml"
-
-# Dla Volcano (200 zadań każdego typu)
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-300-200.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-400-200.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-500-200.yaml"
-
-# Dla Volcano (300 zadań każdego typu)
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/volcano-v3-500-300.yaml"
 
-# Dla YuniKorn (100 zadań każdego typu)
+# For YuniKorn
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-300-100.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-400-100.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-500-100.yaml"
-
-# Dla YuniKorn (200 zadań każdego typu)
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-300-200.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-400-200.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-500-200.yaml"
-
-# Dla YuniKorn (300 zadań każdego typu)
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-300-300.yaml"
-./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-400-300.yaml"
 ./bin/knavigator -workflow "resources/benchmarks/performance/workflows/v3/yunikorn-v3-500-300.yaml"
 ```
 
-## Świadomość topologii klastra (Topology Awareness)
+## Topology Awareness
 
-Benchmark Topology Aware ocenia zdolność schedulera do inteligentnego rozmieszczania podów w oparciu o topologię sieci. Ta funkcjonalność jest kluczowa dla rozproszonych obciążeń, takich jak trening deep learning, gdzie opóźnienie komunikacji między podami może znacząco wpływać na wydajność.
+Topology Awareness benchmarks evaluate the scheduler's ability to intelligently place pods based on network topology. This functionality is crucial for distributed workloads, such as deep learning training, where communication latency between pods can significantly impact performance.
 
-Testy tworzą symulowaną topologię sieci z różnymi warstwami (datacenter, spine, block) i sprawdzają, jak dobrze scheduler potrafi umieszczać pody, aby zminimalizować odległości sieciowe między współpracującymi podami.
+The tests create a simulated network topology with different layers (datacenter, spine, block) and verify how well the scheduler can place pods to minimize network distances between cooperating pods.
 
-Benchmarki są zaimplementowane dla Kueue i Volcano, ponieważ YuniKorn nie wspiera obecnie planowania opartego na topologii sieci.
+Benchmarks are implemented for Kueue and Volcano, as YuniKorn does not currently support network topology-based scheduling.
 
-### V1: Planowanie na 2 poziomie hierarchii (spine)
+**Node Color Coding in Topology Diagrams:**
+- 🔴 **Red nodes**: Unschedulable nodes (marked as unavailable)
+- 🟢 **Green nodes**: Optimal/target nodes for pod placement
+- 🔵 **Blue nodes**: Regular available nodes
+- 🟢 **Dark green (Supernode)**: High-capacity node in T3
 
-Test konfiguruje 16 węzłów w układzie drzewiastym reprezentującym topologię sieci:
+### T1: Scheduling at Spine Level (Hierarchy Level 3)
+
+This test configures 16 nodes in a tree structure representing a network topology with 4 hierarchy levels (Datacenter → Spine → Block → Node). To simulate more realistic conditions and force selection of a specific spine, 7 of 16 nodes are marked as unschedulable.
 
 ```mermaid
 graph TD
@@ -348,39 +228,29 @@ graph TD
     class n2,n4,n9,n10,n13,n15 normal;
 ```
 
-Na tym diagramie:
-
-- Węzły n1, n3, n6, n11, n12, n14 i n16 są oznaczone jako nieplanowalne (X)
-- Węzły n5, n7 i n8 są oznaczone jako "optymalne" ze względu na topologię sieci (pod sw22)
-
 **Test**:
+- Node configuration: 16 virtual nodes with network topology labels, each with 256 CPU, 2TB RAM, 8 GPU
+- 7 nodes marked as unschedulable: n1, n3, n6, n11, n12, n14, n16
+- Workload: Two sequential steps:
+  1. Job with 3 pods using "required" (Kueue) / "hard" (Volcano) strategy at spine level
+  2. Job with 3 pods using "preferred" (Kueue) / "soft" (Volcano) strategy at spine level
+- Each pod requires: 16 CPU, 32GB RAM, 8 GPU (consuming all GPU resources of one node)
+- Pod lifetime: 1 minute
 
-- **Konfiguracja węzłów**: Test tworzy 16 wirtualnych węzłów z etykietami topologii sieci na różnych poziomach:
+**Expected Result**: In both steps, the scheduler should place all 3 pods on nodes n5, n7, n8, as they are the only available nodes belonging to the same spine (sw22) with sufficient resources.
 
-  - network.topology.kubernetes.io/datacenter: Segment sieci najwyższego poziomu
-  - network.topology.kubernetes.io/spine: Segment sieci średniego poziomu
-  - network.topology.kubernetes.io/block: Segment sieci najniższego poziomu
-
-- **Obciążenie: Test przeprowadza dwie fazy**:
-
-  - Uruchamia job z 3 podami używając strategii *"required" (Kueue) / "hard" (Volcano)* na poziomie spine
-  - Uruchamia ten sam job z 3 podami używając strategii *"preferred" (Kueue) / "soft" (Volcano)* na poziomie spine
-
-- **Ocena**: Sukces jest mierzony zdolnością schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n5, n7, n8), które zostały oznaczone etykietą "ta-optimal: true" i mają najmniejszą odległość sieciową między sobą.
-
-**Skrypty do uruchomienia**:
-
+**Scripts to run**:
 ```sh
-# Dla Kueue
+# For Kueue
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v1.yaml'
 
-# Dla Volcano
+# For Volcano
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v1.yaml'
 ```
 
-### V2: Planowanie na 1 poziomie hierarchii (block)
+### T2: Scheduling at Block Level (Hierarchy Level 2)
 
-Benchmark konfiguruje 21 węzłów w bardziej złożonym układzie drzewiastym:
+This test configures 21 nodes in a 4-level topology structure. To create a more selective environment, 8 of 21 nodes are marked as unschedulable, leaving only one block (sw113) with three available nodes (n1, n2, n3).
 
 ```mermaid
 graph TD
@@ -434,36 +304,29 @@ graph TD
     class n4,n7,n9,n10,n13,n14,n17,n18,n19,n21 normal;
 ```
 
-Na tym diagramie:
-
-- Węzły n5, n6, n8, n11, n12, n15, n16 i n20 są oznaczone jako nieplanowalne (X)
-- Węzły n1, n2 i n3 znajdują się w tym samym bloku sieci (sw113) i są oznaczone jako "optymalne"
-
 **Test**:
+- Node configuration: 21 virtual nodes with network topology labels, each with 256 CPU, 2TB RAM, 8 GPU
+- 8 nodes marked as unschedulable: n5, n6, n8, n11, n12, n15, n16, n20
+- Workload: Two sequential steps:
+  1. Job with 3 pods using "required" (Kueue) / "hard" (Volcano) strategy at block level
+  2. Job with 3 pods using "preferred" (Kueue) / "soft" (Volcano) strategy at block level
+- Each pod requires: 16 CPU, 32GB RAM, 8 GPU
+- Pod lifetime: 1 minute
 
-- **Konfiguracja węzłów**: Podobna do V1, ale z inną strukturą topologii, gdzie optymalne węzły znajdują się wszystkie w tym samym bloku sieci, zapewniając najmniejsze możliwe opóźnienie dla komunikacji między podami.
+**Expected Result**: In both steps, the scheduler should place all 3 pods on nodes n1, n2, n3, as they are the only available nodes belonging to the same block (sw113).
 
-- **Obciążenie**: Test przeprowadza dwie sekwencyjne próby planowania na poziomie bloku (network.topology.kubernetes.io/block):
-
-  - Job z 3 podami używający strategii *"required" (Kueue) /"hard" (Volcano)* (twarde ograniczenie, które musi być spełnione do zaplanowania)
-
-  - Job z 3 podami używający strategii *"preferred" (Kueue) /"soft" (Volcano)* (miękkie ograniczenie, które scheduler powinien starać się spełnić)
-
-- **Ocena**: Sukces jest mierzony przez zdolność schedulera do umieszczenia wszystkich podów na optymalnych węzłach (n1, n2, n3) dla obu trybów planowania. Test sprawdza zarówno zdolność schedulera do honorowania preferencji topologii, gdy jest to możliwe, jak i do egzekwowania ścisłych wymagań topologicznych, gdy jest to konieczne.
-
-**Skrypty do uruchomienia**:
-
+**Scripts to run**:
 ```sh
-# Dla Kueue
+# For Kueue
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v2.yaml'
 
-# Dla Volcano
+# For Volcano
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v2.yaml'
 ```
 
-### V3: Planowanie na 0 poziomie hierarchii (node)
+### T3: Scheduling at Node Level (Hierarchy Level 1)
 
-Benchmark konfiguruje 13 węzłów z topologią sieci, która zawiera "superwęzeł" o wysokiej pojemności oraz wiele zwykłych węzłów:
+This test evaluates the scheduler's ability to consolidate all job pods on a single node when required, and to intelligently distribute pods across multiple nodes within the same lower-level topological domain when consolidation becomes impossible.
 
 ```mermaid
 graph TD
@@ -506,51 +369,33 @@ graph TD
     class n5,n6,n7 lightgreen;
 ```
 
-Na tym diagramie:
+**Test Configuration**:
+- 13 virtual nodes in 4-level topology, heterogeneous cluster:
+  - One "supernode" (n1) in block sw113: 256 CPU, 2TB RAM, 24 GPU
+  - Twelve regular nodes (n2-n13): 128 CPU, 1TB RAM, 8 GPU each
+- 5 nodes marked as unschedulable: n3, n4, n10, n12, n13
+- Workload: Two sequential steps:
+  1. Job with 3 pods (each requiring 2 CPU, 2GB RAM, 6 GPU) with "required"/"hard" preference at hostname level
+  2. After marking supernode as unschedulable, same job with "preferred"/"soft" preference
 
-- Węzeł n1 to "superwęzeł" o wysokiej pojemności (24 GPU, 256 rdzeni CPU), zdolny do hostowania wszystkich podów zasobochłonnego joba
-- Zwykłe węzły mają standardową pojemność (8 GPU, 128 rdzeni CPU)
-- Węzły n3, n4, n10, n12 i n13 są oznaczone jako nieplanowalne (X)
-- Blok sw116 ma 2 dostępne węzły (n8, n9) i 1 niedostępny (n10)
-- Blok sw117 ma 1 dostępny węzeł (n11) i 2 niedostępne (n12, n13)
-- Wszystkie węzły w bloku sw115 (n5, n6, n7) są dostępne do planowania
+**Expected Result**:
+- Step 1: All 3 pods should be placed on supernode n1 (only node capable of hosting 18 GPU total)
+- Step 2: Pods should be distributed across three available nodes (n5, n6, n7) in block sw115
 
-**Test**:
-
-- **Faza 1 - Umieszczanie na pojedynczym węźle**:
-
-  - Test tworzy job z 3 podami, każdy wymagający 6 GPU (łącznie 18 GPU) z preferencją topologii na poziomie węzła używający strategii *"required" (Kueue) /"hard" (Volcano)* (twarde ograniczenie, które musi być spełnione do zaplanowania)
-  - Wszystkie pody powinny być zaplanowane na superwęźle (n1)
-  - Test sprawdza zdolność schedulera do konsolidacji podów na pojedynczym węźle, gdy zasoby na to pozwalają i preferencje topologii to sugerują
-  - Zwykłe węzły (8 GPU każdy) wymagałyby wielu węzłów do spełnienia żądania
-
-- **Faza 2 - Dystrybucja na wielu węzłach**:
-
-  - Superwęzeł zostaje oznaczony jako nieplanowany
-  - Nowy job z identycznymi wymaganiami zasobowymi jest uruchamiany z preferencją topologii na poziomie węzła używający strategii *"preferred" (Kueue) /"soft" (Volcano)* (miękkie ograniczenie, które scheduler powinien starać się spełnić)
-  - Ponieważ niemożliwe jest umieszczenie na jednym węźle, pody powinny być teraz rozłożone na dostępnych węzłach w bloku sw115, bo jest to drugi najniższy, możliwy poziom hierarchii, na którym zmieszą się wszystkie pody joba.
-  - Test sprawdza zdolność schedulera do dystrybucji podów na wielu węzłach, zachowując je w tym samym bloku sieciowym, gdy pojedynczy węzeł nie jest dostępny
-
-- **Ocena**:
-
-  - Sukces jest mierzony zdolnością schedulera do prawidłowego umieszczenia wszystkich podów na superwęźle w fazie 1
-  - I zdolnością do dystrybucji podów na wielu węzłach w tym samym bloku w fazie 2
-
-**Skrypty do uruchomienia**:
-
+**Scripts to run**:
 ```sh
-# Dla Kueue
+# For Kueue
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v3.yaml'
 
-# Dla Volcano
+# For Volcano
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v3.yaml'
 ```
 
-### V4: Planowanie w warunkach fragmentacji i konkurencji
+### T4: Scheduling Under Fragmentation and Competition
 
-Ten benchmark ma na celu ocenę wydajności i jakości planowania świadomego topologii w bardziej realistycznym scenariuszu, obejmującym większą skalę klastra, istniejące obciążenie powodujące fragmentację zasobów oraz konkurencję między zadaniami o różnych wymaganiach topologicznych. Porównuje implementacje dla Kueue i Volcano.
+This benchmark evaluates topology-aware scheduling performance and quality in a more realistic scenario involving larger cluster scale, existing background workload causing resource fragmentation, and competition between tasks with different topological requirements.
 
-**Topologia**: Konfiguruje 32 węzły w strukturze drzewiastej: 1 Datacenter (`sw-dc1`), 2 Spines (`sw-s1`, `sw-s2`), 8 Bloków (`sw-b11` do `sw-b24`), po 4 węzły w każdym bloku (`n111` do `n244`). Wszystkie węzły mają identyczne zasoby: `128100m` CPU (ok. 128 CPU), `1048626Mi` pamięci (ok. 1 TiB), 8 `nvidia.com/gpu` (NVIDIA A100). Łącznie: 4096 CPU, 32 TiB RAM, 256 GPU.
+**Topology**: 32 nodes in tree structure: 1 Datacenter, 2 Spines, 8 Blocks, 4 nodes per block. All nodes identical: 128 CPU, 1TB RAM, 8 GPU. Total: 4096 CPU, 32TB RAM, 256 GPU.
 
 ```mermaid
 graph TD
@@ -625,374 +470,210 @@ graph TD
     class n111,n112,n113,n114,n121,n122,n123,n124,n131,n132,n133,n134,n141,n142,n143,n144,n211,n212,n213,n214,n221,n222,n223,n224,n231,n232,n233,n234,n241,n242,n243,n244 computeNode;
 ```
 
-*Uwaga: W tym scenariuszu nie ma predefiniowanych węzłów nieplanowalnych ani optymalnych; fragmentacja jest tworzona dynamicznie przez zadania tła.*
+*Note: In this scenario there are no predefined unschedulable or optimal nodes; fragmentation is created dynamically by background tasks.*
 
 **Test**:
+- Step 1 (Fragmentation): 20 background jobs to create fragmentation:
+  - 8 "Medium" jobs: 1 pod each, 32 CPU, 128GB RAM, 4 GPU
+  - 12 "Small-MultiReplica" jobs: 4 pods each, 8 CPU, 32GB RAM, 2 GPU per pod
+  - Total background: 640 CPU (15.6%), 2.5TB RAM (7.8%), 128 GPU (50%)
+  - TTL: 10 minutes
 
-- **Konfiguracja węzłów**: Tworzone są 32 wirtualne węzły z etykietami topologii (network.topology.kubernetes.io/datacenter, /spine, /block).
+- Step 2 (Task A - Required): 8 instances of Task A:
+  - Each instance: 8 pods, 32 CPU, 128GB RAM, 5 GPU per pod
+  - Total per instance: 256 CPU, 1TB RAM, 40 GPU
+  - Hard requirement: all 8 pods within one spine
+  - TTL: 2 minutes
 
-- **Faza 1 - Fragmentacja Zasobów**: Uruchamianych jest 20 zadań w tle:
-  - 8 zadań typu "Medium": Każde z 1 podem (replicas: 1) żądającym 32000m CPU, 131072Mi pamięci, 4 GPU. Razem: 256 CPU, 1 TiB RAM, 32 GPU.
-  - 12 zadań typu "Small-MultiReplica": Każde z 4 podami (replicas: 4) żądającymi po 8000m CPU, 32768Mi pamięci, 2 GPU na pod. Razem: 384 CPU, 1.5 TiB RAM, 96 GPU.
-  - Łącznie zadania tła: 640 CPU (15.6%), 2.5 TiB RAM (7.8%), 128 GPU (50%). Celem jest zajęcie dokładnie 50% zasobów GPU w sposób rozproszony.
-  - Wszystkie zadania tła mają ustawiony ttl: "10m". Oznacza to, że fragmentacja jest obecna podczas startu zadań A i B, ale zniknie po 10 minutach od ich zakończenia.
+- Step 3 (Task B - Preferred): 4 instances of Task B:
+  - Each instance: 4 pods, 8 CPU, 32GB RAM, 3 GPU per pod
+  - Total per instance: 32 CPU, 128GB RAM, 12 GPU
+  - Soft preference: all 4 pods within one block
+  - TTL: 2 minutes
 
-- **Faza 2 - Duże Zadanie TAS (Wymagane)**: W trakcie działania zadań tła, zgłaszanych jest 8 instancji Zadania A:
-  - Każda instancja (count: 8 w implementacji) wymaga 8 podów (replicas: 8).
-  - Każdy pod żąda 32000m CPU, 131072Mi pamięci, 4 GPU.
-  - Łącznie dla 1 instancji Zadania A: 256 CPU, 1 TiB RAM, 32 GPU.
-  - Łącznie dla wszystkich 8 instancji Zadania A: 2048 CPU, 8 TiB RAM, 256 GPU.
-  - Wymaganie (required/hard) umieszczenia wszystkich 8 podów w ramach jednej instancji w obrębie jednego spine'a
-  - Każda instancja Zadania A ma ttl: "2m".
+**Expected Result**: Due to total GPU requirements exceeding capacity (496 GPU needed vs 256 available), significant portion of A and B instances will remain pending. The test evaluates scheduling success rate, waiting times, and placement quality.
 
-- **Faza 3 - Małe Zadanie TAS (Preferowane)**: Zgłaszanych jest 4 instancje Zadania B:
-  - Każda instancja (count: 4 w implementacji) wymaga 4 podów (replicas: 4).
-  - Każdy pod żąda 8000m CPU, 32768Mi pamięci, 1 GPU.
-  - Łącznie dla 1 instancji Zadania B: 32 CPU, 128 GiB RAM, 4 GPU.
-  - Łącznie dla wszystkich 4 instancji Zadania B: 128 CPU, 512 GiB RAM, 16 GPU.
-  - Preferencja (preferred/soft) umieszczenia wszystkich 4 podów w ramach jednej instancji w obrębie jednego bloku (network.topology.kubernetes.io/block lub Tier 2 w Volcano).
-  - Każda instancja Zadania B ma ttl: "2m".
-
-- Ocena: Porównanie Kueue i Volcano na podstawie:
-  - Powodzenia planowania: Czy wszystkie zadania (tła, 8x A, 4x B) zostały pomyślnie uruchomione? (Biorąc pod uwagę zasoby, 8 instancji A i 4 instancje B nie zmieszczą się jednocześnie z zadaniami tła - oczekuje się, że część z nich pozostanie w kolejce).
-  - Czasu oczekiwania (latency): Jak długo instancje Zadań A i B czekały w odpowiednich kolejkach (tas-queue / default) przed uruchomieniem? Analiza metryki unified_job_wait_duration_seconds_histogram dla każdej instancji. Oczekuje się mierzalnych opóźnień, szczególnie dla instancji Zadania A.
-  - Jakości planowania (preferencje): Dla każdej z 4 instancji Zadania B, czy schedulerowi udało się umieścić wszystkie jej 4 pody w jednym bloku (zgodnie z preferencją)? Wymaga to analizy rozmieszczenia podów po teście. Porównanie wskaźnika sukcesu (%) między schedulerami.
-  - Poprawności wymagań: Czy każda z uruchomionych instancji Zadania A miała swoje pody umieszczone w ramach jednego spine'a?
-
-**Skrypty do uruchomienia**:
-
+**Scripts to run**:
 ```sh
-# Dla Kueue
+# For Kueue
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/kueue-v4.yaml'
 
-# Dla Volcano
+# For Volcano
 ./bin/knavigator -workflow 'resources/benchmarks/topology-aware/workflows/volcano-v4.yaml'
 ```
 
-## Sprawiedliwy przydział zasobów (Fair Share)
+## Fair Share
 
-Benchmarki w tej sekcji oceniają zdolność schedulerów do sprawiedliwego podziału zasobów klastra między różnymi grupami użytkowników (najemcami) lub kolejkami zadań. Testują one różne aspekty mechanizmów *fair share*, w tym:
+Benchmarks in this section evaluate schedulers' ability to fairly distribute cluster resources among different user groups (tenants) or job queues. They test various aspects of fair share mechanisms, including:
 
-1. **Równy podział** przy identycznych wymaganiach i wagach (V1).
-2. **Proporcjonalny podział** na podstawie zdefiniowanych wag (V2).
-3. **Dominant Resource Fairness (DRF)** w środowisku z wieloma typami zasobów i różnorodnymi wymaganiami zadań (V3).
+1. **Equal sharing** with identical weights (F1)
+2. **Proportional sharing** based on defined weights (F2)
+3. **Heterogeneous fairness** with Dominant Resource Fairness (DRF) principles (F3)
+4. **Dynamic start priority vs. usage history** (F4)
 
-Każdy scenariusz jest testowany w dwóch wariantach: bez gwarancji zasobów (aby obserwować "czysty" mechanizm fair share) oraz z gwarancjami (aby zbadać interakcję fair share z gwarantowanymi kwotami i potencjalnym wpływem na preempcję).
+Each scenario is tested in two variants: without resource guarantees (to observe "pure" fair share mechanism) and with guarantees (to examine interaction between fair share and guaranteed quotas).
 
-### V1: Równy podział przy identycznych wagach (Homogeniczny Klaster)
+### F1: Equal Sharing with Identical Weights
 
-**Opis**: Sprawdza, czy scheduler prawidłowo implementuje podstawowy mechanizm sprawiedliwego podziału zasobów między najemcami (tenants) o **identycznych wagach**, uruchamiającymi **identyczne zadania** w **homogenicznym** klastrze. Test ten stanowi bazę przed bardziej złożonymi scenariuszami.
+**Description**: Verifies whether the scheduler correctly implements equal resource sharing among tenants with identical weights and no resource guarantees.
 
-**Konfiguracja**:
+**Configuration**:
+- Cluster with 8 identical nodes, each with 16 CPU and 16GB RAM
+- Total cluster resources: 128 CPU and 128GB RAM
+- Eight tenants (tenant-a through tenant-h) with identical weights (1)
+- Each task requires: 1 CPU and 1GB RAM
+- Task lifetime: 5 minutes
 
-- Klaster z 5 identycznymi węzłami, każdy z ~15 CPU i ~15 GB RAM do dyspozycji.
-- Łączne zasoby klastra: **75 CPU** i **~75 GB RAM**.
-- Trzej najemcy (tenant-a, tenant-b, tenant-c) z **równymi wagami** (weight=1 lub domyślna równa waga).
-- Każde zadanie wymaga identycznych zasobów: **<1 CPU, 1 GB RAM>**.
-- Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera.
-- **Dwa warianty testu:**
-    1. **Bez Gwarancji (`*-v1-no-guarantees.yaml`):** Gwarantowane zasoby (`guarantee`/`nominalQuota`) ustawione na 0, aby obserwować "czysty" efekt fair sharing sterowany tylko dostępnością zasobów i równymi uprawnieniami.
-    2. **Z Gwarancjami (`*-v1-guarantees.yaml`):** Każdemu najemcy gwarantowane jest 1/3 zasobów klastra (25 CPU, 25 GB RAM), aby obserwować interakcję fair sharing z gwarancjami (np. potencjalny wpływ na preempcję, gdy kolejka spadnie poniżej gwarancji).
+**Test Execution**:
+- Tasks submitted in three rounds with 30-second pauses between rounds:
+  - Round 1: 10 tasks per tenant (80 total, 62.5% of cluster)
+  - Round 2: 10 tasks per tenant (160 total cumulative, 125% of cluster)
+  - Round 3: 10 tasks per tenant (240 total cumulative, 187.5% of cluster)
 
-**Działanie**:
+**Expected Result**:
+- Each tenant should receive equal share (1/8) of cluster resources
+- In steady state: 16 running pods per tenant
+- Jain's Fairness Index (JFI) should be 1.0 (perfect equality)
 
-- Zadania przesyłane są sekwencyjnie w trzech rundach z opóźnieniami:
-  - Runda 1: 30 zadań / najemcę
-  - Runda 2: 25 zadań / najemcę
-  - Runda 3: 20 zadań / najemcę
-- Łącznie 75 zadań / najemcę, 225 zadań w sumie.
-- Całkowite zapotrzebowanie (225 CPU, 225 GB RAM) znacznie przekracza pojemność klastra (75 CPU, 75 GB RAM), wymuszając działanie mechanizmów fair sharing.
+**Test Variants**:
+1. **Without guarantees**: Pure fair sharing based on weights only
+2. **With guarantees**: Each tenant guaranteed 1/8 of cluster resources (16 CPU, 16GB RAM)
 
-**Oczekiwany wynik**:
-
-- Niezależnie od wariantu (z gwarancjami czy bez), w stanie nasycenia klastera, mechanizm fair-sharing powinien zapewnić **równy podział dostępnych zasobów** (zarówno CPU, jak i RAM) między trzech najemców.
-- Każdy najemca powinien otrzymać około **1/3 zasobów klastra**, czyli:
-  - **~25 CPU**
-  - **~25 GB RAM**
-- Biorąc pod uwagę, że każde zadanie wymaga 1 CPU i 1 GB RAM, dla każdego najemcy powinno zostać **uruchomionych około 25 zadań**.
-- Pozostałe zadania (50 na najemcę) powinny oczekiwać w kolejce.
-- W wariancie "z gwarancjami", gwarancje mogą wpłynąć na dynamikę osiągania stanu równowagi lub zachowanie preempcji, ale ostateczny, stabilny podział zasobów powinien być taki sam (1/3 dla każdego).
-
-**Skrypty do uruchomienia**:
-
-- **Wariant BEZ Gwarancji:**
-
-    ```sh
-    # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-no-guarantees.yaml'
-    # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-no-guarantees.yaml'
-    # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-no-guarantees.yaml'
-    ```
-
-- **Wariant Z Gwarancjami:**
-
-    ```sh
-    # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-guarantees.yaml'
-    # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-guarantees.yaml'
-    # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-guarantees.yaml'
-    ```
-
-### V2: Proporcjonalny podział przy różnych wagach (Homogeniczny Klaster)
-
-**Opis**: Weryfikuje, czy scheduler prawidłowo implementuje **proporcjonalny podział zasobów** na podstawie **różnych wag** przypisanych najemcom w **homogenicznym** klastrze, gdy zadania mają identyczne wymagania.
-
-**Konfiguracja**:
-
-- Klaster z 6 identycznymi węzłami, każdy z ~16 CPU i ~16 GB RAM do dyspozycji.
-- Łączne zasoby klastra: **96 CPU** i **~96 GB RAM**.
-- Trzej najemcy (tenant-a, tenant-b, tenant-c) z różnymi wagami (konfigurowanymi odpowiednio dla danego schedulera):
-  - **Tenant A: waga 3**
-  - **Tenant B: waga 2**
-  - **Tenant C: waga 1**
-  - (Łączna liczba jednostek wagi: 3 + 2 + 1 = 6)
-- Każde zadanie wymaga identycznych zasobów: **<1 CPU, 1 GiB RAM>**.
-- Mechanizmy fair-share skonfigurowane odpowiednio dla każdego schedulera (z uwzględnieniem wag).
-- **Dwa warianty testu:**
-    1. **Bez Gwarancji (`*-v2-no-guarantees.yaml`):** Gwarantowane zasoby (`guarantee`/`nominalQuota`) ustawione na 0 (lub minimalną wartość wymaganą przez Kueue z użyciem `dummy-queue`). Podział zasobów powinien być sterowany wyłącznie przez wagi i dostępność zasobów.
-    2. **Z Gwarancjami (`*-v2-guarantees.yaml`):** Gwarantowane zasoby ustawione proporcjonalnie do wag (A: 48 CPU/48GB, B: 32 CPU/32GB, C: 16 CPU/16GB). Obserwujemy interakcję mechanizmu ważonego podziału z gwarancjami.
-
-**Działanie**:
-
-- Zadania przesyłane są sekwencyjnie w trzech rundach z opóźnieniami: **10 sekund między najemcami** w ramach rundy i **10 sekund między rundami**.
-  - **Runda 1**: 50 zadań / najemcę (łącznie 150 zadań)
-  - **Runda 2**: 30 zadań / najemcę (łącznie 90 zadań)
-  - **Runda 3**: 10 zadań / najemcę (łącznie 30 zadań)
-- Łącznie **90 zadań / najemcę**, **270 zadań w sumie**.
-- Całkowite zapotrzebowanie (**270 CPU, 270 GiB RAM**) znacznie przekracza pojemność klastra (96 CPU, 96 GB RAM), wymuszając działanie mechanizmów fair sharing.
-
-**Oczekiwany wynik**:
-
-- Niezależnie od wariantu (z gwarancjami czy bez), w stanie nasycenia klastera, mechanizm fair-sharing (uwzględniający wagi) powinien zapewnić **podział dostępnych zasobów proporcjonalnie do wag 3:2:1**.
-- Oczekiwana alokacja zasobów dla każdego najemcy:
-  - **Tenant A (waga 3):** (3/6) *96 CPU = **48 CPU**; (3/6)* 96 GB = **48 GB RAM**
-  - **Tenant B (waga 2):** (2/6) *96 CPU = **32 CPU**; (2/6)* 96 GB = **32 GB RAM**
-  - **Tenant C (waga 1):** (1/6) *96 CPU = **16 CPU**; (1/6)* 96 GB = **16 GB RAM**
-- Biorąc pod uwagę zadania <1 CPU, 1 GiB RAM>, oczekiwana liczba **uruchomionych zadań** w stanie równowagi:
-  - **Tenant A: ~48 zadań**
-  - **Tenant B: ~32 zadania**
-  - **Tenant C: ~16 zadań**
-- Pozostałe zadania (A: 90-48=42, B: 90-32=58, C: 90-16=74) powinny oczekiwać w kolejce. *(Uwaga: te liczby oczekujących zadań są teraz wyższe ze względu na większą liczbę wysłanych zadań)*.
-- W wariancie "z gwarancjami", gwarancje ustawione zgodnie z oczekiwanym podziałem wagowym mogą ustabilizować alokację i wpłynąć na preempcję, ale ostateczny podział zasobów powinien być zgodny ze stosunkiem wag 3:2:1 (choć jak zaobserwowano w Kueue, interakcja może być złożona).
-
-**Skrypty do uruchomienia**:
-
-- **Wariant BEZ Gwarancji:**
-
-    ```sh
-    # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-no-guarantees.yaml'
-    # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-no-guarantees.yaml'
-    # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-no-guarantees.yaml'
-    ```
-
-- **Wariant Z Gwarancjami:**
-
-    ```sh
-    # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-guarantees.yaml'
-    # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-guarantees.yaml'
-    # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-guarantees.yaml'
-    ```
-
-### V3: Heterogeniczna sprawiedliwość
-
-**Opis**: Weryfikuje implementację algorytmu **Dominant Resource Fairness (DRF)** w środowisku **heterogenicznym**. Test sprawdza, jak scheduler rozdziela zasoby (CPU, RAM, GPU) między najemców o **różnych profilach zapotrzebowania** i równych wagach, dążąc do wyrównania ich dominujących udziałów w zasobach całego klastra.
-
-**Konfiguracja**:
-
-- Klaster z 12 węzłami podzielonymi na 3 typy, zapewniający różnorodność zasobów:
-  - **Typ A**: 4 węzły CPU-intensive (~64 CPU, ~64 GiB RAM, 0 GPU każdy)
-  - **Typ B**: 4 węzły RAM-intensive (~16 CPU, ~256 GiB RAM, 0 GPU każdy)
-  - **Typ C**: 4 węzły GPU-enabled (~16 CPU, ~64 GiB RAM, 4 GPU każdy)
-- Całkowite zasoby klastra: **~384 CPU, ~1536 GiB RAM, 16 GPU**.
-- Trzej najemcy (tenant-a, tenant-b, tenant-c) z **równymi wagami** (weight=1 lub domyślnie), ale różnymi profilami zadań:
-  - **Tenant A (CPU-heavy)**: Zadania `<4 CPU, 4 GiB RAM, 0 GPU>` (Dominujący zasób: CPU)
-  - **Tenant B (Memory-heavy)**: Zadania `<1 CPU, 16 GiB RAM, 0 GPU>` (Dominujący zasób: RAM)
-  - **Tenant C (GPU-heavy)**: Zadania `<1 CPU, 4 GiB RAM, 1 GPU>` (Dominujący zasób: GPU)
-- Mechanizmy fair share/DRF skonfigurowane odpowiednio dla każdego schedulera.
-- **Dwa warianty testu:**
-    1. **Bez Gwarancji (`*-v3-no-guarantees.yaml`):** Gwarantowane/minimalne zasoby (`guarantee`/`nominalQuota`) ustawione na 0 (lub minimalną wartość/z użyciem dummy-queue dla Kueue). Celem jest obserwacja "czystego" algorytmu DRF, gdzie podział sterowany jest głównie dostępnością zasobów i dążeniem do wyrównania dominujących udziałów.
-    2. **Z Gwarancjami (`*-v3-guarantees.yaml`):** Gwarantowane zasoby ustawione na poziomie ~1/3 dominującego zasobu dla każdego najemcy (A: 128 CPU/128GiB, B: 32 CPU/512GiB, C: 5 CPU/20GiB/5 GPU). Limity pożyczania ustawione na maksimum. Celem jest obserwacja **interakcji** między mechanizmem gwarancji/preempcji `reclaim` a dynamicznym algorytmem DRF działającym na zasobach pożyczonych.
-
-**Działanie**:
-
-- Zadania przesyłane są sekwencyjnie w trzech rundach z opóźnieniami (**10s między najemcami, 30s między rundami**):
-  - Runda 1: A: 100, B: 100, C: 50 zadań
-  - Runda 2: A: 100, B: 100, C: 50 zadań
-  - Runda 3: A: 100, B: 100, C: 50 zadań
-- Łącznie: Tenant A: 300, Tenant B: 300, Tenant C: 150 zadań.
-- Duża liczba zadań zapewnia nasycenie klastra i wymusza działanie mechanizmów sprawiedliwego podziału.
-
-**Oczekiwany wynik**:
-
-Scheduler powinien przydzielić zasoby zgodnie z zasadami DRF (Dominant Resource Fairness), co oznacza dążenie do **wyrównania całkowitego zużycia dominującego zasobu** przez każdego najemcę, ważonego jego wagą (tutaj wagi są równe 1).
-
-- **Identyfikacja zasobu dominującego i jego udziału (na zadanie):**
-  - Całkowite zasoby klastra: `R = <384 CPU, 1536 GB RAM, 16 GPU>`
-  - **Tenant A** (Zadanie `<4 CPU, 4 GB RAM, 0 GPU>`):
-    - Udziały: CPU `4/384 = 1/96`, RAM `4/1536 = 1/384`, GPU `0/16 = 0`
-    - Dominujący zasób: **CPU**. Udział dominujący na zadanie: **1/96**
-  - **Tenant B** (Zadanie `<1 CPU, 16 GB RAM, 0 GPU>`):
-    - Udziały: CPU `1/384`, RAM `16/1536 = 1/96`, GPU `0/16 = 0`
-    - Dominujący zasób: **RAM**. Udział dominujący na zadanie: **1/96**
-  - **Tenant C** (Zadanie `<1 CPU, 4 GB RAM, 1 GPU>`):
-    - Udziały: CPU `1/384`, RAM `4/1536 = 1/384`, GPU `1/16 = 6/96`
-    - Dominujący zasób: **GPU**. Udział dominujący na zadanie: **1/16** (czyli 6 razy większy niż A i B)
-
-- **Oczekiwana relacja liczby zadań przy równym podziale DRF:**
-  - Aby całkowite udziały dominujące były równe (`TotalShare_A ≈ TotalShare_B ≈ TotalShare_C`):
-    `N_A * (1/96) ≈ N_B * (1/96) ≈ N_C * (6/96)`
-  - Oznacza to, że w stanie równowagi oczekujemy relacji liczby uruchomionych zadań:
-    `N_A ≈ N_B` oraz `N_A ≈ 6 * N_C` (lub `N_C ≈ N_A / 6`)
-
-- **Obliczenie maksymalnej liczby zadań przy ograniczeniach klastra:**
-  - Podstawiając relacje z kroku 2 do ograniczeń zasobów klastra:
-    - CPU:
-
-      `4*N_A + 1*N_B + 1*N_C ≤ 384` =>
-
-      `4*N_A + N_A + (N_A/6) ≤ 384` =>
-
-      `5.167 * N_A ≤ 384` =>
-
-      `N_A ≤ ~74`
-
-    - RAM:
-
-      `4*N_A + 16*N_B + 4*N_C ≤ 1536` =>
-
-      `4*N_A + 16*N_A + 4*(N_A/6) ≤ 1536` =>
-
-      `20.667 * N_A ≤ 1536` =>
-
-      `N_A ≤ ~74`
-
-    - GPU:
-
-      `0*N_A + 0*N_B + 1*N_C ≤ 16` =>
-
-      `N_A/6 ≤ 16` =>
-
-      `N_A ≤ 96`
-
-  - Najbardziej restrykcyjnym ograniczeniem jest CPU i RAM, które limitują `N_A` do około 74.
-
-- **Oczekiwana liczba uruchomionych zadań (przy pełnym obciążeniu i działającym DRF):**
-  - **Tenant A:** `N_A ≈ 74` zadania (CPU-heavy)
-  - **Tenant B:** `N_B ≈ 74` zadania (Memory-heavy)
-  - **Tenant C:** `N_C ≈ 12` zadań (GPU-heavy, bo `74 / 6 ≈ 12`)
-  - Obserwacja stosunku liczby działających zadań bliskiego **~74 : ~74 : ~12** będzie potwierdzeniem poprawnej implementacji DRF przez scheduler.
-
-- Scheduler powinien efektywnie wykorzystywać dostępne zasoby na odpowiednich typach węzłów (heterogeniczność), jednocześnie dążąc do globalnego zrównoważenia udziałów dominujących zasobów zgodnie z powyższymi obliczeniami. Gwarancje zasobów (jeśli ustawione wysoko) mogą wpływać na początkową alokację lub preempcję, ale w stanie nasycenia klastera podział powinien dążyć do wyniku DRF. W tym teście minimalizujemy wpływ gwarancji, aby obserwować "czysty" efekt DRF.
-
-**Interpretacja Wariantów:**
-
-- **Wariant "Bez Gwarancji":** Oczekujemy, że system będzie swobodnie dążył do jednego z powyższych stanów równowagi DRF, sterowany głównie dostępnością zasobów i algorytmem sprawiedliwości.
-- **Wariant "Z Gwarancjami":** Oczekujemy zobaczyć **interakcję**. System może początkowo stabilizować się bliżej gwarancji (np. 32/32/5 dla Kueue z `reclaim: Any`), a następnie, w miarę kończenia się zadań i działania preempcji/pożyczania, **potencjalnie (choć niekoniecznie w pełni)** ewoluować w kierunku stanu równowagi DRF. Porównanie z wariantem "Bez Gwarancji" pokaże, jak gwarancje wpływają na tę dynamikę i ostateczny podział w danym schedulerze.
-
-**Skrypty do uruchomienia**:
-
-- **Wariant BEZ Gwarancji:**
-
-    ```sh
-    # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v3-no-guarantees.yaml'
-    # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v3-no-guarantees.yaml'
-    # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v3-no-guarantees.yaml'
-    ```
-
-- **Wariant Z Gwarancjami:**
-
-    ```sh
-    # Dla Kueue
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v3-guarantees.yaml'
-    # Dla Volcano
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v3-guarantees.yaml'
-    # Dla YuniKorn
-    ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v3-guarantees.yaml'
-    ```
-
-### V4: Dynamiczny Priorytet Startowy vs. Historia Użycia (Emulacja SLURM Fair-Share)
-
-**Opis**: Ten scenariusz weryfikuje, czy mechanizmy *fair share* w schedulerach Kubernetes (Kueue, Volcano, YuniKorn) **dynamicznie priorytetyzują** nowe zadania na podstawie **historycznego niedoboru lub nadmiaru użycia zasobów** przez najemców w stosunku do ich udziałów wynikających z wag. Głównym celem jest zaobserwowanie, czy najemca historycznie niedostatecznie obsłużony otrzymuje **początkowo wyższy priorytet dostępu do zasobów**, gdy wszyscy najemcy zaczynają jednocześnie intensywnie konkurować o zasoby, zanim system osiągnie długoterminową równowagę zgodną z wagami. Testuje to zdolność schedulera do "nadrabiania zaległości" przez najemców z niskim historycznym użyciem, co jest kluczowym aspektem filozofii Fair Share w SLURM.
-
-**Konfiguracja**:
-
-- **Klaster**: Homogeniczny klaster CPU/RAM.
-  - **10 identycznych węzłów roboczych**.
-  - Każdy węzeł: ~10 CPU, ~40 GiB RAM (Łącznie: **~100 CPU, ~400 GiB RAM**).
-- **Najemcy**: Trzej najemcy (tenant-a, tenant-b, tenant-c) z **różnymi wagami**.
-  - **Tenant A: waga 3** (Oczekiwany udział ~50%)
-  - **Tenant B: waga 2** (Oczekiwany udział ~33.3%)
-  - **Tenant C: waga 1** (Oczekiwany udział ~16.7%)
-  - (Łączna liczba jednostek wagi: 6)
-- **Zadania**: Identyczne zadania pod względem zasobów.
-  - Każde zadanie: `<1 CPU, 1 GiB RAM>`.
-  - Czas życia (TTL): **~30 sekund** (Faza 1), **~90 sekund** (Faza 2).
-- **Konfiguracja Schedulerów**:
-  - Odpowiednie kolejki/profile dla najemców z wagami (3, 2, 1).
-  - Mechanizmy fair-share skonfigurowane (np. `fairSharing: enable` w Kueue).
-  - Test przeprowadzony **bez istotnych gwarantowanych zasobów** (`nominalQuota` = 0 lub minimalne dla Kueue z dummy-queue).
-
-**Działanie (Fazy Testu)**:
-
-1. **Faza 1: Tworzenie Kontrastu Historycznego (Trwanie: 5 minut)**
-    - **Tenant A:** Wysokie obciążenie - przesyła 2 zadania co 5 sekund (`ttl=30s`).
-    - **Tenant B:** Średnie obciążenie - przesyła 1 zadanie co 5 sekund (`ttl=30s`).
-    - **Tenant C:** Brak obciążenia - nie przesyła żadnych zadań.
-    - **Cel:** Stworzenie sytuacji, gdzie C ma znikome historyczne użycie, a A i B znaczące.
-
-2. **Pauza Stabilizacyjna (Trwanie: 60 sekund)**
-    - Krótka przerwa, aby system zakończył przetwarzanie ostatnich zadań Fazy 1.
-
-3. **Faza 2: Impuls Nasycający i Obserwacja Startowa (Trwanie Obserwacji: np. 5 minut)**
-    - **Jednoczesny Impuls:** Wszyscy trzej najemcy (A, B, C) przesyłają **jednocześnie 50 zadań każdy** (`ttl=90s`). Łącznie 150 zadań natychmiast trafia do systemu, znacząco przekraczając pojemność klastra (~40 CPU).
-    - **Kluczowa Obserwacja (pierwsze minuty, np. 1-3 minuty):**
-        - **Tempo akceptacji zadań:** Czy zadania Tenanta C są przyjmowane do uruchomienia (`Pending` -> `Running`) **częściej** niż wynikałoby to z jego wagi 1/6?
-        - **Proporcje akceptacji:** Jaki jest procentowy udział Tenanta C we *wszystkich* nowo uruchomionych zadaniach w tym początkowym okresie? Czy jest > 16.7%?
-        - **Stan kolejki:** Czy liczba zadań `Pending` dla Tenanta C maleje relatywnie szybciej niż dla A i B?
-
-4. **(Opcjonalnie) Faza 3: Obserwacja Konwergencji**
-    - Monitorowanie przez pozostały czas (do końca 5 minut obserwacji lub dłużej, jeśli potrzeba) czy początkowy priorytet (jeśli wystąpił) zanika, a system zaczyna dążyć do podziału zasobów bliższego proporcji wag 3:2:1.
-
-**Oczekiwany Wynik (Weryfikujący wpływ historii w stylu SLURM):**
-
-- **Na początku Fazy 2 (pierwsze minuty):**
-  - **Priorytet dla C:** Oczekujemy, że **tempo akceptacji zadań** dla Tenanta C będzie **wyższe niż 1/6** całkowitego tempa akceptacji w klastrze. System powinien "faworyzować" C ze względu na jego niskie historyczne użycie.
-  - **Ograniczenie A i B:** Tempo akceptacji dla A i B powinno być odpowiednio niższe niż ich udziały wagowe (3/6 i 2/6).
-- **W trakcie Fazy 2 / Fazy 3:**
-  - Początkowa przewaga w tempie akceptacji dla Tenanta C powinna **stopniowo maleć**, w miarę jak uruchamia on zadania i jego skumulowane użycie rośnie.
-  - System powinien (w zależności od implementacji schedulera) **dążyć do stanu równowagi**, gdzie długoterminowy podział zasobów odzwierciedla wagi 3:2:1.
-
-**Interpretacja wyników dla schedulerów K8s:**
-
-- **Silny początkowy priorytet dla C -> Konwergencja:** Najbliższe SLURM. Historia ma znaczenie.
-- **Słaby/krótki priorytet dla C:** Historia ma ograniczone znaczenie.
-- **Brak priorytetu dla C (tempo od początku ~3:2:1):** Historia nie wpływa na priorytet startowy; liczą się głównie wagi i bieżąca dostępność.
-
-**Metryki kluczowe do wizualizacji:**
-
-- Wykres **tempa akceptacji zadań** (pods/minuta lub pods/10s) w czasie dla każdego najemcy (kluczowy dla początku Fazy 2).
-- Wykres **procentowego udziału w nowo uruchamianych zadaniach** w czasie.
-- Wykres **liczby podów w stanie `Running`** w czasie.
-- Wykres **liczby podów w stanie `Pending`** w czasie.
-
-**Skrypty do uruchomienia**:
-
+**Scripts to run**:
 ```sh
-# Dla Kueue
+# Without guarantees
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-no-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-no-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-no-guarantees.yaml'
+
+# With guarantees
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v1-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v1-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v1-guarantees.yaml'
+```
+
+### F2: Proportional Sharing with Different Weights
+
+**Description**: Verifies proportional resource distribution based on different tenant weights.
+
+**Configuration**:
+- Cluster with 10 identical nodes, each with 12 CPU and 12GB RAM
+- Total cluster resources: 120 CPU and 120GB RAM
+- Six tenants with different weights:
+  - Tenant A: weight 4
+  - Tenant B: weight 3
+  - Tenants C & D: weight 2 each
+  - Tenants E & F: weight 1 each
+  - Total weight units: 13
+- Each task requires: 1 CPU and 1GB RAM
+- Task lifetime: 5 minutes
+
+**Test Execution**:
+- Tasks submitted in three rounds with 30-second pauses:
+  - Tenants A-B: 20 tasks per round
+  - Tenants C-D: 15 tasks per round
+  - Tenants E-F: 10 tasks per round
+- Total demand after round 3: 270 tasks (225% of cluster capacity)
+
+**Expected Result**:
+- Resource allocation proportional to weights:
+  - Tenant A: 37 pods (4/13 ≈ 30.8%)
+  - Tenant B: 28 pods (3/13 ≈ 23.1%)
+  - Tenant C: 19 pods (2/13 ≈ 15.4%)
+  - Tenant D: 18 pods (2/13 ≈ 15.4%)
+  - Tenants E & F: 9 pods each (1/13 ≈ 7.7%)
+- Jain's Fairness Index ≈ 0.80
+
+**Scripts to run**:
+```sh
+# Without guarantees
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-no-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-no-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-no-guarantees.yaml'
+
+# With guarantees
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v2-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v2-guarantees.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v2-guarantees.yaml'
+```
+
+### F3: Heterogeneous Fairness
+
+**Description**: Evaluates fairness in environments with multiple resource types and tenants with different dominant resources, using Dominant Resource Fairness (DRF) principles as the ideal fairness benchmark.
+
+**Configuration**:
+- Heterogeneous cluster with 18 nodes:
+  - 6 CPU-heavy nodes: 64 CPU, 64GB RAM, 0 GPU each
+  - 6 RAM-heavy nodes: 16 CPU, 256GB RAM, 0 GPU each
+  - 6 GPU-enabled nodes: 16 CPU, 64GB RAM, 8 GPU each
+- Total cluster resources: 576 CPU, 2304GB RAM, 48 GPU
+- Six tenants with equal weights but different task profiles:
+  - Tenants A1 & A2 (CPU-intensive): Tasks require 8 CPU, 8GB RAM, 0 GPU
+  - Tenants B1 & B2 (RAM-intensive): Tasks require 2 CPU, 32GB RAM, 0 GPU
+  - Tenants C1 & C2 (GPU-intensive): Tasks require 2 CPU, 8GB RAM, 1 GPU
+
+**Test Execution**:
+- Two rounds with 30-second pause:
+  - Tenants A1, A2, B1, B2: 40 tasks per round each
+  - Tenants C1, C2: 25 tasks per round each
+- Task lifetime: 5 minutes
+
+**Expected Result (DRF-based)**:
+- Equal dominant resource share (33.33%) for each tenant
+- Expected running tasks in equilibrium:
+  - Tenants A1 & A2: 24 tasks each
+  - Tenants B1 & B2: 24 tasks each
+  - Tenants C1 & C2: 16 tasks each
+- Expected JFI values:
+  - JFI_CPU ≈ 0.614
+  - JFI_RAM ≈ 0.614
+  - JFI_GPU ≈ 0.333 (lower due to only 2/6 tenants using GPU)
+
+**Scripts to run**:
+```sh
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v3.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v3.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v3.yaml'
+```
+
+### F4: Dynamic Start Priority vs. Usage History
+
+**Description**: Verifies whether fair share mechanisms consider historical resource usage when prioritizing newly submitted tasks, temporarily favoring tenants who have historically consumed fewer resources.
+
+**Configuration**:
+- Cluster with 10 identical nodes, each with 10 CPU and 10GB RAM
+- Total cluster resources: 100 CPU and 100GB RAM
+- Six tenants (tenant-a through tenant-f) with equal weights
+- Each task requires: 1 CPU and 1GB RAM
+
+**Test Phases**:
+1. **Phase 1 - Building Usage History (10 minutes)**:
+   - Every 10 seconds:
+     - Tenant A: submits 8 tasks
+     - Tenant B: submits 5 tasks
+     - Tenant C: submits 3 tasks
+     - Tenant D: submits 1 task
+     - Tenants E & F: submit 0 tasks
+   - Task lifetime: 60 seconds
+
+2. **Stabilization Pause (60 seconds)**
+
+3. **Phase 2 - Prioritization Test**:
+   - All tenants simultaneously submit 40 tasks each (240 total)
+   - Task lifetime: 5 minutes
+   - Observe initial task acceptance rates
+
+**Expected Result**:
+- Initial prioritization in Phase 2 should favor tenants with lower historical usage:
+  - Tenants E & F (zero historical usage) should receive highest priority
+  - Tenant D (minimal usage) should receive moderate priority
+  - Tenants C, B, A should receive progressively lower priority
+- Over time, this initial preference should diminish as the system converges toward equal distribution
+
+**Scripts to run**:
+```sh
+# For Kueue
 ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/kueue-v4.yaml'
-# Dla Volcano
 ./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/volcano-v4.yaml'
+./bin/knavigator -workflow 'resources/benchmarks/fair-share/workflows/yunikorn-v4.yaml'
 ```
