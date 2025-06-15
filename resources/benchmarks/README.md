@@ -193,6 +193,19 @@ We distinguish between two types of backfilling:
 
 **Result:** All evaluated schedulers implement **greedy backfill** - the second Job B is scheduled immediately, delaying Job A.
 
+**Scripts to run**:
+
+```bash
+# For Kueue
+./bin/knavigator -workflow resources/benchmarks/backfill/kueue/test1-hpc-backfill/run-test.yaml
+
+# For Volcano
+./bin/knavigator -workflow resources/benchmarks/backfill/volcano/test1-hpc-backfill/run-test.yaml
+
+# For YuniKorn
+./bin/knavigator -workflow resources/benchmarks/backfill/yunikorn/test1-hpc-backfill/run-test.yaml
+```
+
 ### Test 1.2: Greedy Backfill Efficiency Benchmark
 
 **Directory:** `backfill/test2-backfill-performance`
@@ -217,6 +230,39 @@ We distinguish between two types of backfilling:
 - Turnaround time (first pod scheduled to last pod completed)
 - Average cluster utilization (CPU/memory)
 
+**Scripts to run**:
+
+```bash
+#For Vanilla Kubernetes (only queue-less setup)
+./bin/knavigator -workflow resources/benchmarks/backfill/k8s/test2-backfill-performance/run-test-10x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/k8s/test2-backfill-performance/run-test-35x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/k8s/test2-backfill-performance/run-test-100x100.yaml
+
+# For Kueue
+./bin/knavigator -workflow resources/benchmarks/backfill/kueue/test2-backfill-performance/run-test-10x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/kueue/test2-backfill-performance/run-test-10x100-multiple-queues.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/kueue/test2-backfill-performance/run-test-35x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/kueue/test2-backfill-performance/run-test-35x100-multiple-queues.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/kueue/test2-backfill-performance/run-test-100x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/kueue/test2-backfill-performance/run-test-100x100-multiple-queues.yaml
+
+# For Volcano
+./bin/knavigator -workflow resources/benchmarks/backfill/volcano/test2-backfill-performance/run-test-10x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/volcano/test2-backfill-performance/run-test-10x100-multiple-queues.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/volcano/test2-backfill-performance/run-test-35x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/volcano/test2-backfill-performance/run-test-35x100-multiple-queues.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/volcano/test2-backfill-performance/run-test-100x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/volcano/test2-backfill-performance/run-test-100x100-multiple-queues.yaml
+
+# For YuniKorn
+./bin/knavigator -workflow resources/benchmarks/backfill/yunikorn/test2-backfill-performance/run-test-10x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/yunikorn/test2-backfill-performance/run-test-10x100-multiple-queues.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/yunikorn/test2-backfill-performance/run-test-35x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/yunikorn/test2-backfill-performance/run-test-35x100-multiple-queues.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/yunikorn/test2-backfill-performance/run-test-100x100.yaml
+./bin/knavigator -workflow resources/benchmarks/backfill/yunikorn/test2-backfill-performance/run-test-100x100-multiple-queues.yaml
+```
+
 ---
 
 ## 2. Gang Scheduling
@@ -239,6 +285,22 @@ The `gang/` directory evaluates "all-or-nothing" scheduling for groups of tightl
 
 **Result:** All evaluated schedulers (Kueue with TAS, Volcano, YuniKorn) pass functionality tests.
 
+**Scripts to run**:
+
+```bash
+# For Kueue
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test1-gang-functionality/run-test-standard-TAS.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test1-gang-functionality/run-test-standard-blocking-job-TAS.yaml
+
+# For Volcano
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test1-gang-functionality/run-test-standard.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test1-gang-functionality/run-test-standard-blocking-job.yaml
+
+# For YuniKorn
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test1-gang-functionality/run-test-standard.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test1-gang-functionality/run-test-standard-blocking-job.yaml
+```
+
 ### Test 2.2: Homogeneous Cluster & Workload Benchmark
 
 **Directory:** `gang/test2-homogeneous`
@@ -254,6 +316,28 @@ The `gang/` directory evaluates "all-or-nothing" scheduling for groups of tightl
   - Coarse-grained: 50 jobs × 100 pods
 
 **Pod Runtime:** Randomized 180-240 seconds
+
+**Scripts to run**:
+
+```bash
+# For Kueue
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test2-homogeneous/run-test-small-cluster-10-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test2-homogeneous/run-test-small-cluster-100-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test2-homogeneous/run-test-big-cluster-10-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test2-homogeneous/run-test-big-cluster-100-pods.yaml
+
+# For Volcano
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test2-homogeneous/run-test-small-cluster-10-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test2-homogeneous/run-test-small-cluster-100-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test2-homogeneous/run-test-big-cluster-10-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test2-homogeneous/run-test-big-cluster-100-pods.yaml
+
+# For YuniKorn
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test2-homogeneous/run-test-small-cluster-10-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test2-homogeneous/run-test-small-cluster-100-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test2-homogeneous/run-test-big-cluster-10-pods.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test2-homogeneous/run-test-big-cluster-100-pods.yaml
+```
 
 ### Test 2.3: Heterogeneous Cluster & Workload Benchmark
 
@@ -271,6 +355,22 @@ The `gang/` directory evaluates "all-or-nothing" scheduling for groups of tightl
 **Test Variants:**
 - Standard: 650 jobs (`run-test-standard.yaml`)
 - Extensive: 1300 jobs (`run-test-large.yaml`)
+
+**Scripts to run**:
+
+```bash
+# For Kueue
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test3-heterogeneous/run-test-standard-TAS.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/kueue/test3-heterogeneous/run-test-large-TAS.yaml
+
+# For Volcano
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test3-heterogeneous/run-test-standard.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/volcano/test3-heterogeneous/run-test-large.yaml
+
+# For YuniKorn
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test3-heterogeneous/run-test-standard.yaml
+./bin/knavigator -workflow resources/benchmarks/gang/yunikorn/test3-heterogeneous/run-test-large.yaml
+```
 
 ---
 
