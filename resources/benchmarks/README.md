@@ -95,10 +95,15 @@ Execute benchmark scenarios using Knavigator. Always run from the project root d
 
 ### 5. View Results
 
-Access Grafana at http://localhost:8080 to view real-time metrics and benchmark results. Pre-configured dashboards are available for:
-- Cluster resource utilization
-- Job scheduling metrics
-- Scheduler-specific performance indicators
+Access Grafana at http://localhost:8080 to view real-time metrics and benchmark results:
+
+  - Use [knavigator - Performance](/dashboards/performance.json) while benchmarking:
+    - Performance, Scalability & Resource Utilization
+    - Topology Aware Scheduling
+    - Fair Share Scheduling  
+  - Use [knavigator - Performance (psocala version)](/dashboards/performance-psocala.json) while benchmarking:
+    - Backfilling 
+    - Gang Scheduling
 
 ## Cleanup
 
